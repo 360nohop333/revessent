@@ -1375,6 +1375,19 @@ tr.collapsing{transition:all .5s var(--spring)}
   html[data-theme=amoled] .glass,html[data-theme=amoled] .sb,html[data-theme=amoled] .tb{background:#000}
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+  const supabaseClient = supabase.createClient(
+    'https://zujmouzzqiovgbnanrvv.supabase.co',
+    'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3'
+  );
+  (async function checkSession() {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session) {
+      window.location.href = '/login.html';
+    }
+  })();
+</script>
 </head>
 <body>
 <a class="sr" href="#main">Skip to dashboard content</a>
