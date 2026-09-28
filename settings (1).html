@@ -1,0 +1,1018 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="Revessent settings — connect Razorpay, configure brand sender details, and choose the recovery email tone.">
+  <meta name="color-scheme" content="light dark">
+  <title>Settings — Revessent</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23fff8e9'/%3E%3Cstop offset='1' stop-color='%23ecdcc0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='url(%23g)'/%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='none' stroke='%23ffffff' stroke-opacity='.55'/%3E%3Cpath d='M9 21h3l2-7 3 10 2.4-8 2.6 5H24' fill='none' stroke='%2335608f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <style>
+    /* ════════════════════════════════════════════════════════════
+       REVESSENT SETTINGS · shared dashboard tokens, self-contained
+       ════════════════════════════════════════════════════════════ */
+    :root{
+      color-scheme:light;
+      --canvas:#f9f4ea;
+      --page:#f1e8d4;
+      --text-primary:#1D1C1A;
+      --text-secondary:#3C3B37;
+      --text-muted:#6B6860;
+      --text-inverse:#FDFCF8;
+      --text-faint:#8E8C86;
+      --ink:var(--text-primary);
+      --ink2:var(--text-secondary);
+      --ink3:var(--text-muted);
+      --glass1:rgba(255,253,247,.42);
+      --glass2:rgba(255,253,248,.58);
+      --glass3:rgba(255,254,250,.74);
+      --glass-hi:rgba(255,255,255,.68);
+      --cc:255 253 247;
+      --lc:112 90 55;
+      --edge:rgba(255,255,255,.68);
+      --hi:rgba(255,255,255,.84);
+      --icB:rgba(255,255,255,.78);
+      --btnA:#35639a;
+      --btnAtx:#fbf6ec;
+      --ok:#8ba889;
+      --okTx:#5f7450;
+      --err:#c06a52;
+      --avaA:#e9f1f9;
+      --avaB:#bdd6ee;
+      --avaTx:#335f8e;
+      --mkA:#eef5fc;
+      --mkB:#afcdf0;
+      --mkC:#6d9fd8;
+      --accC:109 159 214;
+      --acc:#6d9fd6;
+      --acc-ink:#35608f;
+      --acc-line:rgb(var(--accC)/.35);
+      --acc-wash:rgb(var(--accC)/.10);
+      --line:rgb(112 90 55 / .14);
+      --line-soft:rgb(112 90 55 / .08);
+      --f-sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI Variable Text","Segoe UI",Roboto,"Helvetica Neue",Arial,ui-sans-serif,system-ui,sans-serif;
+      --f-mono:"IBM Plex Mono",ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+      --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:20px; --s-6:24px; --s-8:32px; --s-10:40px; --s-12:48px; --s-16:64px;
+      --r-xl:24px;
+      --r-lg:18px;
+      --r-md:14px;
+      --r-sm:11px;
+      --sh-sm:inset 0 1px 0 rgba(255,255,255,.58),0 1px 1px rgba(64,48,26,.05),0 10px 24px -18px rgba(64,48,26,.22);
+      --sh-md:inset 0 1px 0 rgba(255,255,255,.66),0 1px 1px rgba(64,48,26,.05),0 18px 36px -20px rgba(64,48,26,.28);
+      --spring:cubic-bezier(.16,1,.3,1);
+      --ease:cubic-bezier(.16,1,.3,1);
+      --pos:#6f8f6c;
+      --pos-ink:#5f7450;
+      --warn:#a9854a;
+      --warn-ink:#8a6c38;
+      --neg:#bb6a52;
+      --neg-ink:#9d543e;
+      --info:#5b86b8;
+      --info-ink:#3f6a9c;
+      --posC:111 143 108;
+      --warnC:169 133 74;
+      --negC:187 106 82;
+      --infoC:91 134 184;
+      --rfx-bg:rgba(253,251,247,0.96);
+      --rfx-border:rgba(255,255,255,0.55);
+      --rfx-blur:blur(24px) saturate(1.4);
+      --rfx-shadow:inset 0 1px 0 rgba(255,255,255,0.55), inset 0 0 2px 0 rgba(255,255,255,0.25), 0 8px 32px rgba(64,48,26,0.16);
+      --rfx-shadow-hi:inset 0 1px 0 rgba(255,255,255,0.65), inset 0 0 2px 0 rgba(255,255,255,0.3), 0 16px 48px rgba(64,48,26,0.22);
+      --rfx-sheen:rgba(255,255,255,0.75);
+      --rfx-pop:rgba(255,255,255,0.93);
+      --lg-r1:rgba(255,255,255,.90);
+      --lg-r2:rgba(255,255,255,.55);
+      --lg-core:rgba(0,0,0,.55);
+      --lg-drop:rgba(0,0,0,.20);
+      --lg-edge:rgba(51,51,51,.08);
+      --lg-ring:rgba(0,0,0,.90);
+      --lg-ring-o:.22;
+      --lg-sheen:rgba(255,255,255,.80);
+      --lg-hair:rgba(255,255,255,.20);
+      --lg-blur:16px;
+      --tr:18%;
+    }
+
+    html[data-theme="dark"]{
+      color-scheme:dark;
+      --canvas:#1c1a17; --page:#161512;
+      --text-primary:#EFECE4; --text-secondary:#C4C6C9; --text-muted:#96938C; --text-inverse:#161512; --text-faint:#7E7B74;
+      --ink:var(--text-primary); --ink2:var(--text-secondary); --ink3:var(--text-muted);
+      --glass1:rgba(34,32,28,.50);
+      --glass2:rgba(39,37,33,.64);
+      --glass3:rgba(45,43,38,.78);
+      --glass-hi:rgba(255,255,255,.10);
+      --cc:42 40 36;
+      --lc:196 198 201;
+      --edge:rgba(224,222,214,.20);
+      --hi:rgba(255,255,255,.13);
+      --icB:rgba(255,255,255,.15);
+      --accC:196 198 201;
+      --acc:#C4C6C9; --acc-ink:#EFECE4;
+      --btnA:#C4C6C9; --btnAtx:#1d1b18;
+      --ok:#8FA089; --okTx:#d5dfc9; --err:#D79A82;
+      --line:rgb(196 198 201 / .16);
+      --line-soft:rgb(196 198 201 / .10);
+      --pos:#8FA089; --pos-ink:#A9BBA2;
+      --warn:#C2A472; --warn-ink:#D6BC8E;
+      --neg:#D79A82; --neg-ink:#E4B29D;
+      --info:#9BB4D2; --info-ink:#B6C9E0;
+      --posC:143 160 137; --warnC:194 164 114; --negC:215 154 130; --infoC:155 180 210;
+      --rfx-bg:rgba(255,255,255,0.05);
+      --rfx-border:rgba(255,255,255,0.15);
+      --rfx-shadow:inset 0 1px 0 rgba(255,255,255,0.20), inset 0 0 2px 0 rgba(255,255,255,0.15), 0 8px 32px rgba(0,0,0,0.30);
+      --rfx-shadow-hi:inset 0 1px 0 rgba(255,255,255,0.26), inset 0 0 2px 0 rgba(255,255,255,0.18), 0 18px 52px rgba(0,0,0,0.42);
+      --rfx-pop:rgba(28,26,23,0.94);
+      --rfx-sheen:rgba(255,255,255,0.45);
+      --lg-r1:rgba(255,255,255,.26);
+      --lg-r2:rgba(255,255,255,.13);
+      --lg-core:rgba(0,0,0,.85);
+      --lg-drop:rgba(0,0,0,.50);
+      --lg-edge:rgba(255,255,255,.11);
+      --lg-ring:rgba(0,0,0,.95);
+      --lg-ring-o:.40;
+      --lg-sheen:rgba(255,255,255,.34);
+      --lg-hair:rgba(255,255,255,.10);
+    }
+
+    html[data-theme="amoled"]{
+      color-scheme:dark;
+      --canvas:#000000; --page:#000000;
+      --text-primary:#FFFFFF; --text-secondary:#C8CDD6; --text-muted:#8D93A0; --text-inverse:#000000; --text-faint:#717784;
+      --ink:var(--text-primary); --ink2:var(--text-secondary); --ink3:var(--text-muted);
+      --glass1:rgba(255,255,255,.030);
+      --glass2:rgba(255,255,255,.055);
+      --glass3:rgba(255,255,255,.085);
+      --glass-hi:rgba(255,255,255,.06);
+      --cc:22 25 33;
+      --lc:96 108 130;
+      --edge:rgba(255,255,255,.13);
+      --hi:rgba(255,255,255,.09);
+      --icB:rgba(255,255,255,.11);
+      --accC:37 99 235;
+      --acc:#2563eb; --acc-ink:#7EA8F8;
+      --btnA:#2563eb; --btnAtx:#ffffff;
+      --ok:#61956f; --okTx:#cde8c2; --err:#e5947c;
+      --line:rgb(120 134 160 / .20);
+      --line-soft:rgb(120 134 160 / .12);
+      --pos:#7FA98B; --pos-ink:#9FC4A8;
+      --warn:#C5A46C; --warn-ink:#DCBE8B;
+      --neg:#E5947C; --neg-ink:#F0AE99;
+      --info:#7FB0E5; --info-ink:#A2C8F0;
+      --posC:127 169 139; --warnC:197 164 108; --negC:229 148 124; --infoC:127 176 229;
+      --rfx-bg:rgba(255,255,255,0.05);
+      --rfx-border:rgba(255,255,255,0.15);
+      --rfx-shadow:inset 0 1px 0 rgba(255,255,255,0.20), inset 0 0 2px 0 rgba(255,255,255,0.12), 0 8px 32px rgba(0,0,0,0.60);
+      --rfx-shadow-hi:inset 0 1px 0 rgba(255,255,255,0.26), inset 0 0 2px 0 rgba(255,255,255,0.16), 0 18px 52px rgba(0,0,0,0.75);
+      --rfx-pop:rgba(0,0,0,0.94);
+      --rfx-sheen:rgba(255,255,255,0.40);
+      --lg-r1:rgba(255,255,255,.22);
+      --lg-r2:rgba(255,255,255,.11);
+      --lg-core:rgba(0,0,0,.95);
+      --lg-drop:rgba(0,0,0,.70);
+      --lg-edge:rgba(255,255,255,.12);
+      --lg-ring:rgba(0,0,0,1);
+      --lg-ring-o:.45;
+      --lg-sheen:rgba(255,255,255,.30);
+      --lg-hair:rgba(255,255,255,.09);
+    }
+
+    html[data-theme="minimal"]{
+      color-scheme:light;
+      --canvas:#f5f5f5; --page:#ffffff;
+      --text-primary:#000000; --text-secondary:#1a1a1a; --text-muted:#5a5a5a; --text-inverse:#ffffff; --text-faint:#767676;
+      --ink:var(--text-primary); --ink2:var(--text-secondary); --ink3:var(--text-muted);
+      --glass1:rgba(255,255,255,.86);
+      --glass2:rgba(255,255,255,.92);
+      --glass3:rgba(255,255,255,.96);
+      --glass-hi:rgba(0,0,0,.04);
+      --cc:255 255 255;
+      --lc:0 0 0;
+      --edge:rgba(0,0,0,.16);
+      --hi:rgba(0,0,0,.05);
+      --icB:rgba(0,0,0,.06);
+      --accC:0 0 0;
+      --acc:#000000; --acc-ink:#000000;
+      --btnA:#000000; --btnAtx:#ffffff;
+      --ok:#000000; --okTx:#000000; --err:#000000;
+      --line:rgb(0 0 0 / .18);
+      --line-soft:rgb(0 0 0 / .10);
+      --pos:#0a6b3d; --pos-ink:#075232;
+      --warn:#8a5a00; --warn-ink:#6d4700;
+      --neg:#a11212; --neg-ink:#870f0f;
+      --info:#0b4a9e; --info-ink:#083a7d;
+      --posC:10 107 61; --warnC:138 90 0; --negC:161 18 18; --infoC:11 74 158;
+      --rfx-bg:rgba(255,255,255,0.92);
+      --rfx-border:rgba(0,0,0,0.18);
+      --rfx-blur:blur(0px) saturate(1);
+      --rfx-shadow:0 1px 2px rgba(0,0,0,.07);
+      --rfx-shadow-hi:0 3px 10px rgba(0,0,0,.12);
+      --rfx-sheen:rgba(0,0,0,0);
+      --rfx-pop:#ffffff;
+      --lg-r1:rgba(255,255,255,0);
+      --lg-r2:rgba(255,255,255,0);
+      --lg-core:rgba(0,0,0,.55);
+      --lg-drop:rgba(0,0,0,.10);
+      --lg-edge:rgba(0,0,0,.55);
+      --lg-ring:rgba(0,0,0,0);
+      --lg-ring-o:0;
+      --lg-sheen:rgba(255,255,255,0);
+      --lg-hair:rgba(0,0,0,0);
+      --lg-blur:0px;
+    }
+
+    html[data-theme="minimal2"]{
+      color-scheme:dark;
+      --canvas:#0a0a0a; --page:#000000;
+      --text-primary:#ffffff; --text-secondary:#e6e6e6; --text-muted:#a8a8a8; --text-inverse:#000000; --text-faint:#8c8c8c;
+      --ink:var(--text-primary); --ink2:var(--text-secondary); --ink3:var(--text-muted);
+      --glass1:rgba(0,0,0,.86);
+      --glass2:rgba(0,0,0,.92);
+      --glass3:rgba(0,0,0,.96);
+      --glass-hi:rgba(255,255,255,.06);
+      --cc:0 0 0;
+      --lc:255 255 255;
+      --edge:rgba(255,255,255,.20);
+      --hi:rgba(255,255,255,.07);
+      --icB:rgba(255,255,255,.08);
+      --accC:255 255 255;
+      --acc:#ffffff; --acc-ink:#ffffff;
+      --btnA:#ffffff; --btnAtx:#000000;
+      --ok:#ffffff; --okTx:#ffffff; --err:#ffffff;
+      --line:rgb(255 255 255 / .22);
+      --line-soft:rgb(255 255 255 / .12);
+      --pos:#5fd79b; --pos-ink:#82e5b4;
+      --warn:#e2b45f; --warn-ink:#efcb8b;
+      --neg:#f07f7f; --neg-ink:#f6a0a0;
+      --info:#82b2f2; --info-ink:#a6caf8;
+      --posC:95 215 155; --warnC:226 180 95; --negC:240 127 127; --infoC:130 178 242;
+      --rfx-bg:rgba(0,0,0,0.92);
+      --rfx-border:rgba(255,255,255,0.22);
+      --rfx-blur:blur(0px) saturate(1);
+      --rfx-shadow:0 1px 2px rgba(0,0,0,.7);
+      --rfx-shadow-hi:0 3px 10px rgba(0,0,0,.85);
+      --rfx-sheen:rgba(255,255,255,0);
+      --rfx-pop:#000000;
+      --lg-r1:rgba(255,255,255,0);
+      --lg-r2:rgba(255,255,255,0);
+      --lg-core:rgba(255,255,255,.30);
+      --lg-drop:rgba(0,0,0,.55);
+      --lg-edge:rgba(255,255,255,.55);
+      --lg-ring:rgba(0,0,0,0);
+      --lg-ring-o:0;
+      --lg-sheen:rgba(255,255,255,0);
+      --lg-hair:rgba(255,255,255,0);
+      --lg-blur:0px;
+    }
+
+
+    *{box-sizing:border-box}
+    html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+    body{
+      margin:0;min-height:100vh;font-family:var(--f-sans);color:var(--text-primary);font-weight:500;line-height:1.55;
+      letter-spacing:-.01em;background:var(--page);overflow-x:hidden;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+    }
+    body::before{
+      content:"";position:fixed;inset:0;z-index:-2;
+      background:
+        radial-gradient(72vmax 42vmax at 14% -8%, rgb(var(--accC)/.26), transparent 72%),
+        radial-gradient(62vmax 38vmax at 86% 105%, rgba(255,255,255,.28), transparent 70%),
+        linear-gradient(180deg,#E6F2FF 0%,#B3D9FF 46%,#80B3FF 100%);
+    }
+    html[data-theme="dark"] body::before{
+      background:
+        radial-gradient(76vmax 46vmax at 18% -10%, rgba(226,225,219,.11), transparent 70%),
+        radial-gradient(66vmax 40vmax at 92% 106%, rgba(90,84,75,.28), transparent 72%),
+        linear-gradient(180deg,#1c1a17,#161512);
+    }
+    body::after{
+      content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.12;mix-blend-mode:multiply;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23n)' opacity='0.85'/%3E%3C/svg%3E");
+    }
+    html[data-theme="dark"] body::after{opacity:.075;mix-blend-mode:overlay}
+
+    html[data-theme="amoled"] body::before{background:#000000}
+    html[data-theme="minimal"] body::before{background:#ffffff}
+    html[data-theme="minimal2"] body::before{background:#000000}
+    html[data-theme="amoled"] body::after{opacity:.055;mix-blend-mode:overlay}
+    html[data-theme="minimal"] body::after,
+    html[data-theme="minimal2"] body::after{opacity:0}
+    html[data-theme="minimal"] .glass-card::after,
+    html[data-theme="minimal2"] .glass-card::after,
+    html[data-theme="minimal"] .box::after,
+    html[data-theme="minimal2"] .box::after{display:none}
+    html[data-theme="minimal"] .glass-card,
+    html[data-theme="minimal2"] .glass-card,
+    html[data-theme="minimal"] .action-bar,
+    html[data-theme="minimal2"] .action-bar{backdrop-filter:none;-webkit-backdrop-filter:none}
+    html[data-theme="minimal"] .start-btn,
+    html[data-theme="minimal2"] .start-btn{box-shadow:var(--rfx-shadow);filter:none}
+    a{color:inherit;text-decoration:none}
+    button,input{font:inherit}
+    button{border:0}
+    .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    :focus-visible{outline:2px solid var(--acc-ink);outline-offset:3px;border-radius:10px}
+    ::selection{background:var(--acc);color:#f4f9ff}
+    html[data-theme="dark"] ::selection{background:var(--acc);color:#1d1b18}
+
+    .boot{
+      min-height:100vh;display:grid;place-items:center;padding:24px;
+    }
+    .boot-card{width:min(430px,100%);text-align:center;padding:26px;border-radius:var(--r-xl)}
+    .boot-spinner,.spinner{
+      display:inline-block;width:18px;height:18px;border-radius:50%;border:2px solid rgb(var(--lc)/.18);border-top-color:var(--acc-ink);animation:spin .8s linear infinite;
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    .shell{
+      width:min(100%,760px);margin-inline:auto;padding:20px 16px 54px;
+    }
+    .shell[hidden],.boot[hidden],.full-error[hidden]{display:none!important}
+
+    .topbar{display:flex;flex-direction:column;gap:16px;margin-bottom:18px}
+    .back-link{
+      display:inline-flex;align-items:center;gap:8px;width:max-content;padding:9px 12px;border-radius:999px;color:var(--text-secondary);
+      background:rgb(var(--cc)/.36);border:1px solid var(--edge);box-shadow:var(--sh-sm);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+      font-size:13px;font-weight:650;transition:transform .25s var(--spring),color .25s,background .25s;
+    }
+    .back-link:hover{transform:translateY(-1px);color:var(--text-primary);background:rgb(var(--cc)/.56)}
+    .brand-row{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+    .brand{display:flex;align-items:center;gap:9px;font-weight:760;font-size:21px;letter-spacing:-.04em;color:var(--text-primary)}
+    .brand-mark{width:30px;height:30px;display:inline-grid;place-items:center;border-radius:10px;background:rgb(var(--cc)/.62);border:1px solid var(--edge);box-shadow:var(--sh-sm)}
+    .brand-mark svg{width:22px;height:22px}.brand .dot{color:var(--acc-ink)}
+
+    /* Navigation inspiration: compact liquid-glass action bar with anchored selected pointer. */
+    .action-wrap{position:relative;display:flex;justify-content:center;width:100%;margin-top:2px}
+    .action-bar{
+      display:flex;align-items:center;gap:7px;padding:7px;border-radius:999px;background:rgb(var(--cc)/.40);border:1px double var(--lg-edge);
+      box-shadow:var(--rfx-shadow);backdrop-filter:blur(18px) saturate(1.25);-webkit-backdrop-filter:blur(18px) saturate(1.25);
+      max-width:100%;overflow-x:auto;scrollbar-width:none;
+    }
+    .action-bar::-webkit-scrollbar{display:none}
+    .action-bar a{
+      position:relative;display:grid;place-items:center;width:40px;height:40px;border-radius:999px;color:var(--text-muted);transition:transform .24s var(--spring),color .24s,background .24s;
+      flex:0 0 auto;
+    }
+    .action-bar a svg{width:18px;height:18px;stroke-width:1.8}
+    .action-bar a:hover{transform:translateY(-1px);color:var(--text-primary);background:rgb(var(--cc)/.38)}
+    .action-bar a.selected{color:var(--btnAtx);background:var(--btnA);box-shadow:inset 0 1px 0 rgb(var(--cc)/.22),0 10px 18px -14px rgba(64,48,26,.58)}
+    .action-bar a::before{
+      content:attr(data-tip);position:absolute;bottom:calc(100% + 9px);left:50%;transform:translate(-50%,6px);opacity:0;pointer-events:none;white-space:nowrap;
+      background:var(--rfx-pop);border:1px solid var(--edge);box-shadow:var(--rfx-shadow);border-radius:10px;padding:5px 8px;font-size:11px;color:var(--text-secondary);transition:.2s var(--spring);
+    }
+    .action-bar a:hover::before,.action-bar a:focus-visible::before{opacity:1;transform:translate(-50%,0)}
+    .anchored-pointer{position:absolute;bottom:-5px;left:50%;width:10px;height:10px;border-radius:3px;transform:translateX(-50%) rotate(45deg);background:var(--btnA);box-shadow:0 5px 12px -7px rgba(0,0,0,.45)}
+
+    .hero{margin:24px 0 20px}
+    .eyebrow{display:inline-flex;align-items:center;gap:8px;font-family:var(--f-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.16em;font-weight:650;color:var(--text-muted)}
+    .eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--acc);box-shadow:0 0 0 4px var(--acc-wash)}
+    h1{font-size:clamp(2.15rem,8vw,3.35rem);line-height:1.02;margin:13px 0 0;letter-spacing:-.06em;font-weight:780;color:var(--text-primary)}
+    .lead{margin:14px 0 0;max-width:62ch;color:var(--text-secondary);font-size:1rem;line-height:1.72;font-weight:470}
+
+    .glass-card{
+      position:relative;overflow:hidden;border-radius:var(--r-xl);background:var(--rfx-bg);border:1px double var(--lg-edge);box-shadow:var(--rfx-shadow);
+      backdrop-filter:var(--rfx-blur);-webkit-backdrop-filter:var(--rfx-blur);
+    }
+    .glass-card::before{
+      content:"";position:absolute;z-index:0;top:35%;left:50%;transform:translateX(-50%);width:calc(100% - 18px);height:calc(100% - 18px);border-radius:inherit;
+      border:1px solid var(--lg-ring);filter:blur(var(--lg-blur));opacity:var(--lg-ring-o);pointer-events:none;
+    }
+    .glass-card::after{
+      content:"";position:absolute;z-index:0;inset:0;border-radius:inherit;pointer-events:none;filter:blur(7px);
+      background:linear-gradient(45deg,var(--lg-sheen) 0%,transparent var(--tr),transparent calc(100% - var(--tr)),var(--lg-sheen) 100%);opacity:.72;
+    }
+    .glass-card > *{position:relative;z-index:1}
+
+    .settings-card{padding:18px}
+    .settings-card.is-loading .loading-overlay{display:flex}
+    .settings-card.is-loading fieldset{opacity:.44}
+    fieldset{border:0;margin:0;padding:0;min-inline-size:0;transition:opacity .25s ease}
+    fieldset:disabled{pointer-events:none}
+    .loading-overlay{
+      display:none;position:absolute;inset:0;z-index:5;align-items:center;justify-content:center;gap:12px;border-radius:inherit;background:rgb(var(--cc)/.58);
+      backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:var(--text-secondary);font-size:13px;font-weight:650;
+    }
+    html[data-theme="dark"] .loading-overlay{background:rgba(0,0,0,.36)}
+
+    .section{padding:20px 0;border-top:1px solid var(--line-soft)}
+    .section:first-child{border-top:0;padding-top:0}
+    .section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:15px}
+    h2{font-size:1.05rem;line-height:1.2;margin:0;letter-spacing:-.025em;color:var(--text-primary);font-weight:720}
+    .section-note{margin:6px 0 0;color:var(--text-muted);font-size:13px;line-height:1.6}
+    .section-note a{color:var(--acc-ink);font-weight:650;border-bottom:1px dotted var(--acc-line)}
+    .section-note a:hover{border-bottom-style:solid}
+
+    .badge{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;border-radius:999px;padding:6px 10px;font-family:var(--f-mono);font-size:11px;font-weight:650;border:1px solid var(--line);color:var(--text-muted);background:rgb(var(--cc)/.34)}
+    .badge::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--text-faint)}
+    .badge.connected{color:var(--pos-ink);border-color:rgb(var(--posC)/.30);background:rgb(var(--posC)/.12)}
+    .badge.connected::before{background:var(--pos);box-shadow:0 0 0 4px rgb(var(--posC)/.10)}
+
+    .field-grid{display:grid;gap:14px}
+    .field{display:grid;gap:7px}
+    label{font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:650;color:var(--text-muted)}
+    input{
+      width:100%;min-height:46px;border-radius:var(--r-md);border:1px solid var(--line);background:rgb(var(--cc)/.48);color:var(--text-primary);
+      padding:12px 14px;box-shadow:inset 0 1px 0 rgba(255,255,255,.28);transition:border-color .2s,box-shadow .2s,background .2s;
+    }
+    input::placeholder{color:var(--text-faint)}
+    input:focus{outline:none;border-color:var(--acc-line);box-shadow:0 0 0 4px var(--acc-wash),inset 0 1px 0 rgba(255,255,255,.28);background:rgb(var(--cc)/.70)}
+    input[aria-invalid="true"]{border-color:rgb(var(--negC)/.52);box-shadow:0 0 0 4px rgb(var(--negC)/.10)}
+    .mono{font-family:var(--f-mono);letter-spacing:.01em}
+    .help{font-size:12.5px;color:var(--text-muted);line-height:1.55;margin:0}
+    .inline-error{display:none;color:var(--neg-ink);font-size:12.5px;font-weight:620;margin:2px 0 0}
+    .inline-error.show{display:block}
+
+    .tone-grid{display:grid;grid-template-columns:1fr;gap:10px}
+    .tone-card{
+      text-align:left;position:relative;display:block;width:100%;padding:15px 15px 15px 46px;border-radius:var(--r-lg);border:1px solid var(--line);color:var(--text-primary);
+      background:rgb(var(--cc)/.34);box-shadow:var(--sh-sm);cursor:pointer;transition:transform .22s var(--spring),border-color .22s,background .22s,box-shadow .22s;
+    }
+    .tone-card:hover{transform:translateY(-1px);background:rgb(var(--cc)/.52);border-color:var(--edge)}
+    .tone-card[aria-pressed="true"]{background:var(--acc-wash);border-color:var(--acc-line);box-shadow:var(--sh-md)}
+    .tone-card::before{
+      content:"";position:absolute;left:16px;top:18px;width:16px;height:16px;border-radius:50%;border:1.5px solid rgb(var(--lc)/.28);background:rgb(var(--cc)/.32);box-shadow:inset 0 1px 0 rgba(255,255,255,.35);
+    }
+    .tone-card[aria-pressed="true"]::before{border-color:var(--acc-ink);background:var(--btnA)}
+    .tone-card[aria-pressed="true"]::after{content:"";position:absolute;left:21px;top:23px;width:6px;height:6px;border-radius:50%;background:var(--btnAtx)}
+    .tone-title{display:block;font-size:14.5px;font-weight:720;letter-spacing:-.015em;color:var(--text-primary)}
+    .tone-desc{display:block;margin-top:3px;color:var(--text-muted);font-size:13px;line-height:1.45}
+
+    .warning,.message{
+      display:none;border-radius:var(--r-md);padding:12px 13px;margin:0 0 16px;border:1px solid var(--line);font-size:13px;line-height:1.55;
+    }
+    .warning.show,.message.show{display:block}
+    .warning{color:var(--warn-ink);background:rgb(var(--warnC)/.11);border-color:rgb(var(--warnC)/.24)}
+    .message.success{color:var(--pos-ink);background:rgb(var(--posC)/.13);border-color:rgb(var(--posC)/.28)}
+    .message.error{color:var(--neg-ink);background:rgb(var(--negC)/.12);border-color:rgb(var(--negC)/.30)}
+
+    .form-actions{display:flex;flex-direction:column-reverse;gap:10px;padding-top:18px;border-top:1px solid var(--line-soft)}
+    .secondary-btn{
+      min-height:52px;padding:0 18px;border-radius:999px;background:rgb(var(--cc)/.40);border:1px solid var(--edge);color:var(--text-secondary);font-weight:680;box-shadow:var(--sh-sm);cursor:pointer;
+      transition:transform .22s var(--spring),color .2s,background .2s;
+    }
+    .secondary-btn:hover{transform:translateY(-1px);color:var(--text-primary);background:rgb(var(--cc)/.58)}
+
+    /* Liquid glass button component adapted from the provided glass recipe. */
+    .fx-layer{filter:contrast(1.05)}
+    .box{
+      --w:100%;--h:56px;--r:9999px;--tr:15%;z-index:1;position:relative;width:var(--w);height:var(--h);display:flex;justify-content:center;align-items:center;border-radius:var(--r);
+      border:1px double var(--lg-edge);box-shadow:inset 2px -2px 1px -1px var(--lg-r1),inset -2px 2px 1px -1px var(--lg-r1),inset 6px -6px 1px -6px var(--lg-r2),inset -6px 6px 1px -6px var(--lg-r2),inset 0 0 2px var(--lg-core),0 4px 8px var(--lg-drop);
+      background:rgba(0,0,0,.02);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);cursor:pointer;filter:brightness(.98);user-select:none;overflow:hidden;
+    }
+    .box::before{content:"";position:absolute;z-index:0;top:35%;left:50%;transform:translateX(-50%);width:calc(var(--w) - 16px);height:calc(var(--h) - 16px);border-radius:var(--r);border:1px solid var(--lg-ring);filter:blur(8px);opacity:var(--lg-ring-o);pointer-events:none}
+    .box::after{content:"";z-index:2;position:absolute;inset:0;border-radius:var(--r);filter:blur(7px);background:linear-gradient(45deg,var(--lg-sheen) 0%,transparent var(--tr),transparent calc(100% - var(--tr)),var(--lg-sheen) 100%);pointer-events:none}
+    .box .circle-overlay{position:absolute;inset:4px;border:1px solid var(--lg-hair);border-radius:var(--r);filter:blur(1px);pointer-events:none;z-index:3}
+    .start-btn{padding:0 .8rem;display:flex;align-items:center;gap:.75rem;transition:transform .25s var(--spring),filter .25s;background:var(--btnA);color:var(--btnAtx)}
+    .start-btn .text{position:relative;z-index:4;font-size:15px;font-weight:750;letter-spacing:-.01em;color:var(--btnAtx);filter:drop-shadow(0 18px 3px rgba(0,0,0,.10))}
+    .start-btn .btn-icon{position:relative;z-index:4;width:34px;height:34px;display:flex;justify-content:center;align-items:center;background:rgb(var(--cc)/.18);border:1px solid rgb(var(--cc)/.15);border-radius:50%;box-shadow:0 0 6px rgba(0,0,0,.22);transition:transform .25s var(--spring)}
+    .start-btn .btn-icon svg{width:14px;fill:var(--btnAtx)}
+    .start-btn:hover{transform:translateY(-2px);filter:brightness(.98)}
+    .start-btn:hover .btn-icon{transform:scale(1.08)}
+    .start-btn:active{transform:scale(.97)}
+    .start-btn:disabled{cursor:not-allowed;opacity:.72;transform:none;filter:saturate(.7)}
+    .start-btn .saving-spinner{display:none;width:15px;height:15px;border-radius:50%;border:2px solid rgb(var(--cc)/.34);border-top-color:var(--btnAtx);animation:spin .8s linear infinite;position:relative;z-index:4}
+    .start-btn.is-saving .btn-icon svg{display:none}
+    .start-btn.is-saving .saving-spinner{display:inline-block}
+
+    .full-error{min-height:100vh;display:grid;place-items:center;padding:24px}
+    .full-error .glass-card{width:min(460px,100%);padding:26px;text-align:center}
+    .full-error h1{font-size:1.45rem;letter-spacing:-.03em;margin:0}
+    .full-error p{margin:10px 0 0;color:var(--text-secondary)}
+    .full-error .secondary-btn{margin-top:18px;width:100%}
+
+    @media(min-width:640px){
+      .shell{padding:28px 20px 70px}
+      .topbar{gap:18px}
+      .brand-row{flex-wrap:nowrap}
+      .action-wrap{width:auto;justify-content:flex-end}
+      .settings-card{padding:24px}
+      .field-grid.two{grid-template-columns:1fr 1fr}
+      .tone-grid{grid-template-columns:repeat(2,1fr)}
+      .form-actions{flex-direction:row;justify-content:flex-end;align-items:center}
+      .secondary-btn{min-width:132px}
+      .primary-action{--w:190px}
+    }
+    @media(max-width:380px){
+      .action-bar a{width:38px;height:38px}
+      .settings-card{padding:15px}
+      h1{font-size:2rem}
+    }
+    @media(prefers-reduced-motion:reduce){
+      *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+    }
+  </style>
+</head>
+<body>
+  <div class="boot" id="boot" aria-live="polite">
+    <div class="boot-card glass-card">
+      <span class="boot-spinner" aria-hidden="true"></span>
+      <p class="section-note" style="margin-top:12px">Checking your Revessent session…</p>
+    </div>
+  </div>
+
+  <div class="full-error" id="pageError" hidden>
+    <div class="glass-card">
+      <span class="eyebrow">Account</span>
+      <h1>Couldn't load your account.</h1>
+      <p>Please refresh. If the problem continues, sign in again from the login page.</p>
+      <button class="secondary-btn" type="button" id="reloadBtn">Refresh</button>
+    </div>
+  </div>
+
+  <main class="shell" id="appShell" hidden>
+    <div class="topbar">
+      <a class="back-link" href="/dashboard.html" aria-label="Back to dashboard">← Dashboard</a>
+      <div class="brand-row">
+        <a class="brand" href="/dashboard.html" aria-label="Revessent dashboard">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" fill="none"><rect x="2" y="2" width="28" height="28" rx="9" fill="rgb(var(--cc)/.70)" stroke="var(--edge)"/><path d="M9 21h3l2-7 3 10 2.4-8 2.6 5H24" stroke="var(--acc-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          revessent<span class="dot">.</span>
+        </a>
+
+        <div class="action-wrap" aria-label="Quick navigation">
+          <nav class="action-bar" aria-label="Dashboard shortcuts">
+            <a href="/dashboard.html#overview" data-tip="Overview" interestfor="account" aria-label="Overview">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.6 12 3.5l9 7.1"/><path d="M5.5 9.4V20h13V9.4"/><path d="M9.8 20v-5.4h4.4V20"/></svg>
+            </a>
+            <a href="/dashboard.html#queue" data-tip="Queue" interestfor="pinned" aria-label="Recovery queue">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 12a8.5 8.5 0 1 1-2.6-6.1"/><path d="M20.5 4.2v4.6h-4.6"/></svg>
+            </a>
+            <a href="/dashboard.html#members" data-tip="Members" interestfor="following" aria-label="Members">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="9.5" cy="8.4" r="3.4"/><path d="M3.4 19.4c0-3.2 2.7-5.3 6.1-5.3s6.1 2.1 6.1 5.3"/><path d="M16.4 5.4a3.2 3.2 0 0 1 0 6.1"/><path d="M18.1 14.6c1.7.6 2.9 1.9 2.9 4"/></svg>
+            </a>
+            <a href="/dashboard.html#digest" data-tip="Digest" interestfor="email" aria-label="Weekly digest">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.2" width="18" height="13.6" rx="3"/><path d="m3.8 7.4 7.2 5.1a1.8 1.8 0 0 0 2 0l7.2-5.1"/></svg>
+            </a>
+            <a class="selected" href="/settings.html" data-tip="Settings" interestfor="edit" aria-label="Settings" aria-current="page">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.2 14.4a1.5 1.5 0 0 0 .3 1.7l.1.1a1.9 1.9 0 1 1-2.7 2.7l-.1-.1a1.5 1.5 0 0 0-2.5 1v.3a1.9 1.9 0 1 1-3.7 0v-.2a1.5 1.5 0 0 0-2.6-1l-.1.1a1.9 1.9 0 1 1-2.7-2.7l.1-.1a1.5 1.5 0 0 0-1-2.5h-.3a1.9 1.9 0 0 1 0-3.7h.2a1.5 1.5 0 0 0 1-2.6l-.1-.1a1.9 1.9 0 1 1 2.7-2.7l.1.1a1.5 1.5 0 0 0 2.5-1v-.3a1.9 1.9 0 1 1 3.7 0v.2a1.5 1.5 0 0 0 2.6 1l.1-.1a1.9 1.9 0 1 1 2.7 2.7l-.1.1a1.5 1.5 0 0 0 1 2.5h.2a1.9 1.9 0 0 1 0 3.7h-.3a1.5 1.5 0 0 0-1.4.9Z"/></svg>
+            </a>
+            <a href="/dashboard.html#signals" data-tip="Signals" interestfor="business" aria-label="Expansion signals">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 16.2 9 10.6l3.4 3.4L20.5 6"/><path d="M15.4 6h5.1v5.1"/></svg>
+            </a>
+          </nav>
+          <div class="anchored-pointer" aria-hidden="true"></div>
+        </div>
+      </div>
+    </div>
+
+    <section class="hero" aria-labelledby="settingsTitle">
+      <span class="eyebrow">Workspace settings</span>
+      <h1 id="settingsTitle">Recovery settings</h1>
+      <p class="lead">Connect Razorpay, choose the sender your members will see, and set the tone Revessent uses when it writes recovery emails in your name.</p>
+    </section>
+
+    <form class="settings-card glass-card" id="settingsForm" novalidate>
+      <div class="loading-overlay" id="formOverlay"><span class="boot-spinner" aria-hidden="true"></span><span>Loading settings…</span></div>
+      <div class="warning" id="loadWarning" role="status"></div>
+      <div class="message" id="formMessage" role="status" aria-live="polite"></div>
+
+      <fieldset id="formFields" disabled>
+        <section class="section" aria-labelledby="razorpayHeading">
+          <div class="section-head">
+            <div>
+              <h2 id="razorpayHeading">Razorpay connection</h2>
+              <p class="section-note">Find these in Razorpay under <a href="https://dashboard.razorpay.com/app/keys" target="_blank" rel="noopener noreferrer">Settings → API Keys</a>.</p>
+            </div>
+            <span class="badge" id="connectionBadge">Not connected</span>
+          </div>
+
+          <div class="field-grid">
+            <div class="field">
+              <label for="rzpKeyId">Razorpay Key ID</label>
+              <input class="mono" id="rzpKeyId" name="rzpKeyId" type="text" placeholder="rzp_live_xxxxxxxxxxxx" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="field">
+              <label for="rzpKeySecret">Razorpay Key Secret</label>
+              <input class="mono" id="rzpKeySecret" name="rzpKeySecret" type="password" placeholder="Paste your key secret" autocomplete="new-password" spellcheck="false">
+              <p class="help">Stored securely and never shown again after saving.</p>
+              <p class="inline-error" id="razorpayError">Enter both the Key ID and Key Secret to connect Razorpay</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" aria-labelledby="brandHeading">
+          <div class="section-head">
+            <div>
+              <h2 id="brandHeading">Brand &amp; sender</h2>
+              <p class="section-note">This is the identity members see when a recovery note is sent.</p>
+            </div>
+          </div>
+
+          <div class="field-grid two">
+            <div class="field">
+              <label for="brandName">Brand name</label>
+              <input id="brandName" name="brandName" type="text" required autocomplete="organization" placeholder="Your company">
+              <p class="inline-error" id="brandNameError">Brand name is required.</p>
+            </div>
+            <div class="field">
+              <label for="senderName">Sender name</label>
+              <input id="senderName" name="senderName" type="text" required autocomplete="name" placeholder="Customer Success">
+              <p class="inline-error" id="senderNameError">Sender name is required.</p>
+            </div>
+            <div class="field" style="grid-column:1/-1">
+              <label for="senderEmail">Sender email</label>
+              <input id="senderEmail" name="senderEmail" type="email" required autocomplete="email" placeholder="billing@yourcompany.com">
+              <p class="help">Must be a domain you can verify with Resend.</p>
+              <p class="inline-error" id="senderEmailError">Enter a valid sender email.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" aria-labelledby="toneHeading">
+          <div class="section-head">
+            <div>
+              <h2 id="toneHeading">Email tone</h2>
+              <p class="section-note">Pick the default voice for recovery emails. You can still edit individual notes before sending.</p>
+            </div>
+          </div>
+
+          <input type="hidden" id="toneField" name="tone" value="professional">
+          <div class="tone-grid" role="group" aria-label="Email tone">
+            <button type="button" class="tone-card" data-tone="friendly" aria-pressed="false"><span class="tone-title">Friendly</span><span class="tone-desc">Warm, casual, a little playful</span></button>
+            <button type="button" class="tone-card" data-tone="professional" aria-pressed="true"><span class="tone-title">Professional</span><span class="tone-desc">Clear, respectful, to the point</span></button>
+            <button type="button" class="tone-card" data-tone="empathetic" aria-pressed="false"><span class="tone-title">Empathetic</span><span class="tone-desc">Understanding, gentle nudge</span></button>
+            <button type="button" class="tone-card" data-tone="direct" aria-pressed="false"><span class="tone-title">Direct</span><span class="tone-desc">Short, no fluff, urgent</span></button>
+          </div>
+        </section>
+
+        <div class="form-actions fx-layer">
+          <button type="button" class="secondary-btn" id="cancelBtn">Cancel</button>
+          <button type="submit" class="box start-btn primary-action" id="saveBtn" aria-busy="false">
+            <span class="text" id="saveText">Save settings</span>
+            <span class="btn-icon" aria-hidden="true">
+              <svg viewBox="0 0 1024 1024"><path d="M779.180132 473.232045 322.354755 16.406668c-21.413706-21.413706-56.121182-21.413706-77.534887 0-21.413706 21.413706-21.413706 56.122205 0 77.534887l418.057421 418.057421L244.819868 930.057421c-21.413706 21.413706-21.413706 56.122205 0 77.534887 10.706853 10.706853 24.759917 16.059767 38.767955 16.059767s28.061103-5.353938 38.767955-16.059767L779.180132 550.767955C800.593837 529.35425 800.593837 494.64575 779.180132 473.232045z"></path></svg>
+              <span class="saving-spinner"></span>
+            </span>
+            <span class="circle-overlay" aria-hidden="true"></span>
+          </button>
+        </div>
+      </fieldset>
+    </form>
+  </main>
+
+  <!-- Tooltip popovers retained for the action-bar navigation inspiration. -->
+  <div id="account" popover="hint">Overview</div>
+  <div id="pinned" popover="hint">Recovery queue</div>
+  <div id="following" popover="hint">Members</div>
+  <div id="email" popover="hint">Weekly digest</div>
+  <div id="edit" popover="hint">Settings</div>
+  <div id="business" popover="hint">Expansion signals</div>
+
+  <!-- SVG filter from the referenced glass navigation component. -->
+  <svg width="0" height="0" aria-hidden="true" focusable="false">
+    <filter id="filter" color-interpolation-filters="linearRGB" filterUnits="objectBoundingBox" primitiveUnits="userSpaceOnUse">
+      <feDisplacementMap in="SourceGraphic" in2="SourceGraphic" scale="5" xChannelSelector="A" yChannelSelector="A" x="5" y="-5" width="100%" height="100%" result="displacementMap"/>
+    </filter>
+  </svg>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    /* Supabase config — exact values requested. */
+    const SUPABASE_URL = "https://zujmouzzqiovgbnanrvv.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3";
+
+    let supabaseClient = null;
+    let accessToken = "";
+    let organizationId = "";
+    let initialRzpKeyId = "";
+    let rzpKeyTouched = false;
+    let rzpSecretTouched = false;
+    let tone = "professional";
+    window.tone = tone;
+
+    const $ = (sel, root = document) => root.querySelector(sel);
+    const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+    const els = {
+      boot: $('#boot'),
+      pageError: $('#pageError'),
+      appShell: $('#appShell'),
+      settingsCard: $('#settingsForm'),
+      formFields: $('#formFields'),
+      formOverlay: $('#formOverlay'),
+      loadWarning: $('#loadWarning'),
+      formMessage: $('#formMessage'),
+      connectionBadge: $('#connectionBadge'),
+      rzpKeyId: $('#rzpKeyId'),
+      rzpKeySecret: $('#rzpKeySecret'),
+      razorpayError: $('#razorpayError'),
+      brandName: $('#brandName'),
+      senderName: $('#senderName'),
+      senderEmail: $('#senderEmail'),
+      brandNameError: $('#brandNameError'),
+      senderNameError: $('#senderNameError'),
+      senderEmailError: $('#senderEmailError'),
+      toneField: $('#toneField'),
+      saveBtn: $('#saveBtn'),
+      saveText: $('#saveText'),
+      cancelBtn: $('#cancelBtn'),
+      reloadBtn: $('#reloadBtn')
+    };
+
+    function applyStoredTheme(){
+      let saved = "";
+      try { saved = localStorage.getItem('rv.theme') || localStorage.getItem('revessent-theme') || ""; } catch (_) {}
+      const allowed = ['light','dark','amoled','minimal','minimal2'];
+      if(!allowed.includes(saved)){
+        saved = matchMedia('(prefers-color-scheme: dark)').matches ? 'amoled' : 'light';
+      }
+      document.documentElement.dataset.theme = saved;
+      const darkScheme = saved === 'dark' || saved === 'amoled' || saved === 'minimal2';
+      const meta = document.querySelector('meta[name="color-scheme"]');
+      if(meta) meta.setAttribute('content', darkScheme ? 'dark light' : 'light dark');
+    }
+
+    function showAppLoading(){
+      els.boot.hidden = true;
+      els.pageError.hidden = true;
+      els.appShell.hidden = false;
+      els.settingsCard.classList.add('is-loading');
+      els.formFields.disabled = true;
+    }
+
+    function finishAppLoading(){
+      els.settingsCard.classList.remove('is-loading');
+      els.formFields.disabled = false;
+    }
+
+    function showPageError(){
+      els.boot.hidden = true;
+      els.appShell.hidden = true;
+      els.pageError.hidden = false;
+    }
+
+    function setBadge(connected){
+      els.connectionBadge.classList.toggle('connected', Boolean(connected));
+      els.connectionBadge.textContent = connected ? 'Connected' : 'Not connected';
+    }
+
+    function setTone(value){
+      const allowed = ['friendly','professional','empathetic','direct'];
+      tone = allowed.includes(value) ? value : 'professional';
+      window.tone = tone;
+      els.toneField.value = tone;
+      $$('.tone-card').forEach(card => {
+        card.setAttribute('aria-pressed', card.dataset.tone === tone ? 'true' : 'false');
+      });
+    }
+
+    function showMessage(type, text){
+      els.formMessage.className = 'message show ' + type;
+      els.formMessage.textContent = text;
+    }
+
+    function clearMessage(){
+      els.formMessage.className = 'message';
+      els.formMessage.textContent = '';
+    }
+
+    function showWarning(text){
+      els.loadWarning.classList.add('show');
+      els.loadWarning.textContent = text;
+    }
+
+    function clearWarning(){
+      els.loadWarning.classList.remove('show');
+      els.loadWarning.textContent = '';
+    }
+
+    function setInlineError(input, errorEl, message){
+      if(message){
+        input.setAttribute('aria-invalid','true');
+        errorEl.textContent = message;
+        errorEl.classList.add('show');
+      } else {
+        input.removeAttribute('aria-invalid');
+        errorEl.classList.remove('show');
+      }
+    }
+
+    function clearValidation(){
+      setInlineError(els.brandName, els.brandNameError, '');
+      setInlineError(els.senderName, els.senderNameError, '');
+      setInlineError(els.senderEmail, els.senderEmailError, '');
+      els.rzpKeyId.removeAttribute('aria-invalid');
+      els.rzpKeySecret.removeAttribute('aria-invalid');
+      els.razorpayError.classList.remove('show');
+    }
+
+    function emailLooksValid(email){
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    async function parseResponseDetail(response){
+      const fallback = response.status ? `Request failed (${response.status}).` : 'Request failed.';
+      try {
+        const data = await response.json();
+        return data.detail || data.message || data.error || fallback;
+      } catch (_) {
+        try {
+          const text = await response.text();
+          return text || fallback;
+        } catch (__) {
+          return fallback;
+        }
+      }
+    }
+
+    function normalizeSettings(payload){
+      if(!payload) return {};
+      return payload.settings || payload.data || payload.organizationSettings || payload;
+    }
+
+    function valueOf(obj, keys, fallback = ''){
+      for(const key of keys){
+        if(obj && obj[key] !== undefined && obj[key] !== null) return String(obj[key]);
+      }
+      return fallback;
+    }
+
+    async function fetchMe(){
+      const response = await fetch('/api/me', {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      if(!response.ok) throw new Error(await parseResponseDetail(response));
+      const data = await response.json();
+      const id = data.organization_id || data.organizationId || data.currentOrganizationId || (data.organization && (data.organization.id || data.organization.organization_id));
+      if(!id) throw new Error('Missing organization_id.');
+      return String(id);
+    }
+
+    async function fetchSettings(id){
+      const response = await fetch(`/api/settings/get?organizationId=${encodeURIComponent(id)}`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      if(response.status === 204 || response.status === 404) return null;
+      if(!response.ok) throw new Error(await parseResponseDetail(response));
+      return normalizeSettings(await response.json());
+    }
+
+    function prefillSettings(settings){
+      const savedKeyId = valueOf(settings, ['razorpayKeyId','razorpay_key_id','rzpKeyId','keyId']);
+      initialRzpKeyId = savedKeyId;
+      els.rzpKeyId.value = savedKeyId;
+      els.rzpKeySecret.value = '';
+      rzpKeyTouched = false;
+      rzpSecretTouched = false;
+      setBadge(Boolean(savedKeyId));
+
+      els.brandName.value = valueOf(settings, ['brandName','brand_name']);
+      els.senderName.value = valueOf(settings, ['senderName','sender_name']);
+      els.senderEmail.value = valueOf(settings, ['senderEmail','sender_email']);
+      setTone(valueOf(settings, ['tone'], 'professional'));
+    }
+
+    function validateAndBuildPayload(){
+      clearValidation();
+      clearMessage();
+
+      const brandName = els.brandName.value.trim();
+      const senderName = els.senderName.value.trim();
+      const senderEmail = els.senderEmail.value.trim();
+      const razorpayKeyId = els.rzpKeyId.value.trim();
+      const razorpayKeySecret = els.rzpKeySecret.value.trim();
+
+      let firstInvalid = null;
+      if(!brandName){ setInlineError(els.brandName, els.brandNameError, 'Brand name is required.'); firstInvalid ||= els.brandName; }
+      if(!senderName){ setInlineError(els.senderName, els.senderNameError, 'Sender name is required.'); firstInvalid ||= els.senderName; }
+      if(!senderEmail || !emailLooksValid(senderEmail)){
+        setInlineError(els.senderEmail, els.senderEmailError, senderEmail ? 'Enter a valid sender email.' : 'Sender email is required.');
+        firstInvalid ||= els.senderEmail;
+      }
+
+      const connectionAttempt = rzpKeyTouched || rzpSecretTouched || Boolean(razorpayKeySecret) || (!initialRzpKeyId && Boolean(razorpayKeyId));
+      if(connectionAttempt && (!razorpayKeyId || !razorpayKeySecret)){
+        els.rzpKeyId.setAttribute('aria-invalid','true');
+        els.rzpKeySecret.setAttribute('aria-invalid','true');
+        els.razorpayError.classList.add('show');
+        firstInvalid ||= (!razorpayKeyId ? els.rzpKeyId : els.rzpKeySecret);
+      }
+
+      if(firstInvalid){
+        firstInvalid.focus();
+        return null;
+      }
+
+      const payload = { organizationId, brandName, senderName, senderEmail, tone };
+      if(connectionAttempt){
+        payload.razorpayKeyId = razorpayKeyId;
+        payload.razorpayKeySecret = razorpayKeySecret;
+      }
+      return { payload, connectionAttempt, razorpayKeyId };
+    }
+
+    function setSaving(isSaving){
+      els.saveBtn.disabled = isSaving;
+      els.saveBtn.setAttribute('aria-busy', isSaving ? 'true' : 'false');
+      els.saveBtn.classList.toggle('is-saving', isSaving);
+      els.saveText.textContent = isSaving ? 'Saving…' : 'Save settings';
+    }
+
+    async function saveSettings(event){
+      event.preventDefault();
+      const result = validateAndBuildPayload();
+      if(!result) return;
+
+      setSaving(true);
+      try {
+        const response = await fetch('/api/settings/save', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(result.payload)
+        });
+
+        if(!response.ok){
+          throw new Error(await parseResponseDetail(response));
+        }
+
+        showMessage('success', 'Settings saved.');
+        if(result.connectionAttempt && result.razorpayKeyId){
+          initialRzpKeyId = result.razorpayKeyId;
+          setBadge(true);
+        }
+        els.rzpKeySecret.value = '';
+        rzpKeyTouched = false;
+        rzpSecretTouched = false;
+      } catch (error) {
+        showMessage('error', error.message || 'Could not save settings. Please try again.');
+      } finally {
+        setSaving(false);
+      }
+    }
+
+    async function boot(){
+      applyStoredTheme();
+
+      try {
+        if(!window.supabase || !window.supabase.createClient){
+          throw new Error('Supabase client failed to load.');
+        }
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const { data, error } = await supabaseClient.auth.getSession();
+        if(error) throw error;
+
+        const session = data && data.session;
+        if(!session){
+          window.location.replace('/login.html');
+          return;
+        }
+
+        accessToken = session.access_token;
+        showAppLoading();
+
+        try {
+          organizationId = await fetchMe();
+        } catch (error) {
+          console.error('Revessent account load failed.', error);
+          showPageError();
+          return;
+        }
+
+        try {
+          const settings = await fetchSettings(organizationId);
+          prefillSettings(settings || {});
+        } catch (error) {
+          console.warn('Revessent settings load failed.', error);
+          prefillSettings({});
+          showWarning("Previous settings couldn't be loaded. You can still save new settings.");
+        }
+
+        finishAppLoading();
+      } catch (error) {
+        console.error('Revessent settings boot failed.', error);
+        showPageError();
+      }
+    }
+
+    $$('.tone-card').forEach(card => {
+      card.addEventListener('click', () => setTone(card.dataset.tone));
+    });
+
+    els.rzpKeyId.addEventListener('input', () => { rzpKeyTouched = true; });
+    els.rzpKeySecret.addEventListener('input', () => { rzpSecretTouched = true; });
+
+    [els.brandName, els.senderName, els.senderEmail, els.rzpKeyId, els.rzpKeySecret].forEach(input => {
+      input.addEventListener('input', () => {
+        clearMessage();
+        if(input === els.rzpKeyId || input === els.rzpKeySecret){
+          els.rzpKeyId.removeAttribute('aria-invalid');
+          els.rzpKeySecret.removeAttribute('aria-invalid');
+          els.razorpayError.classList.remove('show');
+        }
+      });
+    });
+
+    els.settingsCard.addEventListener('submit', saveSettings);
+    els.cancelBtn.addEventListener('click', () => { window.location.assign('/dashboard.html'); });
+    els.reloadBtn.addEventListener('click', () => { window.location.reload(); });
+
+    boot();
+  </script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a420beb68d7de5cc',t:'MTc5MDU3NzUwMw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
