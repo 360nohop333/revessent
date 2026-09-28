@@ -1455,7 +1455,7 @@ tr.collapsing{transition:all .5s var(--spring)}
       <li><a href="#signals" data-nav="signals"><svg class="ic"><use href="#i-trend"/></svg>Expansion Signals</a></li>
       <li><a href="#digest" data-nav="digest"><svg class="ic"><use href="#i-mail"/></svg>Weekly Digest</a></li>
       <li aria-hidden="true"><hr class="navsep"></li>
-      <li><a href="#settings" data-nav="settings"><svg class="ic"><use href="#i-gear"/></svg>Settings</a></li>
+      <li><a href="/settings.html"><svg class="ic"><use href="#i-gear"/></svg>Settings</a></li>
       <li><a href="#docs" data-nav="docs"><svg class="ic"><use href="#i-book"/></svg>Documentation</a></li>
       <div class="navpill" id="navpill" aria-hidden="true"></div>
     </ul>
@@ -1558,12 +1558,12 @@ tr.collapsing{transition:all .5s var(--spring)}
         <span class="bolt" aria-hidden="true"><svg class="ic"><use href="#i-bolt"/></svg></span>
         <span>
           <b id="cmsg">Connect your payment processor to start recovering revenue</b>
-          <span class="hint">Read-only restricted key · no full card numbers ever leave Stripe. <a href="#docs">How to get your restricted key →</a></span>
+          <span class="hint">Read-only key · Revessent never sees full card numbers. <a href="#docs">How to get your restricted key →</a></span>
         </span>
       </div>
       <form class="cform" id="cform" novalidate>
         <label class="sr" for="apikey">Stripe restricted API key</label>
-        <span class="field" id="cfield"><input id="apikey" type="text" placeholder="rk_live_••••••••••••" autocomplete="off" spellcheck="false"><span class="ul" aria-hidden="true"></span></span>
+        <span class="field" id="cfield"><input id="apikey" type="text" placeholder="rzp_live_••••••••••" autocomplete="off" spellcheck="false"><span class="ul" aria-hidden="true"></span></span>
         <button class="box start-btn sm" id="cbtn" type="submit" style="--w:170px"><span class="text">Get started</span><span class="btn-icon"><svg class="svg" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M779.180132 473.232045 322.354755 16.406668c-21.413706-21.413706-56.121182-21.413706-77.534887 0-21.413706 21.413706-21.413706 56.122205 0 77.534887l418.057421 418.057421L244.819868 930.057421c-21.413706 21.413706-21.413706 56.122205 0 77.534887 10.706853 10.706853 24.759917 16.059767 38.767955 16.059767s28.061103-5.353938 38.767955-16.059767L779.180132 550.767955C800.593837 529.35425 800.593837 494.64575 779.180132 473.232045z"></path></svg></span><span class="circle-overlay" aria-hidden="true"></span></button>
       </form>
     </div>
@@ -1577,8 +1577,8 @@ tr.collapsing{transition:all .5s var(--spring)}
       <article class="kpi glass grain rv" data-spot data-d="80">
         <span class="spot" aria-hidden="true"></span>
         <div class="kbody" style="display:flex;flex-direction:column;flex:1">
-          <div class="klab"><i aria-hidden="true"></i>Revenue recovered · 30d</div>
-          <div class="kval gradtext" data-count="41200" data-prefix="$" aria-label="41,200 dollars recovered">$0</div>
+          <div class="klab"><i aria-hidden="true"></i><span id="kRecoveredLabel">Revenue recovered · 30d</span></div>
+          <div class="kval gradtext" id="kRecovered" data-count="0" data-prefix="$" aria-label="revenue recovered">$0</div>
           <svg class="spark" viewBox="0 0 200 36" preserveAspectRatio="none" aria-hidden="true">
             <defs><linearGradient id="sparkG" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0" stop-color="rgb(var(--posC))" stop-opacity=".28"/><stop offset="1" stop-color="rgb(var(--posC))" stop-opacity="0"/>
@@ -1586,7 +1586,7 @@ tr.collapsing{transition:all .5s var(--spring)}
             <path id="sparkFill" d="" fill="url(#sparkG)"/>
             <path id="sparkLine" d="" fill="none" stroke="var(--pos)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
           </svg>
-          <div class="ksub"><span class="tag t-pos">↑ 23% vs last month</span></div>
+          <div class="ksub"><span class="tag t-pos" id="kRecoveredDelta">↑ 0% vs last period</span></div>
         </div>
       </article>
 
@@ -1595,8 +1595,8 @@ tr.collapsing{transition:all .5s var(--spring)}
         <span class="spot" aria-hidden="true"></span>
         <div class="kbody" style="display:flex;flex-direction:column;flex:1">
           <div class="klab"><i aria-hidden="true"></i>Revenue at risk · open</div>
-          <div class="kval kval-risk" data-count="50500" data-prefix="$" aria-label="50,500 dollars at risk">$0</div>
-          <div style="font-size:12px;color:var(--text-muted);margin-top:6px">5 open cases</div>
+          <div class="kval kval-risk" id="kAtRisk" data-count="0" data-prefix="$" aria-label="revenue at risk">$0</div>
+          <div id="kAtRiskCount" style="font-size:12px;color:var(--text-muted);margin-top:6px">0 open cases</div>
           <div class="ksub">
             <span class="dots" aria-hidden="true">
               <i style="background:var(--info)"></i><i style="background:var(--info)"></i><i style="background:var(--warn)"></i><i style="background:var(--alt)"></i><i style="background:var(--neu)"></i>
@@ -1613,14 +1613,14 @@ tr.collapsing{transition:all .5s var(--spring)}
           <div class="klab"><i aria-hidden="true"></i>Recovery rate</div>
           <div class="ring-wrap">
             <div class="ringbox">
-              <svg class="ring" viewBox="0 0 100 100" role="img" aria-label="Recovery rate 67 percent">
+              <svg class="ring" id="ringSvg" viewBox="0 0 100 100" role="img" aria-label="Recovery rate 0 percent">
                 <circle class="trk" cx="50" cy="50" r="42"/>
                 <circle class="prg" id="ringPrg" cx="50" cy="50" r="42" pathLength="1"/>
               </svg>
-              <span class="ring-lbl" data-count="67" data-suffix="%">0%</span>
+              <span class="ring-lbl" id="kRate" data-count="0" data-suffix="%">0%</span>
             </div>
             <div style="font-size:11.5px;color:var(--text-muted);line-height:1.5">
-              Industry avg <b class="mono" style="color:var(--text-secondary)">68%</b><br>
+              Industry avg <b class="mono" id="kIndustryAvg" style="color:var(--text-secondary)">68%</b><br>
               <span style="font-size:11px">of savable revenue</span>
             </div>
           </div>
@@ -1632,12 +1632,8 @@ tr.collapsing{transition:all .5s var(--spring)}
         <span class="spot" aria-hidden="true"></span>
         <div class="kbody" style="display:flex;flex-direction:column;flex:1">
           <div class="klab"><i aria-hidden="true"></i>Active cases</div>
-          <div class="kval" data-count="5" aria-label="5 active cases">0</div>
-          <div class="kpills">
-            <span class="tag t-info">2 retrying</span>
-            <span class="tag t-warn">1 awaiting</span>
-            <span class="tag t-alt">2 checkout</span>
-          </div>
+          <div class="kval" id="kActive" data-count="0" aria-label="active cases">0</div>
+          <div class="kpills" id="kActivePills"></div>
         </div>
       </article>
 
@@ -1751,10 +1747,10 @@ tr.collapsing{transition:all .5s var(--spring)}
 <nav class="tabbar" aria-label="Mobile navigation">
   <ul>
     <li><a href="#overview" class="on" data-tab="overview"><svg class="ic" aria-hidden="true"><use href="#i-home"/></svg>Overview</a></li>
-    <li><a href="#queue" data-tab="queue"><svg class="ic" aria-hidden="true"><use href="#i-refresh"/></svg>Queue<span class="nb">5</span></a></li>
+    <li><a href="#queue" data-tab="queue"><svg class="ic" aria-hidden="true"><use href="#i-refresh"/></svg>Queue<span class="nb" id="qbadgeM">0</span></a></li>
     <li><a href="#members" data-tab="members"><svg class="ic" aria-hidden="true"><use href="#i-users"/></svg>Members</a></li>
     <li><a href="#signals" data-tab="signals"><svg class="ic" aria-hidden="true"><use href="#i-trend"/></svg>Signals</a></li>
-    <li><a href="#settings" data-tab="settings"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg>Settings</a></li>
+    <li><a href="/settings.html"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg>Settings</a></li>
   </ul>
 </nav>
 
@@ -2212,6 +2208,8 @@ function moveNavPill(el,animate){
 var navLinks=$$('#navlist a');
 navLinks.forEach(function(a){
   a.addEventListener('click',function(e){
+    /* links with a real destination (e.g. /settings.html) navigate normally */
+    if((a.getAttribute('href')||'').charAt(0)!=='#') return;
     e.preventDefault();
     navLinks.forEach(function(x){ x.classList.remove('on'); x.removeAttribute('aria-current'); });
     a.classList.add('on'); a.setAttribute('aria-current','page');
@@ -2233,6 +2231,7 @@ burger.addEventListener('click',function(){ sb.classList.contains('open')?closeS
 scrim.addEventListener('click',closeSidebar);
 $$('.tabbar a').forEach(function(t){
   t.addEventListener('click',function(e){
+    if((t.getAttribute('href')||'').charAt(0)!=='#') return;
     e.preventDefault();
     $$('.tabbar a').forEach(function(x){ x.classList.remove('on'); });
     t.classList.add('on');
@@ -2264,11 +2263,14 @@ wireDrop('#bellbtn','#belldrop');
 wireDrop('#avabtn','#avadrop');
 var markread=$('[data-markread]');
 if(markread) markread.addEventListener('click',function(){ var d=$('#bellbtn .bdot'); if(d) d.style.display='none'; toast('All notifications marked read'); });
+var RV_RANGE_BY_LABEL={'Last 7 days':'7d','Last 30 days':'30d','Last 90 days':'90d','Year to date':'ytd'};
 $('#datepill').addEventListener('click',function(){
   var opts=['Last 7 days','Last 30 days','Last 90 days','Year to date'];
   var lbl=$('#daterange'), i=opts.indexOf(lbl.textContent);
   lbl.textContent=opts[(i+1)%opts.length];
   flip(lbl);
+  /* cycle the real window too: 7d → 30d → 90d → year to date */
+  if(window.__rvReload) window.__rvReload(RV_RANGE_BY_LABEL[lbl.textContent]||'30d');
 });
 $$('[data-upgrade]').forEach(function(b){ b.addEventListener('click',function(){ toast('Upgrade flow — $249/mo · 90-day guarantee'); }); });
 
@@ -2359,7 +2361,14 @@ window.__rvToast = toast;
 function $(s,r){ return (r||document).querySelector(s); }
 function $$(s,r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); }
 var REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
-function usd(n){ return '$' + Math.round(n).toLocaleString('en-US'); }
+/* Money follows the org's currency — ₹ with Indian grouping for INR. */
+var CUR_SYM='$', CUR_LOCALE='en-US';
+function setCurrency(code){
+  var c=String(code||'usd').toLowerCase();
+  CUR_SYM = c==='inr' ? '₹' : c==='eur' ? '€' : c==='gbp' ? '£' : c==='usd' ? '$' : c.toUpperCase()+' ';
+  CUR_LOCALE = c==='inr' ? 'en-IN' : 'en-US';
+}
+function usd(n){ return CUR_SYM + Math.round(Number(n)||0).toLocaleString(CUR_LOCALE); }
 function toast(msg){
   var t=document.createElement('div');
   t.className='toast'; t.setAttribute('role','status');
@@ -2390,11 +2399,19 @@ function el(name,attrs){
   for(var k in attrs) n.setAttribute(k,attrs[k]);
   return n;
 }
+/** Round a peak value up to a clean axis ceiling (never zero, never tiny). */
+function niceMax(peak){
+  if(!peak || peak<=0) return 1000;
+  var mag=Math.pow(10,Math.floor(Math.log(peak)/Math.LN10));
+  var norm=peak/mag;
+  var step=norm<=1?1:norm<=2?2:norm<=2.5?2.5:norm<=5?5:10;
+  return step*mag;
+}
 /** Draw (or redraw) the grouped bar chart for the active series. */
 function drawChart(){
   var W=880,H=336, padL=78, padR=10, padB=46, padT=34;
   var iw=W-padL-padR, ih=H-padT-padB;
-  var max=60000, steps=4;
+  var steps=4, max=niceMax(Math.max.apply(null,WEEKS.map(function(w){ return Math.max(w.r,w.x); }).concat([0])));
   chart.setAttribute('viewBox','0 0 '+W+' '+H);
   chart.textContent='';
 
@@ -2404,7 +2421,7 @@ function drawChart(){
     var y=padT+ih-(s/steps)*ih;
     g.appendChild(el('line',{x1:padL,x2:W-padR,y1:y,y2:y}));
     var tx=el('text',{x:padL-15,y:y+6,class:'axis','text-anchor':'end'});
-    tx.textContent='$'+(max*s/steps/1000)+'k';
+    tx.textContent=CUR_SYM+(max*s/steps/1000).toLocaleString(CUR_LOCALE,{maximumFractionDigits:1})+'k';
     g.appendChild(tx);
   }
   chart.appendChild(g);
@@ -2434,7 +2451,7 @@ function drawChart(){
       /* a single series gets a permanent value flag; two would crowd */
       if(!both){
         var f=el('text',{x:cx+offset, y:padT+ih-bh-13, class:'blab','text-anchor':'middle'});
-        f.textContent='$'+Math.round(val/1000)+'k';
+        f.textContent=CUR_SYM+Math.round(val/1000)+'k';
         f.style.transitionDelay=(delay+120)+'ms';
         grp.appendChild(f);
       }
@@ -2602,20 +2619,27 @@ var DECLINE={
   expired_card:       {t:'Expired card',     c:'t-info'},
   insufficient_funds: {t:'Insufficient',     c:'t-warn'},
   card_declined:      {t:'Card declined',    c:'t-neg'},
+  do_not_honor:       {t:'Do not honor',     c:'t-neg'},
+  invalid_account:    {t:'Invalid account',  c:'t-neg'},
+  lost_card:          {t:'Lost card',        c:'t-neg'},
+  stolen_card:        {t:'Stolen card',      c:'t-neg'},
+  pickup_card:        {t:'Pick up card',     c:'t-warn'},
   processing_error:   {t:'Processing error', c:'t-neu'},
-  lost_card:          {t:'Lost card',        c:'t-neg'}
+  unknown:            {t:'Declined',         c:'t-neu'}
 };
 var STATUS={
+  detected:          {t:'Detected',     v:'--neu'},
   retrying:          {t:'Retrying',     v:'--info'},
   awaiting_approval: {t:'Awaiting',     v:'--warn'},
+  note_sent:         {t:'Note sent',    v:'--alt'},
   checkout_sent:     {t:'Checkout sent',v:'--alt'},
-  detected:          {t:'Detected',     v:'--neu'},
   recovered:         {t:'Recovered',    v:'--pos'},
-  lost:              {t:'Lost',         v:'--neg'}
+  lost:              {t:'Lost',         v:'--neg'},
+  canceled:          {t:'Canceled',     v:'--neu'}
 };
 var qbody=$('#qbody'), filter='all';
 /** Two initials from a full name. */
-function initials(n){ return n.split(' ').map(function(w){ return w[0]; }).join('').slice(0,2).toUpperCase(); }
+function initials(n){ return String(n||'?').trim().split(/\s+/).map(function(w){ return w[0]||''; }).join('').slice(0,2).toUpperCase()||'?'; }
 /** Render shimmering skeleton rows while "data loads". */
 function renderSkeleton(n){
   qbody.innerHTML='';
@@ -2637,7 +2661,7 @@ function renderSkeleton(n){
 function rowFor(c){
   var tr=document.createElement('tr');
   tr.dataset.id=c.id; tr.dataset.status=c.status;
-  var d=DECLINE[c.decline], s=STATUS[c.status];
+  var d=DECLINE[c.decline]||{t:'Declined',c:'t-neu'}, s=STATUS[c.status]||{t:'Active',v:'--neu'};
   var act = c.status==='awaiting_approval'
     ? '<div class="acts"><button class="btn btn-pri btn-sm shimmer-hover magnet" data-approve aria-label="Approve recovery for '+c.name+'">Approve</button>'+
       '<button class="btn btn-ghost btn-sm magnet" data-reject aria-label="Reject recovery for '+c.name+'">Reject</button></div>'
@@ -2660,7 +2684,7 @@ function renderQueue(){
   var list=CASES.filter(function(c){ return filter==='all' || c.status===filter; });
   if(!list.length){
     var tr=document.createElement('tr');
-    tr.innerHTML='<td colspan="6" style="padding:26px;text-align:center;color:var(--text-muted);font-size:12.5px">Nothing here — every case in this state is settled.</td>';
+    tr.innerHTML='<td colspan="6" style="padding:26px;text-align:center;color:var(--text-muted);font-size:12.5px">'+(CASES.length?'Nothing here — every case in this state is settled.':'No active recovery cases yet — failed payments appear here the moment Razorpay reports them.')+'</td>';
     qbody.appendChild(tr);
     return;
   }
@@ -2759,6 +2783,13 @@ function activityNode(a){
 /** Paint the feed with a 60ms cascade. */
 function renderActivity(){
   afeed.innerHTML='';
+  if(!ACTIVITY.length){
+    var empty=document.createElement('li');
+    empty.innerHTML='<span class="atx" style="padding:6px 2px"><b style="font-weight:600;color:var(--text-muted);font-size:12.5px">No activity yet</b>'
+      +'<small>Recoveries, notes and connected accounts show up here.</small></span>';
+    afeed.appendChild(empty);
+    return;
+  }
   ACTIVITY.forEach(function(a,i){
     var li=activityNode(a);
     li.classList.add('fin');
@@ -2789,7 +2820,7 @@ function addActivity(a){
     if(v.length<8){
       field.classList.remove('err'); void field.offsetWidth; field.classList.add('err');
       input.setAttribute('aria-invalid','true'); input.focus();
-      toast('That key looks too short — paste your rk_live_ key');
+      toast('That key looks too short — paste your rzp_live_ key');
       return;
     }
     input.removeAttribute('aria-invalid');
@@ -2837,7 +2868,7 @@ function wake(){
   if(ring){
     ring.style.strokeDasharray='1';
     ring.style.strokeDashoffset='1';
-    setTimeout(function(){ ring.style.strokeDashoffset=String(1-0.67); },260);
+    setTimeout(function(){ ring.style.strokeDashoffset=String(1-RING_PCT/100); },260);
   }
   var pf=$('#pfill');
   if(pf) setTimeout(function(){ pf.style.width=(11/14*100)+'%'; },420);
@@ -2846,21 +2877,225 @@ function easeOutQuart(t){ return 1-Math.pow(1-t,4); }
 /** requestAnimationFrame count-up, easeOutQuart over 1.4s. */
 function countUpEl(el){
   var target=parseFloat(el.dataset.count)||0, pre=el.dataset.prefix||'', suf=el.dataset.suffix||'', dur=1400, t0=null;
-  if(REDUCED){ el.textContent=pre+target.toLocaleString('en-US')+suf; return; }
+  if(REDUCED){ el.textContent=pre+target.toLocaleString(CUR_LOCALE)+suf; return; }
   function step(ts){
     if(t0===null) t0=ts;
     var p=Math.min(1,(ts-t0)/dur);
-    el.textContent=pre+Math.round(target*easeOutQuart(p)).toLocaleString('en-US')+suf;
+    el.textContent=pre+Math.round(target*easeOutQuart(p)).toLocaleString(CUR_LOCALE)+suf;
     if(p<1) requestAnimationFrame(step);
   }
   requestAnimationFrame(step);
 }
-setTimeout(function(){
-  $$('.kpi').forEach(function(k){ k.classList.remove('loading'); });
+/* ════════════════════════════════════════════════════════════
+   16. LIVE DATA — /api/dashboard-data replaces the mock numbers.
+   Design, layout and animation are untouched: only the values that
+   feed WEEKS / CASES / ACTIVITY / the KPI cards now come from Neon.
+   ════════════════════════════════════════════════════════════ */
+var RING_PCT=0;
+var currentRange='30d';
+var MIN_SKELETON_MS=600;
+var bootStartedAt=Date.now();
+var RANGE_SUFFIX={'7d':'7d','30d':'30d','90d':'90d','ytd':'YTD'};
+/* the same soft avatar gradients the mock rows used, assigned in order */
+var AVA_GRADS=[['#e9f1f9','#bdd6ee'],['#f5efe4','#e2d3b8'],['#efeaf7','#d3c9e8'],['#eaf3ee','#c6ded0'],['#f7ece9','#e8cdc4']];
+var ACTIVITY_STYLE={
+  recovered:    {bc:'var(--pos)', bg:'rgb(var(--posC)/.14)', icon:'i-check', sign:'+'},
+  lost:         {bc:'var(--neg)', bg:'rgb(var(--negC)/.14)', icon:'i-alert', sign:'−'},
+  note_sent:    {bc:'var(--info)',bg:'rgb(var(--infoC)/.14)',icon:'i-mail',  sign:''},
+  checkout_sent:{bc:'var(--alt)', bg:'rgb(var(--altC)/.14)', icon:'i-link',  sign:''},
+  upgrade_sent: {bc:'var(--pos)', bg:'rgb(var(--posC)/.14)', icon:'i-trend', sign:'+'},
+  connected:    {bc:'var(--alt)', bg:'rgb(var(--altC)/.14)', icon:'i-link',  sign:''},
+  detected:     {bc:'var(--info)',bg:'rgb(var(--infoC)/.14)',icon:'i-alert', sign:''}
+};
+
+/** "2h ago" from an ISO timestamp, matching the mock's phrasing. */
+function agoLabel(iso){
+  if(!iso) return '—';
+  var ms=Date.now()-new Date(iso).getTime();
+  if(!isFinite(ms)) return '—';
+  if(ms<60000) return 'now';
+  var m=Math.round(ms/60000);
+  if(m<60) return m+'m ago';
+  var h=Math.round(m/60);
+  if(h<24) return h+'h ago';
+  var d=Math.round(h/24);
+  if(d<7) return d+'d ago';
+  return Math.round(d/7)+'w ago';
+}
+
+function defaultActivityTitle(type){
+  return {recovered:'Payment recovered',lost:'Member lost',note_sent:'Recovery note sent',
+    checkout_sent:'Checkout link sent',upgrade_sent:'Upgrade signal detected',
+    connected:'Razorpay connected',detected:'Payment failed'}[type]||'Activity';
+}
+
+/** Point a KPI number at a new target before wake() animates it. */
+function setKpi(sel,value,prefix,ariaLabel){
+  var node=$(sel);
+  if(!node) return;
+  node.dataset.count=String(value);
+  if(prefix!==undefined && prefix!==null) node.dataset.prefix=prefix;
+  if(ariaLabel) node.setAttribute('aria-label',ariaLabel);
+  node.textContent=(node.dataset.prefix||'')+'0'+(node.dataset.suffix||'');
+}
+
+/** Eight zeroed weeks so the grid and labels still render with no data. */
+function fallbackWeeks(){
+  var out=[], d=new Date();
+  d.setHours(0,0,0,0);
+  d.setDate(d.getDate()-((d.getDay()+6)%7));          /* this week's Monday */
+  for(var i=7;i>=0;i--){
+    var s=new Date(d.getTime()-i*7*86400000);
+    out.push({l:s.toLocaleDateString('en-US',{month:'short',day:'numeric'}),r:0,x:0});
+  }
+  return out;
+}
+
+/** Redraw the KPI-1 sparkline from the real weekly recovered values. */
+function drawSpark(values){
+  var line=$('#sparkLine'), fill=$('#sparkFill');
+  if(!line||!fill||values.length<2) return;
+  var w=200,h=30,pad=3;
+  var mn=Math.min.apply(null,values), mx=Math.max.apply(null,values);
+  var xy=values.map(function(v,i){
+    return [i/(values.length-1)*w, h-((v-mn)/((mx-mn)||1))*(h-pad*2)-pad];
+  });
+  var d=xy.map(function(p,i){ return (i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1); }).join(' ');
+  line.setAttribute('d',d);
+  fill.setAttribute('d',d+' L'+w+' '+h+' L0 '+h+' Z');
+  line.style.strokeDashoffset='1';
+  line.style.transition='stroke-dashoffset 1.6s cubic-bezier(.16,1,.3,1) .25s';
+  requestAnimationFrame(function(){ line.style.strokeDashoffset='0'; });
+}
+
+/** Paint every surface from one API payload. Amounts arrive in paise/cents. */
+function applyData(d){
+  setCurrency(d.currency);
+
+  /* 1 · revenue recovered */
+  var rec=d.revenueRecovered||{};
+  var recUnits=Math.round((rec.amountCents||0)/100);
+  setKpi('#kRecovered',recUnits,CUR_SYM,usd(recUnits)+' recovered');
+  var delta=$('#kRecoveredDelta');
+  if(delta){
+    var pct=rec.percentChangeVsPrior||0;
+    delta.className='tag '+(pct<0?'t-neg':'t-pos');
+    delta.textContent=(pct<0?'↓ ':'↑ ')+Math.abs(pct)+'% vs last period';
+  }
+  var rlab=$('#kRecoveredLabel');
+  if(rlab) rlab.textContent='Revenue recovered · '+(RANGE_SUFFIX[d.range]||'30d');
+
+  /* 2 · revenue at risk */
+  var risk=d.revenueAtRisk||{};
+  var riskUnits=Math.round((risk.amountCents||0)/100);
+  setKpi('#kAtRisk',riskUnits,CUR_SYM,usd(riskUnits)+' at risk');
+  var openN=risk.openCaseCount||0;
+  var oc=$('#kAtRiskCount');
+  if(oc) oc.textContent=openN+(openN===1?' open case':' open cases');
+
+  /* 3 · recovery rate */
+  var rate=d.recoveryRate||{};
+  RING_PCT=Math.max(0,Math.min(100,rate.percent||0));
+  setKpi('#kRate',RING_PCT,null,'Recovery rate '+RING_PCT+' percent');
+  var ringSvg=$('#ringSvg');
+  if(ringSvg) ringSvg.setAttribute('aria-label','Recovery rate '+RING_PCT+' percent');
+  var ind=$('#kIndustryAvg');
+  if(ind && rate.industryAvgPercent!=null) ind.textContent=rate.industryAvgPercent+'%';
+
+  /* 4 · active cases — zero-count pills are hidden, not shown as "0 retrying" */
+  var ac=d.activeCases||{};
+  var total=(ac.detected||0)+(ac.retrying||0)+(ac.awaiting_approval||0)+(ac.note_sent||0)+(ac.checkout_sent||0);
+  setKpi('#kActive',total,null,total+' active cases');
+  var pills=$('#kActivePills');
+  if(pills){
+    pills.innerHTML='';
+    [['retrying',ac.retrying,'t-info'],['awaiting',ac.awaiting_approval,'t-warn'],
+     ['note sent',ac.note_sent,'t-alt'],['checkout',ac.checkout_sent,'t-alt'],
+     ['detected',ac.detected,'t-neu']].forEach(function(p){
+      if(!p[1]) return;
+      var tag=document.createElement('span');
+      tag.className='tag '+p[2];
+      tag.textContent=p[1]+' '+p[0];
+      pills.appendChild(tag);
+    });
+  }
+
+  /* weekly chart + the KPI sparkline behind it */
+  WEEKS=(d.weeklyChart&&d.weeklyChart.length)
+    ? d.weeklyChart.map(function(w){ return {l:w.weekLabel,r:(w.recovered||0)/100,x:(w.lost||0)/100}; })
+    : fallbackWeeks();
+  drawSpark(WEEKS.map(function(w){ return w.r; }));
+  drawChart();
+
+  /* recovery queue — `id` stays numeric because the approve handler parses it */
+  CASES=(d.recoveryQueue||[]).map(function(c,i){
+    return {id:i, caseId:c.caseId, name:c.memberName||'Unknown member', email:c.memberEmail||'',
+      amt:(c.amountCents||0)/100, decline:c.declineCode||'unknown', status:c.status||'detected',
+      ago:agoLabel(c.failedAt), g:AVA_GRADS[i%AVA_GRADS.length]};
+  });
+  filter='all';
+  $$('.fchip').forEach(function(x){ x.setAttribute('aria-pressed', x.dataset.filter==='all'?'true':'false'); });
   renderQueue();
+  var qm=$('#qbadgeM');
+  if(qm) qm.textContent=String(CASES.length);
+
+  /* activity feed */
+  ACTIVITY=(d.activity||[]).map(function(a){
+    var st=ACTIVITY_STYLE[a.type]||ACTIVITY_STYLE.detected;
+    return {bc:st.bc, bg:st.bg, icon:st.icon,
+      title:a.title||defaultActivityTitle(a.type),
+      sub:a.description||'',
+      amt:a.amountCents==null?'':(st.sign||'')+usd(Math.abs(a.amountCents)/100),
+      time:agoLabel(a.createdAt)};
+  });
   renderActivity();
-  wake();
-},900);
+}
+
+/** What we render when the API is unreachable — zeros, never stale mock data. */
+function emptyPayload(){
+  return {range:currentRange, currency:'inr',
+    revenueRecovered:{amountCents:0,percentChangeVsPrior:0},
+    revenueAtRisk:{amountCents:0,openCaseCount:0},
+    recoveryRate:{percent:0,industryAvgPercent:68},
+    activeCases:{detected:0,retrying:0,awaiting_approval:0,note_sent:0,checkout_sent:0},
+    weeklyChart:[], recoveryQueue:[], activity:[]};
+}
+
+/** Lift the skeletons, keeping at least one beat of shimmer on screen. */
+function reveal(){
+  var wait=Math.max(0,MIN_SKELETON_MS-(Date.now()-bootStartedAt));
+  setTimeout(function(){
+    $$('.kpi').forEach(function(k){ k.classList.remove('loading'); });
+    wake();
+  },wait);
+}
+
+async function loadDashboard(range){
+  if(range) currentRange=range;
+  bootStartedAt=Date.now();
+  try{
+    var sessionRes=await supabaseClient.auth.getSession();
+    var session=sessionRes && sessionRes.data ? sessionRes.data.session : null;
+    if(!session) return;                       /* the head guard redirects already */
+    var res=await fetch('/api/dashboard-data?range='+encodeURIComponent(currentRange),{
+      headers:{Authorization:'Bearer '+session.access_token}
+    });
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    applyData(await res.json());
+  }catch(err){
+    console.error('Revessent dashboard data failed:',err);
+    applyData(emptyPayload());
+    var live=$('#qlive');
+    if(live) live.textContent="Couldn't load latest data.";
+    toast("Couldn't load latest data — showing zeros");
+  }
+  reveal();
+}
+
+/* the date-range pill lives in the first module; it calls back through here */
+window.__rvReload=function(range){ loadDashboard(range); };
+
+loadDashboard('30d');
 })();
 </script>
 <script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a41c7ece4a467766',t:'MTc5MDUzMjk0Mw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
