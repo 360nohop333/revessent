@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en" data-theme="nocturne">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="Set up your Revessent workspace name.">
+  <meta name="color-scheme" content="dark light">
+  <title>Revessent — Workspace setup</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='%2307111f'/%3E%3Cpath d='M9 21h3l2-7 3 10 2.4-8 2.6 5H24' fill='none' stroke='%23F2D8A2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <style>
+    :root{
+      --page:#050914;
+      --panel:#000000;
+      --text:#fff8e9;
+      --text-2:#d9dee8;
+      --muted:#9aa4b6;
+      --faint:#747f93;
+      --champagne:#f2d8a2;
+      --champagne-rgb:242 216 162;
+      --blue-rgb:143 184 232;
+      --mint:#81b99b;
+      --mint-rgb:129 185 155;
+      --line:rgba(242,216,162,.14);
+      --line-strong:rgba(242,216,162,.28);
+      --shadow:0 28px 80px rgba(0,0,0,.70), inset 0 1px 0 rgba(255,248,233,.12);
+      --spring:cubic-bezier(.16,1,.3,1);
+      --f-sans:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI Variable Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+      --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    }
+    *{box-sizing:border-box}
+    html{min-height:100%;-webkit-text-size-adjust:100%}
+    body{margin:0;min-height:100vh;font-family:var(--f-sans);color:var(--text);background:var(--page);letter-spacing:-.01em;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+    body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(900px 620px at 12% -10%,rgba(var(--champagne-rgb),.18),transparent 66%),radial-gradient(740px 520px at 88% 14%,rgba(var(--blue-rgb),.13),transparent 70%),linear-gradient(180deg,#07111f,#050914 56%,#030611)}
+    body::after{content:"";position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.045;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)' opacity='.85'/%3E%3C/svg%3E")}
+    button,input{font:inherit}button{border:0}.mono{font-family:var(--f-mono)}
+    .rv-heavy-blur{position:fixed;inset:-22vmax;z-index:1;pointer-events:none;overflow:hidden;contain:layout paint style;mix-blend-mode:screen;opacity:.76}.rv-heavy-blur i,.rv-heavy-blur span{position:absolute;display:block;pointer-events:none;transform:translate3d(0,0,0);will-change:transform,opacity}.rv-heavy-blur i{width:46vmax;height:46vmax;border-radius:999px;filter:blur(88px);opacity:.34;animation:rvBlurFloatA 34s var(--spring) infinite alternate}.rv-heavy-blur .rvb-1{left:-8vmax;top:-10vmax;background:radial-gradient(circle,rgba(var(--champagne-rgb),.46),transparent 68%)}.rv-heavy-blur .rvb-2{right:-10vmax;top:10vh;background:radial-gradient(circle,rgba(var(--blue-rgb),.30),transparent 70%);animation-name:rvBlurFloatB;animation-duration:42s;animation-delay:-12s}.rv-heavy-blur .rvb-3{left:28vw;bottom:-18vmax;background:radial-gradient(circle,rgba(var(--mint-rgb),.26),transparent 72%);animation-name:rvBlurFloatC;animation-duration:48s;animation-delay:-21s}.rv-heavy-blur .rvb-sweep{width:44vmax;height:160vmax;left:-62vmax;top:-42vmax;border-radius:999px;filter:blur(34px);opacity:.30;background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),rgba(255,255,255,.34),rgba(255,255,255,.07),transparent);transform:rotate(18deg);animation:rvBlurSweep 26s linear infinite}.rv-heavy-blur .rvb-sweep.s2{animation-duration:34s;animation-delay:-15s;top:-28vmax;opacity:.20;transform:rotate(-13deg)}
+    .wrap{position:relative;z-index:2;min-height:100vh;display:grid;place-items:center;padding:24px 16px}.card{width:min(100%,520px);position:relative;overflow:hidden;border-radius:30px;background:#000;border:1px solid var(--line-strong);box-shadow:var(--shadow);padding:26px}.card::before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(135deg,rgba(255,248,233,.12),transparent 32%,transparent 70%,rgba(255,248,233,.06));opacity:.8}.card>*{position:relative;z-index:1}.brand{display:inline-flex;align-items:center;gap:10px;font-weight:800;font-size:22px;letter-spacing:-.055em}.mark{width:36px;height:36px;border-radius:13px;display:grid;place-items:center;border:1px solid var(--line);background:#000;box-shadow:inset 0 1px 0 rgba(255,248,233,.10)}.mark svg{width:24px;height:24px}.dot{color:var(--champagne)}.eyebrow{display:inline-flex;align-items:center;gap:8px;margin-top:28px;font-family:var(--f-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.18em;color:var(--muted);font-weight:700}.eyebrow::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--champagne);box-shadow:0 0 0 5px rgba(var(--champagne-rgb),.10)}h1{font-size:clamp(2.05rem,7vw,3.4rem);line-height:1.02;letter-spacing:-.07em;margin:14px 0 0}.lead{margin:14px 0 0;color:var(--text-2);font-size:1rem;line-height:1.7}.form{margin-top:24px;display:grid;gap:13px}.label{display:grid;gap:8px}.label span{font-size:13px;font-weight:700;color:var(--text-2)}input{width:100%;min-height:52px;border-radius:17px;border:1px solid var(--line);background:#000;color:var(--text);padding:0 15px;box-shadow:inset 0 1px 0 rgba(255,248,233,.06);outline:none}input:focus{border-color:rgba(var(--champagne-rgb),.48);box-shadow:0 0 0 4px rgba(var(--champagne-rgb),.10),inset 0 1px 0 rgba(255,248,233,.09)}.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:4px}.btn{min-height:48px;border-radius:999px;padding:0 18px;font-weight:800;cursor:pointer;transition:transform .28s var(--spring),box-shadow .28s ease,opacity .2s ease}.btn:active{transform:scale(.98)}.primary{background:var(--champagne);color:#08111f;box-shadow:0 24px 54px -30px rgba(var(--champagne-rgb),.72),inset 0 1px 0 rgba(255,255,255,.34)}.ghost{background:#000;color:var(--text-2);border:1px solid var(--line)}.btn[disabled]{opacity:.58;cursor:not-allowed}.msg{min-height:20px;margin:2px 0 0;font-size:13px;color:var(--muted);line-height:1.5}.msg.error{color:#f2b9a0}.msg.success{color:#bfe5cc}.spin{display:inline-block;width:15px;height:15px;margin-right:8px;border:2px solid rgba(8,17,31,.24);border-top-color:#08111f;border-radius:50%;vertical-align:-2px;animation:spin .75s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}@keyframes rvBlurFloatA{0%{transform:translate3d(0,0,0) scale(.92)}45%{transform:translate3d(18vw,8vh,0) scale(1.12)}100%{transform:translate3d(8vw,26vh,0) scale(.98)}}@keyframes rvBlurFloatB{0%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(-20vw,16vh,0) scale(1.18)}100%{transform:translate3d(-8vw,34vh,0) scale(.94)}}@keyframes rvBlurFloatC{0%{transform:translate3d(0,0,0) scale(.96)}50%{transform:translate3d(16vw,-18vh,0) scale(1.16)}100%{transform:translate3d(-12vw,-30vh,0) scale(1)}}@keyframes rvBlurSweep{0%{transform:translateX(-10vw) rotate(18deg);opacity:0}16%{opacity:.32}56%{opacity:.22}100%{transform:translateX(190vw) rotate(18deg);opacity:0}}@media(max-width:520px){.card{padding:22px;border-radius:26px}.actions .btn{width:100%}}@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+  <div class="rv-heavy-blur" aria-hidden="true"><i class="rvb-1"></i><i class="rvb-2"></i><i class="rvb-3"></i><span class="rvb-sweep"></span><span class="rvb-sweep s2"></span></div>
+  <main class="wrap">
+    <section class="card" aria-labelledby="title">
+      <a class="brand" href="/dashboard.html" aria-label="Revessent dashboard">
+        <span class="mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><rect x="2" y="2" width="28" height="28" rx="9" fill="#000" stroke="rgba(242,216,162,.18)"/><path d="M9 21h3l2-7 3 10 2.4-8 2.6 5H24" stroke="var(--champagne)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        revessent<span class="dot">.</span>
+      </a>
+      <span class="eyebrow">Workspace setup</span>
+      <h1 id="title">What should we call your workspace?</h1>
+      <p class="lead">This name appears across your Revessent dashboard, recovery emails, and internal settings. You can change it later.</p>
+      <form class="form" id="workspaceForm">
+        <label class="label">
+          <span>Workspace name</span>
+          <input id="workspaceName" name="name" autocomplete="organization" maxlength="120" placeholder="Your company or product name" required>
+        </label>
+        <div class="actions">
+          <button class="btn primary" id="continueBtn" type="submit">Continue</button>
+          <button class="btn ghost" id="skipBtn" type="button">Skip for now</button>
+        </div>
+        <p class="msg" id="message" role="status" aria-live="polite">Checking your account…</p>
+      </form>
+    </section>
+  </main>
+  <script>
+    const SUPABASE_URL = 'https://zujmouzzqiovgbnanrvv.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const form = document.getElementById('workspaceForm');
+    const input = document.getElementById('workspaceName');
+    const button = document.getElementById('continueBtn');
+    const skip = document.getElementById('skipBtn');
+    const message = document.getElementById('message');
+
+    let session = null;
+    let organizationId = '';
+
+    function setMessage(text, type = '') {
+      message.textContent = text;
+      message.className = `msg ${type}`.trim();
+    }
+
+    function setBusy(isBusy) {
+      button.disabled = isBusy;
+      skip.disabled = isBusy;
+      button.innerHTML = isBusy ? '<span class="spin" aria-hidden="true"></span>Saving…' : 'Continue';
+    }
+
+    async function api(path, options = {}) {
+      const response = await fetch(path, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+          ...(options.headers || {}),
+        },
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.error || 'Request failed.');
+      return body;
+    }
+
+    async function boot() {
+      const { data: { session: currentSession } } = await supabaseClient.auth.getSession();
+      if (!currentSession) {
+        window.location.href = '/login.html';
+        return;
+      }
+
+      session = currentSession;
+
+      try {
+        const me = await api('/api/me');
+        organizationId = me.organizationId || '';
+        input.value = me.organizationName || '';
+        input.placeholder = me.organizationName || 'Your company or product name';
+        setMessage('Ready when you are.');
+        input.focus();
+        input.select();
+      } catch (error) {
+        console.error(error);
+        setMessage(error.message || 'Could not load your workspace.', 'error');
+      }
+    }
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const name = input.value.trim();
+      if (!name) {
+        setMessage('Workspace name is required.', 'error');
+        input.focus();
+        return;
+      }
+      if (!organizationId) {
+        setMessage('Organization not loaded yet. Please refresh.', 'error');
+        return;
+      }
+
+      setBusy(true);
+      setMessage('Saving workspace…');
+      try {
+        await api('/api/organization', {
+          method: 'PATCH',
+          body: JSON.stringify({ organizationId, name }),
+        });
+        setMessage('Saved. Taking you to the dashboard…', 'success');
+        window.location.href = '/dashboard.html';
+      } catch (error) {
+        console.error(error);
+        setMessage(error.message || 'Could not save workspace.', 'error');
+        setBusy(false);
+      }
+    });
+
+    skip.addEventListener('click', () => {
+      window.location.href = '/dashboard.html';
+    });
+
+    boot();
+  </script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a432718bbfe6cc8c',t:'MTc5MDc2MzA4Ng=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
