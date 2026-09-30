@@ -1,0 +1,629 @@
+// Revessent /api/webhooks/razorpay
+// Receives Razorpay webhook events for one Revessent organization, verifies
+// Razorpay's HMAC signature, logs the raw event, and creates/updates recovery
+// cases for failed/captured payments.
+//
+// Razorpay payload shape assumptions used here:
+// - Webhook body is JSON like:
+//   { entity, account_id, event, contains, payload: { payment: { entity: {...} } } }
+// - Event type is payload.event, e.g. "payment.failed" or "payment.captured".
+// - Payment fields are read from payload.payload.payment.entity.
+// - Razorpay's exact field names may vary by API version and webhook product;
+//   double-check current Razorpay docs when wiring/registering the webhook.
+// - Webhook URL must include ?org=<organization_id>, so we can look up that
+//   organization's stored Razorpay webhook_secret before verifying signature.
+
+const { Pool } = require('pg');
+const crypto = require('crypto');
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
+
+const OPEN_CASE_STATUSES = [
+  'detected',
+  'retrying',
+  'awaiting_approval',
+  'note_sent',
+  'checkout_sent',
+];
+
+function sendJson(res, status, body) {
+  res.statusCode = status;
+  res.setHeader('Content-Type', 'application/json');
+  res.end(JSON.stringify(body));
+}
+
+function getQueryParam(req, key) {
+  if (req.query && req.query[key] != null) return String(req.query[key]);
+
+  try {
+    const url = new URL(req.url, 'https://revessent.local');
+    return url.searchParams.get(key) || '';
+  } catch (_) {
+    return '';
+  }
+}
+
+async function readRawBody(req) {
+  if (Buffer.isBuffer(req.body)) return req.body;
+
+  if (typeof req.body === 'string') {
+    return Buffer.from(req.body, 'utf8');
+  }
+
+  // Fallback for environments that already parsed the body. Signature checks
+  // require exact raw bytes, so the manual stream path above is preferred.
+  if (req.body && typeof req.body === 'object') {
+    return Buffer.from(JSON.stringify(req.body), 'utf8');
+  }
+
+  const chunks = [];
+  for await (const chunk of req) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  return Buffer.concat(chunks);
+}
+
+function safeString(value) {
+  return value == null ? '' : String(value).trim();
+}
+
+function normalizeCurrency(value) {
+  return safeString(value || 'INR').toUpperCase();
+}
+
+function toInteger(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.round(n) : fallback;
+}
+
+function asJson(value) {
+  return JSON.stringify(value == null ? {} : value);
+}
+
+function verifyRazorpaySignature(rawBody, webhookSecret, signatureHeader) {
+  const signature = safeString(signatureHeader);
+  if (!signature || !webhookSecret) return false;
+
+  const expectedHex = crypto.createHmac('sha256', webhookSecret).update(rawBody).digest('hex');
+
+  let expected;
+  let actual;
+
+  try {
+    expected = Buffer.from(expectedHex, 'hex');
+    actual = Buffer.from(signature, 'hex');
+  } catch (_) {
+    return false;
+  }
+
+  if (expected.length === 0 || actual.length === 0 || expected.length !== actual.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(expected, actual);
+}
+
+async function getWebhookSecretForOrg(client, organizationId) {
+  const result = await client.query(
+    `select organization_id, webhook_secret
+       from stripe_connections
+      where organization_id = $1
+        and is_active = true
+        and webhook_secret is not null
+      order by connected_at desc nulls last
+      limit 1`,
+    [organizationId]
+  );
+
+  return result.rows[0] || null;
+}
+
+function getPaymentEntity(eventPayload) {
+  return (
+    eventPayload &&
+    eventPayload.payload &&
+    eventPayload.payload.payment &&
+    eventPayload.payload.payment.entity
+  ) || null;
+}
+
+function getNested(object, path) {
+  return path.split('.').reduce((acc, key) => (acc && acc[key] != null ? acc[key] : undefined), object);
+}
+
+function eventFingerprint(eventPayload, rawBody) {
+  const eventType = safeString(eventPayload && eventPayload.event) || 'unknown';
+  const payment = getPaymentEntity(eventPayload);
+  const topLevelId =
+    safeString(eventPayload && eventPayload.id) ||
+    safeString(eventPayload && eventPayload.event_id) ||
+    safeString(eventPayload && eventPayload.entity_id);
+
+  if (topLevelId) return topLevelId;
+  if (payment && payment.id) return `${eventType}:${payment.id}`;
+
+  return `${eventType}:${crypto.createHash('sha256').update(rawBody).digest('hex')}`;
+}
+
+function mapDeclineCode(payment) {
+  const haystack = [
+    payment && payment.error_code,
+    payment && payment.error_reason,
+    payment && payment.error_description,
+    payment && payment.error_source,
+    payment && payment.error_step,
+    payment && payment.status,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  if (/insufficient|not\s+enough|funds/.test(haystack)) return 'insufficient_funds';
+  if (/expired/.test(haystack)) return 'expired_card';
+  if (/do[_\s-]?not[_\s-]?honou?r|honou?r/.test(haystack)) return 'do_not_honor';
+  if (/invalid[_\s-]?(account|card)|incorrect[_\s-]?card|invalid/.test(haystack)) return 'invalid_account';
+  if (/lost/.test(haystack)) return 'lost_card';
+  if (/stolen/.test(haystack)) return 'stolen_card';
+  if (/pickup|pick[_\s-]?up/.test(haystack)) return 'pickup_card';
+  if (/processing|processor|gateway|server|timeout|technical/.test(haystack)) return 'processing_error';
+  if (/declin|card/.test(haystack)) return 'card_declined';
+
+  return 'unknown';
+}
+
+function extractCustomerId(payment) {
+  return (
+    safeString(payment && payment.customer_id) ||
+    safeString(payment && payment.customer) ||
+    safeString(payment && payment.contact_id) ||
+    safeString(getNested(payment, 'notes.customer_id')) ||
+    safeString(getNested(payment, 'notes.razorpay_customer_id'))
+  );
+}
+
+function extractEmail(payment) {
+  return (
+    safeString(payment && payment.email) ||
+    safeString(getNested(payment, 'customer.email')) ||
+    safeString(getNested(payment, 'notes.email')) ||
+    safeString(getNested(payment, 'notes.customer_email'))
+  ).toLowerCase();
+}
+
+function extractName(payment) {
+  return (
+    safeString(getNested(payment, 'customer.name')) ||
+    safeString(getNested(payment, 'notes.name')) ||
+    safeString(getNested(payment, 'notes.customer_name')) ||
+    safeString(payment && payment.name) ||
+    safeString(payment && payment.contact)
+  );
+}
+
+function extractSubscriptionId(payment) {
+  return (
+    safeString(payment && payment.subscription_id) ||
+    safeString(getNested(payment, 'notes.subscription_id')) ||
+    safeString(getNested(payment, 'notes.razorpay_subscription_id'))
+  );
+}
+
+function getPaymentNotes(payment) {
+  return payment && payment.notes && typeof payment.notes === 'object' ? payment.notes : {};
+}
+
+async function findOrCreateMember(client, organizationId, payment) {
+  const customerId = extractCustomerId(payment);
+  const email = extractEmail(payment);
+  const name = extractName(payment);
+  const metadata = {
+    source: 'razorpay',
+    payment_id: payment && payment.id ? payment.id : null,
+    contact: payment && payment.contact ? payment.contact : null,
+    notes: getPaymentNotes(payment),
+  };
+
+  let found = null;
+
+  if (customerId) {
+    const byCustomer = await client.query(
+      `select *
+         from stripe_members
+        where organization_id = $1
+          and stripe_customer_id = $2
+        limit 1`,
+      [organizationId, customerId]
+    );
+    found = byCustomer.rows[0] || null;
+  }
+
+  if (!found && email) {
+    const byEmail = await client.query(
+      `select *
+         from stripe_members
+        where organization_id = $1
+          and lower(email) = lower($2)
+        limit 1`,
+      [organizationId, email]
+    );
+    found = byEmail.rows[0] || null;
+  }
+
+  if (found) {
+    const updated = await client.query(
+      `update stripe_members
+          set stripe_customer_id = coalesce(nullif($2, ''), stripe_customer_id),
+              email = coalesce(nullif($3, ''), email),
+              name = coalesce(nullif($4, ''), name),
+              metadata = coalesce(metadata, '{}'::jsonb) || $5::jsonb,
+              updated_at = now()
+        where id = $1
+        returning *`,
+      [found.id, customerId, email, name, asJson(metadata)]
+    );
+    return updated.rows[0];
+  }
+
+  const inserted = await client.query(
+    `insert into stripe_members
+       (id, organization_id, stripe_customer_id, email, name, metadata, created_at, updated_at)
+     values
+       ($1, $2, nullif($3, ''), nullif($4, ''), nullif($5, ''), $6::jsonb, now(), now())
+     returning *`,
+    [crypto.randomUUID(), organizationId, customerId, email, name, asJson(metadata)]
+  );
+
+  return inserted.rows[0];
+}
+
+async function findSubscription(client, organizationId, razorpaySubscriptionId) {
+  if (!razorpaySubscriptionId) return null;
+
+  const result = await client.query(
+    `select id, member_id
+       from stripe_subscriptions
+      where organization_id = $1
+        and stripe_subscription_id = $2
+      limit 1`,
+    [organizationId, razorpaySubscriptionId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function insertActivity(client, values) {
+  await client.query(
+    `insert into activity_feed
+       (id, organization_id, type, title, description, amount_cents, currency, member_id, case_id, metadata, created_at)
+     values
+       ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, now())`,
+    [
+      crypto.randomUUID(),
+      values.organizationId,
+      values.type,
+      values.title,
+      values.description || null,
+      values.amountCents == null ? null : values.amountCents,
+      values.currency || null,
+      values.memberId || null,
+      values.caseId || null,
+      asJson(values.metadata || {}),
+    ]
+  );
+}
+
+async function handlePaymentFailed(client, organizationId, eventPayload) {
+  const payment = getPaymentEntity(eventPayload);
+  if (!payment || !payment.id) {
+    throw new Error('payment.failed payload missing payment.entity.id.');
+  }
+
+  const amountCents = toInteger(payment.amount, 0);
+  const currency = normalizeCurrency(payment.currency);
+  const declineCode = mapDeclineCode(payment);
+  const member = await findOrCreateMember(client, organizationId, payment);
+  const subscription = await findSubscription(client, organizationId, extractSubscriptionId(payment));
+
+  const insertedCase = await client.query(
+    `insert into recovery_cases
+       (id, organization_id, member_id, subscription_id, stripe_invoice_id, stripe_charge_id,
+        status, decline_code, amount_cents, currency, next_retry_at, retry_count, max_retries,
+        failed_at, created_at, updated_at)
+     values
+       ($1, $2, $3, $4, $5, null,
+        'detected', $6, $7, $8, now() + interval '1 hour', 0, 3,
+        now(), now(), now())
+     on conflict (stripe_invoice_id) do nothing
+     returning id`,
+    [
+      crypto.randomUUID(),
+      organizationId,
+      member.id,
+      subscription ? subscription.id : null,
+      payment.id,
+      declineCode,
+      amountCents,
+      currency,
+    ]
+  );
+
+  const recoveryCase = insertedCase.rows[0] || null;
+
+  if (!recoveryCase) {
+    return { action: 'case_duplicate', paymentId: payment.id };
+  }
+
+  await insertActivity(client, {
+    organizationId,
+    type: 'detected',
+    title: 'Payment failed',
+    description: payment.error_description || payment.error_reason || 'Razorpay reported a failed payment.',
+    amountCents,
+    currency,
+    memberId: member.id,
+    caseId: recoveryCase.id,
+    metadata: {
+      source: 'razorpay_webhook',
+      event: eventPayload.event,
+      payment_id: payment.id,
+      decline_code: declineCode,
+    },
+  });
+
+  return { action: 'case_created', caseId: recoveryCase.id, paymentId: payment.id };
+}
+
+function amountLabel(amountCents, currency) {
+  const amount = (Number(amountCents || 0) / 100).toLocaleString('en-IN', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+  return `${currency || 'INR'} ${amount}`;
+}
+
+function recoveryCaseCandidateIds(payment) {
+  const notes = getPaymentNotes(payment);
+  return [
+    safeString(notes.recovery_case_id),
+    safeString(notes.revessent_case_id),
+  ].filter(Boolean);
+}
+
+function failedPaymentCandidateIds(payment) {
+  const notes = getPaymentNotes(payment);
+  return [
+    safeString(notes.original_payment_id),
+    safeString(notes.failed_payment_id),
+    safeString(notes.revessent_failed_payment_id),
+    safeString(payment && payment.order_id),
+    safeString(payment && payment.invoice_id),
+    safeString(payment && payment.id),
+  ].filter(Boolean);
+}
+
+async function findOpenRecoveryCaseForCapturedPayment(client, organizationId, payment) {
+  const caseIds = recoveryCaseCandidateIds(payment);
+  const paymentIds = failedPaymentCandidateIds(payment);
+
+  if (caseIds.length) {
+    const byCaseId = await client.query(
+      `select id, member_id, amount_cents, currency
+         from recovery_cases
+        where organization_id = $1
+          and id = any($2::uuid[])
+          and status = any($3::text[])
+        order by created_at desc
+        limit 1`,
+      [organizationId, caseIds, OPEN_CASE_STATUSES]
+    );
+    if (byCaseId.rows[0]) return byCaseId.rows[0];
+  }
+
+  if (paymentIds.length) {
+    const byPaymentId = await client.query(
+      `select id, member_id, amount_cents, currency
+         from recovery_cases
+        where organization_id = $1
+          and stripe_invoice_id = any($2::text[])
+          and status = any($3::text[])
+        order by created_at desc
+        limit 1`,
+      [organizationId, paymentIds, OPEN_CASE_STATUSES]
+    );
+    if (byPaymentId.rows[0]) return byPaymentId.rows[0];
+  }
+
+  const subscriptionId = extractSubscriptionId(payment);
+  const amountCents = toInteger(payment && payment.amount, 0);
+
+  if (subscriptionId && amountCents > 0) {
+    const bySubscription = await client.query(
+      `select rc.id, rc.member_id, rc.amount_cents, rc.currency
+         from recovery_cases rc
+         join stripe_subscriptions ss on ss.id = rc.subscription_id
+        where rc.organization_id = $1
+          and ss.stripe_subscription_id = $2
+          and rc.amount_cents = $3
+          and rc.status = any($4::text[])
+        order by rc.created_at desc
+        limit 1`,
+      [organizationId, subscriptionId, amountCents, OPEN_CASE_STATUSES]
+    );
+    if (bySubscription.rows[0]) return bySubscription.rows[0];
+  }
+
+  return null;
+}
+
+async function handlePaymentCaptured(client, organizationId, eventPayload) {
+  const payment = getPaymentEntity(eventPayload);
+  if (!payment || !payment.id) {
+    throw new Error('payment.captured payload missing payment.entity.id.');
+  }
+
+  const recoveryCase = await findOpenRecoveryCaseForCapturedPayment(client, organizationId, payment);
+
+  if (!recoveryCase) {
+    return { action: 'fresh_success_ignored', paymentId: payment.id };
+  }
+
+  const amountCents = toInteger(payment.amount, recoveryCase.amount_cents || 0);
+  const currency = normalizeCurrency(payment.currency || recoveryCase.currency);
+
+  await client.query(
+    `update recovery_cases
+        set status = 'recovered',
+            recovered_at = now(),
+            recovery_source = 'retry',
+            updated_at = now()
+      where id = $1`,
+    [recoveryCase.id]
+  );
+
+  await insertActivity(client, {
+    organizationId,
+    type: 'recovered',
+    title: `${amountLabel(amountCents, currency)} recovered`,
+    description: 'Payment captured by Razorpay after a recovery attempt.',
+    amountCents,
+    currency,
+    memberId: recoveryCase.member_id,
+    caseId: recoveryCase.id,
+    metadata: {
+      source: 'razorpay_webhook',
+      event: eventPayload.event,
+      payment_id: payment.id,
+    },
+  });
+
+  return { action: 'case_recovered', caseId: recoveryCase.id, paymentId: payment.id };
+}
+
+async function processEvent(client, organizationId, eventPayload) {
+  const eventType = safeString(eventPayload && eventPayload.event);
+
+  if (eventType === 'payment.failed') {
+    return await handlePaymentFailed(client, organizationId, eventPayload);
+  }
+
+  if (eventType === 'payment.captured') {
+    return await handlePaymentCaptured(client, organizationId, eventPayload);
+  }
+
+  return { action: 'ignored', eventType };
+}
+
+async function logWebhookEvent(client, organizationId, eventId, eventType, eventPayload) {
+  const result = await client.query(
+    `insert into webhook_events
+       (id, organization_id, stripe_event_id, event_type, payload, created_at)
+     values
+       ($1, $2, $3, $4, $5::jsonb, now())
+     on conflict (stripe_event_id) do nothing
+     returning id`,
+    [crypto.randomUUID(), organizationId, eventId, eventType, asJson(eventPayload)]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function markWebhookProcessed(client, webhookEventId) {
+  await client.query(
+    `update webhook_events
+        set processed_at = now(),
+            processing_error = null
+      where id = $1`,
+    [webhookEventId]
+  );
+}
+
+async function markWebhookErrored(client, webhookEventId, error) {
+  await client.query(
+    `update webhook_events
+        set processed_at = now(),
+            processing_error = $2
+      where id = $1`,
+    [webhookEventId, (error && error.message ? error.message : String(error)).slice(0, 2000)]
+  );
+}
+
+module.exports = async (req, res) => {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return sendJson(res, 405, { error: 'Method not allowed.' });
+  }
+
+  let client;
+  const organizationId = safeString(getQueryParam(req, 'org'));
+
+  if (!organizationId) {
+    return sendJson(res, 400, { error: 'Missing org query parameter.' });
+  }
+
+  try {
+    client = await pool.connect();
+
+    const connection = await getWebhookSecretForOrg(client, organizationId);
+    if (!connection || !connection.webhook_secret) {
+      return sendJson(res, 400, { error: 'Unknown or inactive webhook organization.' });
+    }
+
+    const rawBody = await readRawBody(req);
+    const signature = req.headers['x-razorpay-signature'];
+
+    if (!verifyRazorpaySignature(rawBody, connection.webhook_secret, signature)) {
+      return sendJson(res, 400, { error: 'Invalid Razorpay signature.' });
+    }
+
+    let eventPayload;
+    try {
+      eventPayload = JSON.parse(rawBody.toString('utf8'));
+    } catch (error) {
+      return sendJson(res, 400, { error: 'Malformed JSON webhook body.' });
+    }
+
+    const eventType = safeString(eventPayload.event) || 'unknown';
+    const eventId = eventFingerprint(eventPayload, rawBody);
+
+    try {
+      await client.query('BEGIN');
+
+      const webhookEvent = await logWebhookEvent(client, organizationId, eventId, eventType, eventPayload);
+
+      if (!webhookEvent) {
+        await client.query('COMMIT');
+        return sendJson(res, 200, { received: true, duplicate: true });
+      }
+
+      await client.query('SAVEPOINT after_webhook_event_log');
+
+      try {
+        const result = await processEvent(client, organizationId, eventPayload);
+        await markWebhookProcessed(client, webhookEvent.id);
+        await client.query('COMMIT');
+        return sendJson(res, 200, { received: true, ...result });
+      } catch (processingError) {
+        console.error('Revessent Razorpay webhook processing failed:', processingError);
+        await client.query('ROLLBACK TO SAVEPOINT after_webhook_event_log');
+        await markWebhookErrored(client, webhookEvent.id, processingError);
+        await client.query('COMMIT');
+        return sendJson(res, 200, { received: true, error: 'Event logged but processing failed.' });
+      }
+    } catch (dbError) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackError) {
+        console.error('Revessent Razorpay webhook rollback failed:', rollbackError);
+      }
+
+      console.error('Revessent Razorpay webhook transaction failed:', dbError);
+      return sendJson(res, 200, { received: true, error: 'Webhook accepted but internal processing failed.' });
+    }
+  } catch (error) {
+    console.error('Revessent Razorpay webhook failed:', error);
+    return sendJson(res, 500, { error: 'Webhook request failed.' });
+  } finally {
+    if (client) client.release();
+  }
+};
