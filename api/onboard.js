@@ -1,83 +1,172 @@
-// /api/onboard.js
-// Called right after a successful Supabase signup or first sign-in.
-// Creates a matching organization + user row in Neon, if one doesn't
-// already exist for this Supabase user id. Safe to call more than once —
-// it checks first and does nothing if the user is already onboarded.
+// Revessent /api/onboard
+// Idempotently creates or binds a Neon user for a Supabase account after
+// client-side signup/signin. New rows are bound to Supabase's stable user id.
 
 const { Pool } = require('pg');
+const crypto = require('crypto');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
 
-function slugify(email) {
-  const base = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]+/g, '-');
-  const suffix = Math.random().toString(36).slice(2, 7);
-  return `${base}-${suffix}`;
+function sendJson(res, status, body) {
+  res.statusCode = status;
+  res.setHeader('Content-Type', 'application/json');
+  res.end(JSON.stringify(body));
+}
+
+async function readJsonBody(req) {
+  if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) return req.body;
+  if (typeof req.body === 'string') return req.body ? JSON.parse(req.body) : {};
+  if (Buffer.isBuffer(req.body)) {
+    const raw = req.body.toString('utf8');
+    return raw ? JSON.parse(raw) : {};
+  }
+
+  const chunks = [];
+  for await (const chunk of req) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  const raw = Buffer.concat(chunks).toString('utf8');
+  return raw ? JSON.parse(raw) : {};
+}
+
+function cleanString(value) {
+  return value == null ? '' : String(value).trim();
+}
+
+function cleanEmail(value) {
+  return cleanString(value).toLowerCase();
+}
+
+function isEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+async function findUserBySupabaseId(client, supabaseUserId) {
+  if (!supabaseUserId) return null;
+
+  const result = await client.query(
+    `select id, organization_id, email, role, supabase_user_id
+       from users
+      where supabase_user_id = $1
+      limit 1`,
+    [supabaseUserId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function findUserByEmail(client, email) {
+  const result = await client.query(
+    `select id, organization_id, email, role, supabase_user_id
+       from users
+      where lower(email) = lower($1)
+      limit 1`,
+    [email]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function backfillSupabaseUserId(client, user, supabaseUserId) {
+  if (!user || !supabaseUserId || user.supabase_user_id) return user;
+
+  const result = await client.query(
+    `update users
+        set supabase_user_id = $1
+      where id = $2
+        and supabase_user_id is null
+    returning id, organization_id, email, role, supabase_user_id`,
+    [supabaseUserId, user.id]
+  );
+
+  return result.rows[0] || user;
+}
+
+async function createUserAndOrganization(client, email, supabaseUserId) {
+  const organizationId = crypto.randomUUID();
+  const userId = crypto.randomUUID();
+
+  await client.query(
+    `insert into organizations (id, name, created_at, updated_at)
+     values ($1, $2, now(), now())`,
+    [organizationId, 'New workspace']
+  );
+
+  const result = await client.query(
+    `insert into users (id, organization_id, email, role, supabase_user_id, created_at, updated_at)
+     values ($1, $2, $3, 'owner', $4, now(), now())
+     returning id, organization_id, email, role, supabase_user_id`,
+    [userId, organizationId, email, supabaseUserId || null]
+  );
+
+  return result.rows[0];
 }
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' });
-    return;
+    res.setHeader('Allow', 'POST');
+    return sendJson(res, 405, { error: 'Method not allowed.' });
   }
 
-  const { supabaseUserId, email } = req.body || {};
-
-  if (!supabaseUserId || !email) {
-    res.status(400).json({ error: 'Missing supabaseUserId or email' });
-    return;
-  }
-
-  const client = await pool.connect();
+  let body;
   try {
+    body = await readJsonBody(req);
+  } catch (_) {
+    return sendJson(res, 400, { error: 'Invalid JSON body.' });
+  }
+
+  const email = cleanEmail(body && body.email);
+  const supabaseUserId = cleanString(body && body.supabaseUserId);
+
+  if (!email || !isEmail(email)) return sendJson(res, 400, { error: 'A valid email is required.' });
+  if (!supabaseUserId) return sendJson(res, 400, { error: 'supabaseUserId is required.' });
+
+  let client;
+  try {
+    client = await pool.connect();
     await client.query('BEGIN');
 
-    const existing = await client.query(
-      'SELECT id, organization_id FROM users WHERE email = $1 LIMIT 1',
-      [email]
-    );
+    let user = await findUserBySupabaseId(client, supabaseUserId);
 
-    if (existing.rows.length > 0) {
-      await client.query('COMMIT');
-      res.status(200).json({
-        alreadyExists: true,
-        userId: existing.rows[0].id,
-        organizationId: existing.rows[0].organization_id,
-      });
-      return;
+    if (!user) {
+      user = await findUserByEmail(client, email);
+
+      if (user && user.supabase_user_id && user.supabase_user_id !== supabaseUserId) {
+        await client.query('ROLLBACK');
+        return sendJson(res, 409, { error: 'This email is already bound to another Supabase account.' });
+      }
+
+      if (user) user = await backfillSupabaseUserId(client, user, supabaseUserId);
     }
 
-    const slug = slugify(email);
-    const orgResult = await client.query(
-      `INSERT INTO organizations (name, slug, plan, trust_level)
-       VALUES ($1, $2, 'ember', 'approval_required')
-       RETURNING id`,
-      [`${email.split('@')[0]}'s workspace`, slug]
-    );
-    const organizationId = orgResult.rows[0].id;
-
-    const userResult = await client.query(
-      `INSERT INTO users (organization_id, email, role, email_verified)
-       VALUES ($1, $2, 'owner', true)
-       RETURNING id`,
-      [organizationId, email]
-    );
-    const userId = userResult.rows[0].id;
+    if (!user) user = await createUserAndOrganization(client, email, supabaseUserId);
 
     await client.query('COMMIT');
 
-    res.status(200).json({
-      alreadyExists: false,
-      userId,
-      organizationId,
+    return sendJson(res, 200, {
+      ok: true,
+      userId: user.id,
+      organizationId: user.organization_id,
+      email: user.email,
+      role: user.role,
     });
-  } catch (err) {
-    await client.query('ROLLBACK');
-    console.error('Onboarding error:', err);
-    res.status(500).json({ error: 'Failed to onboard user', detail: err.message });
+  } catch (error) {
+    if (client) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackError) {
+        console.error('Revessent /api/onboard rollback failed:', rollbackError);
+      }
+    }
+
+    if (error && error.code === '23505') {
+      return sendJson(res, 409, { error: 'This Supabase account is already bound to another user.' });
+    }
+
+    console.error('Revessent /api/onboard failed:', error);
+    return sendJson(res, 500, { error: 'Could not sync account.' });
   } finally {
-    client.release();
+    if (client) client.release();
   }
 };
