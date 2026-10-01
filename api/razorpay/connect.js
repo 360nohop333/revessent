@@ -4,9 +4,16 @@
 // This file is both an HTTP endpoint and an internal helper. api/settings.js
 // imports registerRazorpayWebhook() and calls it after Razorpay credentials
 // are saved, so users do not have to manually create webhooks in Razorpay.
+//
+// After the webhook is registered, the 90-day historical scan
+// (backfillRazorpayHistory from api/razorpay/backfill.js) runs as a separate,
+// best-effort step: if the scan fails, the error is logged server-side but the
+// request still succeeds — the live webhook going forward is the important
+// thing working, the backfill is a nice-to-have enhancement.
 
 const { Pool } = require('pg');
 const crypto = require('crypto');
+const { backfillRazorpayHistory } = require('./backfill');
 
 const SUPABASE_URL = 'https://zujmouzzqiovgbnanrvv.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3';
@@ -325,11 +332,25 @@ async function handler(req, res) {
     const organizationId = requireSameOrganization(user, body && body.organizationId);
     const result = await registerRazorpayWebhook({ client, organizationId });
 
+    // Separate, best-effort step after the webhook registration succeeds:
+    // scan the last 90 days of Razorpay history for missed failed payments.
+    // Its failure must NOT fail this request (or the underlying settings
+    // save) — log it and still report the connection as successful.
+    let backfill = null;
+
+    try {
+      backfill = await backfillRazorpayHistory({ client, organizationId });
+    } catch (backfillError) {
+      console.error('Revessent Razorpay 90-day backfill failed after webhook registration:', backfillError);
+      backfill = { error: backfillError.message || 'Historical scan failed.' };
+    }
+
     return sendJson(res, 200, {
       success: true,
       webhookRegistered: result.webhookRegistered,
       webhookId: result.webhookId,
       webhookUrl: result.url,
+      backfill,
     });
   } catch (error) {
     if (error.statusCode && [400, 401, 403].includes(error.statusCode)) {

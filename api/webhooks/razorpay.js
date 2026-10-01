@@ -15,6 +15,7 @@
 
 const { Pool } = require('pg');
 const crypto = require('crypto');
+const { sendAlertIfConfigured } = require('../alerts/send');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -28,6 +29,69 @@ const OPEN_CASE_STATUSES = [
   'note_sent',
   'checkout_sent',
 ];
+
+// Hardcoded default for "notably large" failed payments (> 10000 cents / $100)
+// that trigger a "⚠️ High-value payment failed" alert. Deliberately separate
+// from the user-configurable organizations.alert_min_amount_cents, which gates
+// the "💰 Payment recovered" alerts.
+const HIGH_VALUE_FAILED_ALERT_CENTS = 10000;
+
+// ─── Decline-reason-specific retry timing ─────────────────────────────────────
+// Keep in sync with the identical copies of getRetrySchedule() in:
+//   - api/recovery/retry.js
+//   - api/razorpay/backfill.js
+// (The function is duplicated verbatim because each api/ file is a standalone
+// serverless function in this repo and cannot easily share a module.
+// api/cron/process-recovery-queue.js does NOT carry its own copy — it imports
+// getRetrySchedule from api/recovery/retry.js, which is the exported source of
+// truth.)
+//
+// Reasoning:
+// - expired_card / invalid_account / lost_card / stolen_card / pickup_card:
+//   the card itself is bad, so retrying the same card number can NEVER
+//   succeed. No automatic retry is scheduled at all (next_retry_at stays
+//   null) and the case goes straight to 'awaiting_approval' — what's needed
+//   is a NEW payment method from the customer, not a retry.
+// - insufficient_funds: customers often get paid on specific dates (end of
+//   month / start of month), so give payday cycles time to pass:
+//   attempt 1 at +3 days, attempt 2 at +7 days, attempt 3 at +14 days.
+// - card_declined / do_not_honor / processing_error / unknown (and anything
+//   unrecognized): generic, often transient bank-side declines, so keep the
+//   standard cadence: attempt 1 at +1 day, attempt 2 at +3 days,
+//   attempt 3 at +7 days.
+//
+// retryCount is the number of retry attempts already completed (0 for a
+// freshly detected case). Returns the number of days to wait before the NEXT
+// retry attempt, or null when the decline code must never be auto-retried.
+const NO_AUTO_RETRY_DECLINE_CODES = new Set([
+  'expired_card',
+  'invalid_account',
+  'lost_card',
+  'stolen_card',
+  'pickup_card',
+]);
+
+const STANDARD_RETRY_SCHEDULE_DAYS = { 1: 1, 2: 3, 3: 7 };
+const INSUFFICIENT_FUNDS_RETRY_SCHEDULE_DAYS = { 1: 3, 2: 7, 3: 14 };
+
+function getRetrySchedule(declineCode, retryCount) {
+  if (NO_AUTO_RETRY_DECLINE_CODES.has(declineCode)) {
+    return null;
+  }
+
+  const schedule =
+    declineCode === 'insufficient_funds'
+      ? INSUFFICIENT_FUNDS_RETRY_SCHEDULE_DAYS
+      : STANDARD_RETRY_SCHEDULE_DAYS;
+
+  const attemptsDone = Number(retryCount);
+  const nextAttempt = Math.min(
+    Math.max(1, (Number.isFinite(attemptsDone) ? Math.round(attemptsDone) : 0) + 1),
+    3
+  );
+
+  return schedule[nextAttempt] != null ? schedule[nextAttempt] : schedule[3];
+}
 
 function sendJson(res, status, body) {
   res.statusCode = status;
@@ -325,6 +389,15 @@ async function handlePaymentFailed(client, organizationId, eventPayload) {
   const member = await findOrCreateMember(client, organizationId, payment);
   const subscription = await findSubscription(client, organizationId, extractSubscriptionId(payment));
 
+  // Decline-aware initial retry scheduling (Feature 1):
+  // - Non-retryable decline codes (bad card) → no next_retry_at at all and the
+  //   case starts as 'awaiting_approval', since what's needed is a new payment
+  //   method from the customer, not an automatic retry of the same card.
+  // - insufficient_funds → first attempt at +3 days (payday-cycle aware).
+  // - Generic/transient declines → first attempt at +1 day (standard cadence).
+  const initialRetryDelayDays = getRetrySchedule(declineCode, 0);
+  const initialStatus = initialRetryDelayDays == null ? 'awaiting_approval' : 'detected';
+
   const insertedCase = await client.query(
     `insert into recovery_cases
        (id, organization_id, member_id, subscription_id, stripe_invoice_id, stripe_charge_id,
@@ -332,7 +405,10 @@ async function handlePaymentFailed(client, organizationId, eventPayload) {
         failed_at, created_at, updated_at)
      values
        ($1, $2, $3, $4, $5, null,
-        'detected', $6, $7, $8, now() + interval '1 hour', 0, 3,
+        $6, $7, $8, $9,
+        case when $10::int is null then null
+             else now() + (($10::int)::text || ' days')::interval end,
+        0, 3,
         now(), now(), now())
      on conflict (stripe_invoice_id) do nothing
      returning id`,
@@ -342,9 +418,11 @@ async function handlePaymentFailed(client, organizationId, eventPayload) {
       member.id,
       subscription ? subscription.id : null,
       payment.id,
+      initialStatus,
       declineCode,
       amountCents,
       currency,
+      initialRetryDelayDays,
     ]
   );
 
@@ -368,10 +446,20 @@ async function handlePaymentFailed(client, organizationId, eventPayload) {
       event: eventPayload.event,
       payment_id: payment.id,
       decline_code: declineCode,
+      auto_retry: initialRetryDelayDays != null,
+      next_retry_in_days: initialRetryDelayDays,
     },
   });
 
-  return { action: 'case_created', caseId: recoveryCase.id, paymentId: payment.id };
+  // Ask the handler (after COMMIT) to fire a Slack/Discord alert for notably
+  // large failures. Returned rather than sent inline so a slow webhook call
+  // can never hold open — or roll back — the case-writing transaction.
+  const result = { action: 'case_created', caseId: recoveryCase.id, paymentId: payment.id };
+  if (amountCents > HIGH_VALUE_FAILED_ALERT_CENTS) {
+    result.alert = { title: '⚠️ High-value payment failed', amountCents, currency };
+  }
+
+  return result;
 }
 
 function amountLabel(amountCents, currency) {
@@ -497,7 +585,15 @@ async function handlePaymentCaptured(client, organizationId, eventPayload) {
     },
   });
 
-  return { action: 'case_recovered', caseId: recoveryCase.id, paymentId: payment.id };
+  // Ask the handler (after COMMIT) to fire the "💰 Payment recovered"
+  // Slack/Discord alert. Returned rather than sent inline so a slow webhook
+  // call can never hold open — or roll back — the recovery transaction.
+  return {
+    action: 'case_recovered',
+    caseId: recoveryCase.id,
+    paymentId: payment.id,
+    alert: { title: '💰 Payment recovered', amountCents, currency },
+  };
 }
 
 async function processEvent(client, organizationId, eventPayload) {
@@ -602,7 +698,16 @@ module.exports = async (req, res) => {
         const result = await processEvent(client, organizationId, eventPayload);
         await markWebhookProcessed(client, webhookEvent.id);
         await client.query('COMMIT');
-        return sendJson(res, 200, { received: true, ...result });
+
+        // Fire any requested Slack/Discord alert AFTER the commit — a slow or
+        // broken alert webhook must never hold open (or roll back) the
+        // case-writing transaction. sendAlertIfConfigured never throws.
+        const { alert, ...resultPayload } = result || {};
+        if (alert) {
+          await sendAlertIfConfigured(client, organizationId, alert);
+        }
+
+        return sendJson(res, 200, { received: true, ...resultPayload });
       } catch (processingError) {
         console.error('Revessent Razorpay webhook processing failed:', processingError);
         await client.query('ROLLBACK TO SAVEPOINT after_webhook_event_log');

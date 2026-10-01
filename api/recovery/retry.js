@@ -1,6 +1,12 @@
 // Revessent /api/recovery/retry
 // Attempts a real Razorpay recovery retry for an approved recovery case.
 //
+// This file is both an HTTP endpoint and an internal helper. The core
+// "attempt a Razorpay retry and record the result" logic lives in the
+// exported performRetryAttempt(client, caseRow, { automatic }) function so the
+// hourly escalation cron (api/cron/process-recovery-queue.js) can run retries
+// directly without an HTTP round-trip to this endpoint.
+//
 // Important Razorpay note:
 // This implementation uses a generic Orders + Payment Links approach so a
 // failed payment can be retried without requiring subscription-specific API
@@ -10,11 +16,67 @@
 
 const { Pool } = require('pg');
 const crypto = require('crypto');
+const { sendAlertIfConfigured } = require('../alerts/send');
 
 const SUPABASE_URL = 'https://zujmouzzqiovgbnanrvv.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3';
 const ELIGIBLE_STATUSES = new Set(['detected', 'retrying', 'awaiting_approval']);
-const RETRY_DELAY_DAYS = { 1: 1, 2: 3, 3: 7 };
+
+// ─── Decline-reason-specific retry timing ─────────────────────────────────────
+// Keep in sync with the identical copies of getRetrySchedule() in:
+//   - api/webhooks/razorpay.js
+//   - api/razorpay/backfill.js
+// (The function is duplicated verbatim because each api/ file is a standalone
+// serverless function in this repo and cannot easily share a module.
+// api/cron/process-recovery-queue.js does NOT carry its own copy — it imports
+// getRetrySchedule from this file, which is also the exported source of truth.)
+//
+// Reasoning:
+// - expired_card / invalid_account / lost_card / stolen_card / pickup_card:
+//   the card itself is bad, so retrying the same card number can NEVER
+//   succeed. No automatic retry is scheduled at all (next_retry_at stays
+//   null) — the case is created as 'awaiting_approval' by the webhook and the
+//   customer needs to provide a new payment method instead.
+// - insufficient_funds: customers often get paid on specific dates (end of
+//   month / start of month), so give payday cycles time to pass:
+//   attempt 1 at +3 days, attempt 2 at +7 days, attempt 3 at +14 days.
+// - card_declined / do_not_honor / processing_error / unknown (and anything
+//   unrecognized): generic, often transient bank-side declines, so keep the
+//   standard cadence: attempt 1 at +1 day, attempt 2 at +3 days,
+//   attempt 3 at +7 days.
+//
+// retryCount is the number of retry attempts already completed (0 for a
+// freshly detected case). Returns the number of days to wait before the NEXT
+// retry attempt, or null when the decline code must never be auto-retried.
+const NO_AUTO_RETRY_DECLINE_CODES = new Set([
+  'expired_card',
+  'invalid_account',
+  'lost_card',
+  'stolen_card',
+  'pickup_card',
+]);
+
+const STANDARD_RETRY_SCHEDULE_DAYS = { 1: 1, 2: 3, 3: 7 };
+const INSUFFICIENT_FUNDS_RETRY_SCHEDULE_DAYS = { 1: 3, 2: 7, 3: 14 };
+
+function getRetrySchedule(declineCode, retryCount) {
+  if (NO_AUTO_RETRY_DECLINE_CODES.has(declineCode)) {
+    return null;
+  }
+
+  const schedule =
+    declineCode === 'insufficient_funds'
+      ? INSUFFICIENT_FUNDS_RETRY_SCHEDULE_DAYS
+      : STANDARD_RETRY_SCHEDULE_DAYS;
+
+  const attemptsDone = Number(retryCount);
+  const nextAttempt = Math.min(
+    Math.max(1, (Number.isFinite(attemptsDone) ? Math.round(attemptsDone) : 0) + 1),
+    3
+  );
+
+  return schedule[nextAttempt] != null ? schedule[nextAttempt] : schedule[3];
+}
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -310,10 +372,6 @@ function parseRazorpayError(error) {
   };
 }
 
-function nextRetryDelayDays(retryCount) {
-  return RETRY_DELAY_DAYS[retryCount] || RETRY_DELAY_DAYS[3];
-}
-
 async function insertActivity(client, values) {
   await client.query(
     `insert into activity_feed
@@ -378,12 +436,17 @@ async function reserveRetryAttempt(client, caseRow) {
   return { attemptId, idempotencyKey, retryCount, maxRetries };
 }
 
-async function writeRetryResult(client, caseRow, reservation, razorpayResult, razorpayError) {
+async function writeRetryResult(client, caseRow, reservation, razorpayResult, razorpayError, options = {}) {
+  const automatic = Boolean(options.automatic);
   const organizationId = caseRow.organization_id;
   const caseId = caseRow.id;
   const attemptId = reservation.attemptId;
   const retryCount = reservation.retryCount;
   const maxRetries = reservation.maxRetries;
+
+  // Decline-aware wait until the next attempt (Feature 1). null means this
+  // decline code is never auto-retried, so next_retry_at is cleared entirely.
+  const scheduleDays = getRetrySchedule(caseRow.decline_code, retryCount);
 
   await client.query('BEGIN');
 
@@ -402,16 +465,17 @@ async function writeRetryResult(client, caseRow, reservation, razorpayResult, ra
         `update recovery_cases
             set status = 'retrying',
                 retry_count = $2,
-                next_retry_at = now() + ($3::text || ' days')::interval,
+                next_retry_at = case when $3::int is null then null
+                                     else now() + (($3::int)::text || ' days')::interval end,
                 updated_at = now()
           where id = $1`,
-        [caseId, retryCount, nextRetryDelayDays(retryCount)]
+        [caseId, retryCount, scheduleDays]
       );
 
       await insertActivity(client, {
         organizationId,
         type: 'note_sent',
-        title: 'Payment retry started',
+        title: automatic ? 'Automatic retry attempted' : 'Payment retry started',
         description: razorpayResult.checkoutUrl
           ? 'A secure Razorpay payment link was created for the customer.'
           : 'A Razorpay retry order was created.',
@@ -420,7 +484,8 @@ async function writeRetryResult(client, caseRow, reservation, razorpayResult, ra
         memberId: caseRow.member_id,
         caseId,
         metadata: {
-          source: 'manual_retry',
+          source: automatic ? 'automatic_retry' : 'manual_retry',
+          automatic,
           attempt_id: attemptId,
           idempotency_key: reservation.idempotencyKey,
           razorpay_order_id: razorpayResult.order && razorpayResult.order.id,
@@ -460,22 +525,29 @@ async function writeRetryResult(client, caseRow, reservation, razorpayResult, ra
       await insertActivity(client, {
         organizationId,
         type: 'lost',
-        title: 'Recovery marked lost',
+        title: automatic ? 'Recovery automatically marked lost' : 'Recovery marked lost',
         description: failure.message,
         amountCents: caseRow.amount_cents,
         currency: caseRow.currency,
         memberId: caseRow.member_id,
         caseId,
-        metadata: { source: 'manual_retry', attempt_id: attemptId, idempotency_key: reservation.idempotencyKey, error: failure.raw },
+        metadata: {
+          source: automatic ? 'automatic_retry' : 'manual_retry',
+          automatic,
+          attempt_id: attemptId,
+          idempotency_key: reservation.idempotencyKey,
+          error: failure.raw,
+        },
       });
     } else {
       await client.query(
         `update recovery_cases
             set retry_count = $2,
-                next_retry_at = now() + ($3::text || ' days')::interval,
+                next_retry_at = case when $3::int is null then null
+                                     else now() + (($3::int)::text || ' days')::interval end,
                 updated_at = now()
           where id = $1`,
-        [caseId, retryCount, nextRetryDelayDays(retryCount)]
+        [caseId, retryCount, scheduleDays]
       );
     }
 
@@ -491,7 +563,88 @@ async function writeRetryResult(client, caseRow, reservation, razorpayResult, ra
   }
 }
 
-module.exports = async (req, res) => {
+// Core reusable retry logic — shared by the HTTP endpoint below and the hourly
+// escalation cron (api/cron/process-recovery-queue.js). Loads the org's Razorpay
+// connection and the case's member, reserves the attempt (idempotency), calls
+// Razorpay, and records the outcome — including the decline-aware
+// next_retry_at scheduling and the max_retries → 'lost' transition.
+//
+// options.automatic marks the activity-feed entries as cron-triggered
+// ("Automatic retry attempted" vs "Payment retry started").
+//
+// Returns { attempted, ok, newStatus, retryCount, error, orderId,
+// paymentLinkId, checkoutUrl }. attempted=false means a retry was already in
+// flight for this case and nothing was done. Throws (with statusCode) for
+// missing connection/member or infrastructure failures.
+async function performRetryAttempt(client, caseRow, options = {}) {
+  const automatic = Boolean(options.automatic);
+
+  // Skip if a retry is already in flight (manual click or a previous run).
+  const pendingAttempt = await findRecentPendingRetry(client, caseRow.id);
+  if (pendingAttempt) {
+    return { attempted: false, reason: 'pending', message: 'A retry is already in progress for this case.' };
+  }
+
+  const connectionResult = await client.query(
+    `select id, organization_id, stripe_account_id, encrypted_restricted_key, key_iv, key_tag, is_active
+       from stripe_connections
+      where organization_id = $1
+        and is_active = true
+      order by connected_at desc nulls last
+      limit 1`,
+    [caseRow.organization_id]
+  );
+  const connection = connectionResult.rows[0] || null;
+
+  if (!connection || !connection.is_active) {
+    const error = new Error('Connect Razorpay first.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const memberResult = await client.query(
+    `select *
+       from stripe_members
+      where id = $1
+        and organization_id = $2
+      limit 1`,
+    [caseRow.member_id, caseRow.organization_id]
+  );
+  const member = memberResult.rows[0] || null;
+
+  if (!member) {
+    const error = new Error('Customer record not found for this recovery case.');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const keySecret = decryptSecret(connection);
+  const reservation = await reserveRetryAttempt(client, caseRow);
+
+  let razorpayResult = null;
+  let razorpayError = null;
+
+  try {
+    razorpayResult = await createRazorpayRetry(caseRow, member, connection, keySecret, reservation);
+  } catch (error) {
+    razorpayError = error;
+  }
+
+  const written = await writeRetryResult(client, caseRow, reservation, razorpayResult, razorpayError, { automatic });
+
+  return {
+    attempted: true,
+    ok: Boolean(razorpayResult),
+    newStatus: written.newStatus,
+    retryCount: written.retryCount,
+    error: written.error || null,
+    orderId: razorpayResult && razorpayResult.order ? razorpayResult.order.id : null,
+    paymentLinkId: razorpayResult && razorpayResult.paymentLink ? razorpayResult.paymentLink.id : null,
+    checkoutUrl: razorpayResult ? razorpayResult.checkoutUrl || null : null,
+  };
+}
+
+async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return sendJson(res, 405, { error: 'Method not allowed.' });
@@ -531,68 +684,43 @@ module.exports = async (req, res) => {
       return sendJson(res, 400, { error: 'Case is not eligible for retry.' });
     }
 
-    const pendingAttempt = await findRecentPendingRetry(client, caseId);
-    if (pendingAttempt) {
-      return sendJson(res, 409, { error: 'A retry is already in progress for this case.' });
+    const result = await performRetryAttempt(client, caseRow);
+
+    // Alert hook (Feature 12): a retry attempt initiated from this endpoint
+    // never itself resolves a case to 'recovered' today — capture arrives via
+    // the payment.captured webhook, which fires the "💰 Payment recovered"
+    // alert on its own. This guard keeps this endpoint wired to the alert in
+    // case a retry path ever marks a case recovered directly.
+    // sendAlertIfConfigured never throws and quietly does nothing when the org
+    // has no alert webhook configured.
+    if (result.attempted && result.newStatus === 'recovered') {
+      await sendAlertIfConfigured(client, caseRow.organization_id, {
+        title: '💰 Payment recovered',
+        amountCents: caseRow.amount_cents,
+        currency: caseRow.currency,
+      });
     }
 
-    const connectionResult = await client.query(
-      `select id, organization_id, stripe_account_id, encrypted_restricted_key, key_iv, key_tag, is_active
-         from stripe_connections
-        where organization_id = $1
-          and is_active = true
-        order by connected_at desc nulls last
-        limit 1`,
-      [organizationId]
-    );
-    const connection = connectionResult.rows[0] || null;
-
-    if (!connection || !connection.is_active) {
-      return sendJson(res, 400, { error: 'Connect Razorpay first.' });
+    if (!result.attempted) {
+      return sendJson(res, 409, { error: result.message });
     }
 
-    const memberResult = await client.query(
-      `select *
-         from stripe_members
-        where id = $1
-          and organization_id = $2
-        limit 1`,
-      [caseRow.member_id, organizationId]
-    );
-    const member = memberResult.rows[0] || null;
-
-    if (!member) return sendJson(res, 404, { error: 'Customer record not found for this recovery case.' });
-
-    const keySecret = decryptSecret(connection);
-    const reservation = await reserveRetryAttempt(client, caseRow);
-
-    let razorpayResult = null;
-    let razorpayError = null;
-
-    try {
-      razorpayResult = await createRazorpayRetry(caseRow, member, connection, keySecret, reservation);
-    } catch (error) {
-      razorpayError = error;
-    }
-
-    const written = await writeRetryResult(client, caseRow, reservation, razorpayResult, razorpayError);
-
-    if (!razorpayResult) {
+    if (!result.ok) {
       return sendJson(res, 502, {
         success: false,
-        error: written.error || 'Razorpay retry failed.',
-        newStatus: written.newStatus,
-        retryCount: written.retryCount,
+        error: result.error || 'Razorpay retry failed.',
+        newStatus: result.newStatus,
+        retryCount: result.retryCount,
       });
     }
 
     return sendJson(res, 200, {
       success: true,
-      newStatus: written.newStatus,
-      retryCount: written.retryCount,
-      orderId: razorpayResult.order && razorpayResult.order.id,
-      paymentLinkId: razorpayResult.paymentLink && razorpayResult.paymentLink.id,
-      checkoutUrl: razorpayResult.checkoutUrl || null,
+      newStatus: result.newStatus,
+      retryCount: result.retryCount,
+      orderId: result.orderId,
+      paymentLinkId: result.paymentLinkId,
+      checkoutUrl: result.checkoutUrl,
     });
   } catch (error) {
     if (error.statusCode && [400, 401, 403, 404, 409].includes(error.statusCode)) {
@@ -604,4 +732,8 @@ module.exports = async (req, res) => {
   } finally {
     if (client) client.release();
   }
-};
+}
+
+module.exports = handler;
+module.exports.performRetryAttempt = performRetryAttempt;
+module.exports.getRetrySchedule = getRetrySchedule;

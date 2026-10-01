@@ -325,6 +325,28 @@ async function getWeeklyChart(client, organizationId) {
   }));
 }
 
+async function getDeclineBreakdown(client, organizationId, rangeDays) {
+  // Aggregate WHY payments failed over the selected range — feeds the
+  // "Why payments are failing" card on the dashboard.
+  const result = await client.query(
+    `select decline_code,
+            count(*)::int as count,
+            coalesce(sum(amount_cents), 0)::bigint as total_amount_cents
+       from recovery_cases
+      where organization_id = $1
+        and failed_at >= now() - ($2::int * interval '1 day')
+      group by decline_code
+      order by count desc`,
+    [organizationId, rangeDays]
+  );
+
+  return result.rows.map((row) => ({
+    declineCode: row.decline_code || 'unknown',
+    count: toInt(row.count),
+    totalAmountCents: toInt(row.total_amount_cents),
+  }));
+}
+
 async function getRecoveryQueue(client, organizationId) {
   const result = await client.query(
     `select
@@ -397,6 +419,7 @@ module.exports = async (req, res) => {
       recoveryRate,
       activeCases,
       weeklyChart,
+      declineBreakdown,
       recoveryQueue,
       activity,
     ] = await Promise.all([
@@ -405,6 +428,7 @@ module.exports = async (req, res) => {
       getRecoveryRate(client, organizationId),
       getActiveCases(client, organizationId),
       getWeeklyChart(client, organizationId),
+      getDeclineBreakdown(client, organizationId, rangeDays),
       getRecoveryQueue(client, organizationId),
       getActivity(client, organizationId),
     ]);
@@ -415,6 +439,7 @@ module.exports = async (req, res) => {
       recoveryRate,
       activeCases,
       weeklyChart,
+      declineBreakdown,
       recoveryQueue,
       activity,
     });

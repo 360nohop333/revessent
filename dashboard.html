@@ -1215,6 +1215,15 @@ html[data-theme=minimal] .axis.xlab,html[data-theme=minimal2] .axis.xlab{opacity
 .fchip:hover{color:var(--text-primary);background:rgb(var(--cc)/.45)}
 .fchip[aria-pressed=true]{color:var(--acc-ink);background:var(--acc-wash);border-color:var(--acc-line)}
 .tblwrap{margin-top:12px;overflow-x:auto;border-radius:var(--r-md);-webkit-overflow-scrolling:touch}
+/* DECLINE BREAKDOWN — "Why payments are failing" horizontal bar list */
+.dbreak{display:grid;gap:10px;margin-top:12px}
+.drow{display:grid;grid-template-columns:minmax(120px,190px) minmax(0,1fr) auto;gap:12px;align-items:center}
+.drow .dlbl{font-size:12.5px;font-weight:650;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.drow .dbar{height:8px;border-radius:999px;background:rgb(var(--neuC)/.16);overflow:hidden}
+.drow .dbar i{display:block;height:100%;border-radius:inherit;width:0;transition:width .9s var(--spring)}
+.drow .dval{font-family:var(--f-mono);font-size:11px;color:var(--text-muted);white-space:nowrap}
+.dempty{margin:6px 0 0;font-size:12.5px;color:var(--text-muted)}
+@media(max-width:640px){.drow{grid-template-columns:minmax(96px,130px) minmax(0,1fr) auto;gap:8px}}
 table{width:100%;border-collapse:collapse;min-width:720px}
 thead th{text-align:left;padding:9px 8px;font-family:var(--f-mono);font-size:10px;font-weight:700;letter-spacing:.15em;
   text-transform:uppercase;color:var(--text-faint);border-bottom:1px solid var(--line-soft);white-space:nowrap}
@@ -1831,16 +1840,27 @@ html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur
     </div>
   </section>
 
+  <!-- ── DECLINE BREAKDOWN ── -->
+  <section class="card glass grain rv" aria-labelledby="decline-h" data-d="0">
+    <div class="card-h">
+      <div><h2 id="decline-h">Why payments are failing</h2><span class="sub">Failed payments by decline reason · selected range</span></div>
+    </div>
+    <div class="dbreak" id="declineBreakdown" aria-live="polite"></div>
+  </section>
+
   <!-- ── RECOVERY QUEUE (full width) ── -->
     <!-- RECOVERY QUEUE -->
     <section class="card glass grain rv" id="queue" aria-labelledby="queue-h" data-d="0">
       <div class="card-h">
         <div><h2 id="queue-h">Recovery Queue</h2><span class="sub">Who Revessent is acting for, right now</span></div>
-        <div class="filters" style="margin-left:auto" role="group" aria-label="Filter queue">
-          <button class="fchip" aria-pressed="true" data-filter="all">All</button>
-          <button class="fchip" aria-pressed="false" data-filter="retrying">Retrying</button>
-          <button class="fchip" aria-pressed="false" data-filter="awaiting_approval">Awaiting</button>
-          <button class="fchip" aria-pressed="false" data-filter="lost">Lost</button>
+        <div style="margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" id="exportCasesBtn" type="button">Export CSV</button>
+          <div class="filters" role="group" aria-label="Filter queue">
+            <button class="fchip" aria-pressed="true" data-filter="all">All</button>
+            <button class="fchip" aria-pressed="false" data-filter="retrying">Retrying</button>
+            <button class="fchip" aria-pressed="false" data-filter="awaiting_approval">Awaiting</button>
+            <button class="fchip" aria-pressed="false" data-filter="lost">Lost</button>
+          </div>
         </div>
       </div>
       <div class="tblwrap">
@@ -3038,7 +3058,7 @@ function emptyDashboardData(){
     revenueAtRisk:{amountCents:0,openCaseCount:0},
     recoveryRate:{percent:0,industryAvgPercent:0},
     activeCases:{retrying:0,awaitingApproval:0,checkoutSent:0,detected:0},
-    weeklyChart:[], recoveryQueue:[], activity:[]
+    weeklyChart:[], declineBreakdown:[], recoveryQueue:[], activity:[]
   };
 }
 function centsToDisplay(c){ return (Number(c)||0)/100; }
@@ -3076,6 +3096,54 @@ function activityAmount(type,cents){
   if(type==='lost') return '−'+moneyFromCents(cents);
   return moneyFromCents(cents);
 }
+/* ════════════════════════════════════════════════════════════
+   DECLINE BREAKDOWN — "Why payments are failing" bar list
+   ════════════════════════════════════════════════════════════ */
+var DECLINE_META={
+  insufficient_funds:{t:'Insufficient funds',v:'--warn'},
+  card_declined:     {t:'Card declined',    v:'--neg'},
+  expired_card:      {t:'Expired card',     v:'--info'},
+  do_not_honor:      {t:'Do not honor',     v:'--neg'},
+  processing_error:  {t:'Processing error', v:'--neu'},
+  invalid_account:   {t:'Invalid account',  v:'--neg'},
+  lost_card:         {t:'Lost card',        v:'--neg'},
+  stolen_card:       {t:'Stolen card',      v:'--neg'},
+  pickup_card:       {t:'Pickup card',      v:'--neg'},
+  unknown:           {t:'Unknown',          v:'--neu'}
+};
+function renderDeclineBreakdown(rows){
+  var wrap=$('#declineBreakdown'); if(!wrap) return;
+  wrap.innerHTML='';
+  var list=(rows||[]).filter(function(r){ return (Number(r.count)||0)>0; });
+  if(!list.length){
+    var empty=document.createElement('p');
+    empty.className='dempty';
+    empty.textContent='No failed payments in this range — nothing to analyze yet.';
+    wrap.appendChild(empty);
+    return;
+  }
+  var max=Math.max.apply(null, list.map(function(r){ return Number(r.count)||0; }));
+  list.forEach(function(r){
+    var m=DECLINE_META[r.declineCode]||DECLINE_META.unknown;
+    var n=Number(r.count)||0;
+    var pct=Math.max(3, Math.round((n/max)*100));
+    var row=document.createElement('div');
+    row.className='drow';
+    var lbl=document.createElement('span');
+    lbl.className='dlbl'; lbl.textContent=m.t; lbl.title=m.t;
+    var bar=document.createElement('span');
+    bar.className='dbar'; bar.setAttribute('aria-hidden','true');
+    var fill=document.createElement('i');
+    fill.style.background='var('+m.v+')';
+    bar.appendChild(fill);
+    var val=document.createElement('span');
+    val.className='dval';
+    val.textContent=n+' · '+moneyFromCents(r.totalAmountCents);
+    row.append(lbl,bar,val);
+    wrap.appendChild(row);
+    setTimeout(function(){ fill.style.width=pct+'%'; },60);
+  });
+}
 function updateSparkline(weeks){
   var pts=(weeks||[]).map(function(w){ return Number(w.recoveredCents)||0; });
   if(!pts.length) pts=[0,0,0,0,0,0,0,0];
@@ -3112,6 +3180,7 @@ function applyDashboardData(data){
     });
   }
   var pilotRisk=$('#pilotRiskAmount'); if(pilotRisk) pilotRisk.textContent=moneyFromCents(risk.amountCents||0);
+  renderDeclineBreakdown(data.declineBreakdown||[]);
   updateSparkline(data.weeklyChart||[]);
   WEEKS=(data.weeklyChart&&data.weeklyChart.length?data.weeklyChart:emptyDashboardData().weeklyChart).map(function(w){ return {l:w.weekLabel||'—', r:centsToDisplay(w.recoveredCents), x:centsToDisplay(w.lostCents)}; });
   while(WEEKS.length<8) WEEKS.unshift({l:'—',r:0,x:0});
@@ -3141,6 +3210,35 @@ async function fetchDashboardData(range){
   }
 }
 window.__rvLoadDashboardRange=function(range){ DASH_RANGE=range||'30d'; fetchDashboardData(DASH_RANGE); };
+/* Export CSV — fetch with the Bearer token (same auth as every other call),
+   then trigger a browser download from a Blob via a temporary <a> element.
+   Chosen over a plain <a href> download because that can't set an
+   Authorization header. Exports the date range currently selected. */
+(function(){
+  var btn=$('#exportCasesBtn');
+  if(!btn) return;
+  btn.addEventListener('click', async function(){
+    btn.disabled=true;
+    try{
+      var days=DASH_RANGE==='7d'?7:(DASH_RANGE==='90d'?90:30);
+      var from=new Date(Date.now()-days*864e5).toISOString().slice(0,10);
+      var res=await fetch('/api/export/cases?from='+encodeURIComponent(from),{headers:{Authorization:'Bearer '+DASH_TOKEN}});
+      if(!res.ok){ var b=await res.json().catch(function(){ return {}; }); throw new Error(b.error||'Export failed'); }
+      var text=await res.text();
+      var url=URL.createObjectURL(new Blob([text],{type:'text/csv'}));
+      var a=document.createElement('a');
+      a.href=url;
+      a.download='revessent-cases-'+new Date().toISOString().slice(0,10)+'.csv';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(url); },1000);
+      toast('Cases CSV downloaded');
+    }catch(err){
+      toast(err.message||'Could not export cases');
+    }finally{
+      btn.disabled=false;
+    }
+  });
+})();
 function startDashboardData(){
   (window.__rvSessionReady||Promise.resolve(window.__rvSession)).then(function(session){
     if(!session){

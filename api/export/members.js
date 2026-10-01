@@ -1,6 +1,7 @@
-// Revessent /api/recovery/case
-// Loads one recovery case, its retry attempts, and recovery notes for the
-// authenticated user's organization.
+// Revessent /api/export/members
+// Bulk CSV export of stripe_members (with subscription status and lifetime
+// recovered amount from recovery_attributions) for the authenticated user's
+// organization. Returns text/csv (not JSON).
 
 const { Pool } = require('pg');
 
@@ -22,16 +23,6 @@ function getBearerToken(req) {
   const header = req.headers.authorization || req.headers.Authorization || '';
   const match = String(header).match(/^Bearer\s+(.+)$/i);
   return match ? match[1].trim() : '';
-}
-
-function getQueryParam(req, key) {
-  if (req.query && req.query[key] != null) return String(req.query[key]);
-  try {
-    const url = new URL(req.url, 'https://revessent.local');
-    return url.searchParams.get(key) || '';
-  } catch (_) {
-    return '';
-  }
 }
 
 async function verifySupabaseToken(token) {
@@ -147,17 +138,26 @@ async function authenticateRequest(req, client) {
   return { token, email, supabaseUserId, user };
 }
 
-function cleanString(value) {
-  return value == null ? '' : String(value).trim();
+// Standard CSV escaping: wrap in double quotes when the value contains a
+// comma, double quote, or newline; escape internal double quotes by doubling
+// them. Never skip this — member names/emails can contain commas or quotes.
+function csvEscape(value) {
+  if (value == null) return '';
+  const text = String(value);
+  if (/[",\r\n]/.test(text)) {
+    return '"' + text.replace(/"/g, '""') + '"';
+  }
+  return text;
 }
 
-function toIso(value) {
-  return value ? new Date(value).toISOString() : null;
-}
-
-function toInt(value) {
-  const n = Number(value);
-  return Number.isFinite(n) ? Math.round(n) : 0;
+// Amounts are written in the currency's major unit (cents / 100) as plain
+// numbers — friendliest for spreadsheets.
+function toMajorUnits(value) {
+  if (value == null) return '';
+  const cents = Number(value);
+  if (!Number.isFinite(cents)) return '';
+  const major = cents / 100;
+  return String(Number.isInteger(major) ? major : major.toFixed(2));
 }
 
 module.exports = async (req, res) => {
@@ -166,9 +166,6 @@ module.exports = async (req, res) => {
     return sendJson(res, 405, { error: 'Method not allowed.' });
   }
 
-  const caseId = cleanString(getQueryParam(req, 'caseId'));
-  if (!caseId) return sendJson(res, 400, { error: 'caseId is required.' });
-
   let client;
 
   try {
@@ -176,89 +173,59 @@ module.exports = async (req, res) => {
     const { user } = await authenticateRequest(req, client);
     const organizationId = user.organization_id;
 
-    const caseResult = await client.query(
+    const result = await client.query(
       `select
-         rc.id,
-         rc.organization_id,
-         rc.amount_cents,
-         rc.currency,
-         rc.status,
-         rc.decline_code,
-         rc.retry_count,
-         rc.max_retries,
-         rc.failed_at,
-         sm.name as member_name,
-         sm.email as member_email,
-         sm.phone as member_phone
-       from recovery_cases rc
-       join stripe_members sm on sm.id = rc.member_id
-       where rc.id = $1
-       limit 1`,
-      [caseId]
+         sm.name,
+         sm.email,
+         ss.status as sub_status,
+         ss.amount_cents as sub_amount_cents,
+         recovered.total_cents as lifetime_recovered_cents
+       from stripe_members sm
+       left join stripe_subscriptions ss on ss.member_id = sm.id
+       left join (
+         select member_id, sum(amount_cents) as total_cents
+           from recovery_attributions
+          where organization_id = $1
+          group by member_id
+       ) recovered on recovered.member_id = sm.id
+      where sm.organization_id = $1
+      order by sm.created_at desc nulls last
+      limit 10000`,
+      [organizationId]
     );
 
-    const row = caseResult.rows[0] || null;
-    if (!row) return sendJson(res, 404, { error: 'Recovery case not found.' });
-    if (String(row.organization_id) !== String(organizationId)) {
-      return sendJson(res, 403, { error: 'You do not have access to this recovery case.' });
-    }
+    const header = [
+      'Member Name',
+      'Email',
+      'Subscription Status',
+      'Subscription Amount',
+      'Lifetime Recovered',
+    ].join(',');
 
-    const [attemptsResult, notesResult] = await Promise.all([
-      client.query(
-        `select id, type, status, error_code, error_message, executed_at, created_at
-           from recovery_attempts
-          where case_id = $1
-          order by created_at desc nulls last`,
-        [caseId]
-      ),
-      client.query(
-        `select id, subject, body, channel, requires_approval, sent_at, created_at
-           from recovery_notes
-          where case_id = $1
-          order by created_at desc nulls last`,
-        [caseId]
-      ),
-    ]);
+    const rows = result.rows.map((row) =>
+      [
+        csvEscape(row.name || ''),
+        csvEscape(row.email || ''),
+        csvEscape(row.sub_status || ''),
+        csvEscape(toMajorUnits(row.sub_amount_cents)),
+        csvEscape(toMajorUnits(row.lifetime_recovered_cents)),
+      ].join(',')
+    );
 
-    return sendJson(res, 200, {
-      case: {
-        id: row.id,
-        memberName: row.member_name || '',
-        memberEmail: row.member_email || '',
-        memberPhone: row.member_phone || '',
-        amountCents: toInt(row.amount_cents),
-        currency: row.currency || 'INR',
-        status: row.status || 'detected',
-        declineCode: row.decline_code || 'unknown',
-        retryCount: toInt(row.retry_count),
-        maxRetries: toInt(row.max_retries),
-        failedAt: toIso(row.failed_at),
-      },
-      attempts: attemptsResult.rows.map((attempt) => ({
-        id: attempt.id,
-        type: attempt.type || '',
-        status: attempt.status || '',
-        errorCode: attempt.error_code || '',
-        errorMessage: attempt.error_message || '',
-        executedAt: toIso(attempt.executed_at || attempt.created_at),
-      })),
-      notes: notesResult.rows.map((note) => ({
-        id: note.id,
-        subject: note.subject || '',
-        body: note.body || '',
-        channel: note.channel || 'email',
-        requiresApproval: Boolean(note.requires_approval),
-        sentAt: toIso(note.sent_at),
-        createdAt: toIso(note.created_at),
-      })),
-    });
+    const csv = [header, ...rows].join('\r\n');
+    const dateLabel = new Date().toISOString().slice(0, 10);
+
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="revessent-members-${dateLabel}.csv"`);
+    return res.end(csv);
   } catch (error) {
     if (error.statusCode && [400, 401, 403, 404].includes(error.statusCode)) {
       return sendJson(res, error.statusCode, { error: error.message });
     }
 
-    console.error('Revessent /api/recovery/case failed:', error);
-    return sendJson(res, 500, { error: 'Could not load recovery case.' });
+    console.error('Revessent /api/export/members failed:', error);
+    return sendJson(res, 500, { error: 'Could not export members.' });
   } finally {
     if (client) client.release();
   }

@@ -148,6 +148,11 @@ function cleanString(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function toInt(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.round(number) : fallback;
+}
+
 function requireSameOrganization(user, organizationId) {
   const requested = normalizeId(organizationId);
   const actual = normalizeId(user.organization_id);
@@ -217,7 +222,7 @@ async function handleGet(req, res, client, user) {
   const organizationId = requireSameOrganization(user, req.query && req.query.organizationId);
 
   const voiceResult = await client.query(
-    `select brand_name, sender_name, sender_email, tone_description
+    `select brand_name, sender_name, sender_email, tone_description, sms_enabled
        from voice_profiles
       where organization_id = $1
         and is_default = true
@@ -236,14 +241,27 @@ async function handleGet(req, res, client, user) {
     [organizationId]
   );
 
+  // Alert settings live on the organizations table (not voice_profiles).
+  const alertResult = await client.query(
+    `select alert_webhook_url, alert_min_amount_cents
+       from organizations
+      where id = $1
+      limit 1`,
+    [organizationId]
+  );
+
   const voice = voiceResult.rows[0] || null;
   const connection = connectionResult.rows[0] || null;
+  const alerts = alertResult.rows[0] || null;
 
   return sendJson(res, 200, {
     brandName: voice ? voice.brand_name || '' : '',
     senderName: voice ? voice.sender_name || '' : '',
     senderEmail: voice ? voice.sender_email || '' : '',
     tone: voice ? voice.tone_description || '' : '',
+    smsEnabled: voice ? Boolean(voice.sms_enabled) : false,
+    alertWebhookUrl: alerts ? alerts.alert_webhook_url || '' : '',
+    alertMinAmountCents: alerts ? toInt(alerts.alert_min_amount_cents) : 0,
     razorpayKeyId: connection ? connection.stripe_account_id || null : null,
     razorpayConnected: Boolean(connection),
   });
@@ -258,6 +276,40 @@ function validatePostBody(body) {
   const tone = ALLOWED_TONES.has(submittedTone) ? submittedTone : 'professional';
   const razorpayKeyId = cleanString(body.razorpayKeyId);
   const razorpayKeySecret = cleanString(body.razorpayKeySecret);
+  // SMS toggle (voice_profiles.sms_enabled). Absent → null, meaning "keep the
+  // stored value" so older clients that don't send the field can't silently
+  // switch SMS off.
+  const hasSmsFlag = body.smsEnabled !== undefined || body.sms_enabled !== undefined;
+  const smsEnabled = hasSmsFlag
+    ? Boolean(body.smsEnabled !== undefined ? body.smsEnabled : body.sms_enabled)
+    : null;
+
+  // Slack/Discord alert settings (organizations.alert_webhook_url /
+  // alert_min_amount_cents). alertWebhookUrl: absent → null (keep stored),
+  // empty string → clear it. alertMinAmount is sent in the currency's MAJOR
+  // unit (e.g. 100 = ₹100) and converted to cents here.
+  let alertWebhookUrl;
+  if (body.alertWebhookUrl === undefined) {
+    alertWebhookUrl = null; // keep stored value
+  } else {
+    alertWebhookUrl = cleanString(body.alertWebhookUrl);
+    if (alertWebhookUrl && !/^https?:\/\/.+/i.test(alertWebhookUrl)) {
+      const error = new Error('Alert webhook URL must be a valid http(s) URL.');
+      error.statusCode = 400;
+      throw error;
+    }
+  }
+
+  let alertMinAmountCents = null; // keep stored value
+  if (body.alertMinAmount !== undefined && body.alertMinAmount !== null && body.alertMinAmount !== '') {
+    const major = Number(body.alertMinAmount);
+    if (!Number.isFinite(major) || major < 0) {
+      const error = new Error('Alert minimum amount must be a number of 0 or more.');
+      error.statusCode = 400;
+      throw error;
+    }
+    alertMinAmountCents = Math.round(major * 100);
+  }
 
   if (!brandName) {
     const error = new Error('Brand name is required.');
@@ -291,6 +343,9 @@ function validatePostBody(body) {
     tone,
     razorpayKeyId,
     razorpayKeySecret,
+    smsEnabled,
+    alertWebhookUrl,
+    alertMinAmountCents,
     shouldUpdateRazorpay: Boolean(razorpayKeyId && razorpayKeySecret),
   };
 }
@@ -313,19 +368,20 @@ async function upsertVoiceProfile(client, values) {
               sender_name = $2,
               sender_email = $3,
               tone_description = $4,
+              sms_enabled = coalesce($5, sms_enabled),
               updated_at = now()
-        where id = $5`,
-      [values.brandName, values.senderName, values.senderEmail, values.tone, existing.rows[0].id]
+        where id = $6`,
+      [values.brandName, values.senderName, values.senderEmail, values.tone, values.smsEnabled, existing.rows[0].id]
     );
     return;
   }
 
   await client.query(
     `insert into voice_profiles
-       (id, organization_id, brand_name, sender_name, sender_email, tone_description, is_default, created_at, updated_at)
+       (id, organization_id, brand_name, sender_name, sender_email, tone_description, sms_enabled, is_default, created_at, updated_at)
      values
-       ($1, $2, $3, $4, $5, $6, true, now(), now())`,
-    [crypto.randomUUID(), values.organizationId, values.brandName, values.senderName, values.senderEmail, values.tone]
+       ($1, $2, $3, $4, $5, $6, coalesce($7, false), true, now(), now())`,
+    [crypto.randomUUID(), values.organizationId, values.brandName, values.senderName, values.senderEmail, values.tone, values.smsEnabled]
   );
 }
 
@@ -366,6 +422,21 @@ async function upsertRazorpayConnection(client, values) {
   );
 }
 
+async function updateOrganizationAlerts(client, values) {
+  // Alert settings belong on the organizations table directly. A null
+  // alertWebhookUrl param means "keep the stored value"; an empty string
+  // clears it (nullif). A null alertMinAmountCents keeps the stored threshold.
+  await client.query(
+    `update organizations
+        set alert_webhook_url = case when $2::text is null then alert_webhook_url
+                                     else nullif($2, '') end,
+            alert_min_amount_cents = coalesce($3, alert_min_amount_cents),
+            updated_at = now()
+      where id = $1`,
+    [values.organizationId, values.alertWebhookUrl, values.alertMinAmountCents]
+  );
+}
+
 async function handlePost(req, res, client, user) {
   let body;
 
@@ -381,6 +452,7 @@ async function handlePost(req, res, client, user) {
   try {
     await client.query('BEGIN');
     await upsertVoiceProfile(client, values);
+    await updateOrganizationAlerts(client, values);
 
     if (values.shouldUpdateRazorpay) {
       await upsertRazorpayConnection(client, values);

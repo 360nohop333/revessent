@@ -1040,12 +1040,18 @@
           return { email, password };
         }
 
-        async function syncUser(supabaseUserId, email) {
+        async function syncUser(supabaseUserId, email, refCode) {
           try {
+            // Only include the referral code for fresh signups (the caller
+            // passes it only on the signup path) — existing users signing in
+            // must never be attributed as referrals.
+            const payload = { supabaseUserId, email };
+            if (refCode) payload.ref = refCode;
+
             const response = await fetch("/api/onboard", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ supabaseUserId, email }),
+              body: JSON.stringify(payload),
               keepalive: true
             });
 
@@ -1056,6 +1062,16 @@
             console.warn("Revessent onboarding sync failed; continuing to dashboard.", error);
           }
         }
+
+        // Referral system: capture ?ref=CODE from the URL on page load and
+        // keep it in sessionStorage so it survives the sign-up form
+        // submission, then send it to /api/onboard with the signup.
+        try {
+          const refParam = new URLSearchParams(window.location.search).get("ref");
+          if (refParam && /^[A-Za-z0-9]{3,24}$/.test(refParam)) {
+            sessionStorage.setItem("rv.ref", refParam.toUpperCase());
+          }
+        } catch (_) { /* private mode / disabled storage — referral is optional */ }
 
         function redirectToDashboard() {
           window.setTimeout(() => {
@@ -1101,7 +1117,14 @@
             if (error) throw error;
             if (!data.user) throw new Error("No user was returned. Please try again.");
 
-            void syncUser(data.user.id, data.user.email || values.email);
+            // Fresh signup only — pass the stashed referral code (if any)
+            // through to /api/onboard, then clear it so a later sign-in can
+            // never re-attribute the referral.
+            let stashedRef = "";
+            try { stashedRef = sessionStorage.getItem("rv.ref") || ""; } catch (_) {}
+            void syncUser(data.user.id, data.user.email || values.email, stashedRef);
+            if (stashedRef) { try { sessionStorage.removeItem("rv.ref"); } catch (_) {} }
+
             setMessage(signupMessage, "Account created successfully. Taking you to your dashboard…", "success");
             redirectToDashboard();
           } catch (error) {

@@ -438,6 +438,52 @@
     .tone-title{display:block;font-size:14.5px;font-weight:720;letter-spacing:-.015em;color:var(--text-primary)}
     .tone-desc{display:block;margin-top:3px;color:var(--text-muted);font-size:13px;line-height:1.45}
 
+    /* SMS recovery toggle — same glass language as the tone cards. */
+    .switch-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+    .switch{
+      position:relative;flex:none;width:46px;height:28px;border-radius:999px;border:1px solid var(--line);
+      background:rgb(var(--cc)/.40);box-shadow:var(--sh-sm);cursor:pointer;
+      transition:background .22s,border-color .22s;
+    }
+    .switch::after{
+      content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;
+      background:var(--text-faint);box-shadow:0 1px 3px rgba(0,0,0,.25);
+      transition:transform .22s var(--spring),background .22s;
+    }
+    .switch[aria-checked="true"]{background:var(--btnA);border-color:transparent}
+    .switch[aria-checked="true"]::after{transform:translateX(18px);background:var(--btnAtx)}
+    .switch:focus-visible{outline:2px solid var(--acc-ink);outline-offset:3px}
+    .switch-label{font-size:13.5px;font-weight:650;color:var(--text-secondary)}
+
+    /* Buttons inside sections (test alert / copy / generate / revoke). */
+    .inline-btn{
+      min-height:40px;padding:0 15px;border-radius:999px;background:rgb(var(--cc)/.40);border:1px solid var(--edge);
+      color:var(--text-secondary);font-weight:680;font-size:13px;box-shadow:var(--sh-sm);cursor:pointer;
+      transition:transform .22s var(--spring),color .2s,background .2s;flex:none;
+    }
+    .inline-btn:hover{transform:translateY(-1px);color:var(--text-primary);background:rgb(var(--cc)/.58)}
+    .inline-btn:disabled{opacity:.62;cursor:wait;transform:none}
+    .inline-btn.danger{color:var(--neg-ink);border-color:rgb(var(--negC)/.32)}
+
+    /* API keys + invite (second card). */
+    .key-list{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:10px}
+    .key-row{
+      display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid var(--line);
+      border-radius:var(--r-md);padding:11px 13px;background:rgb(var(--cc)/.30);
+    }
+    .key-row .kp{font-family:var(--f-mono);font-size:12.5px;color:var(--text-primary)}
+    .key-row .kl{font-size:13px;color:var(--text-secondary)}
+    .key-row .kmeta{font-size:12px;color:var(--text-muted);margin-left:auto}
+    .key-row.revoked{opacity:.55}
+    .codebox{
+      display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px dashed rgb(var(--warnC)/.55);
+      background:rgb(var(--warnC)/.08);border-radius:var(--r-md);padding:12px 13px;margin-top:12px;
+    }
+    .codebox code{font-family:var(--f-mono);font-size:13px;word-break:break-all;flex:1;min-width:200px;color:var(--text-primary)}
+    .codebox .warn{width:100%;font-size:12.5px;color:var(--warn-ink);font-weight:620}
+    .copy-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .copy-row input{flex:1;min-width:220px}
+
     .warning,.message{
       display:none;border-radius:var(--r-md);padding:12px 13px;margin:0 0 16px;border:1px solid var(--line);font-size:13px;line-height:1.55;
     }
@@ -562,6 +608,41 @@
 </div>
 </div>
 </section>
+<section aria-labelledby="smsHeading" class="section">
+<div class="section-head">
+<div>
+<h2 id="smsHeading">SMS recovery</h2>
+<p class="section-note">Also text customers a short recovery SMS when a payment fails — some people never open email. Requires Twilio credentials (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER) configured on the server.</p>
+</div>
+</div>
+<div class="switch-row">
+<button aria-checked="false" aria-labelledby="smsHeading" class="switch" id="smsSwitch" role="switch" type="button"></button>
+<span class="switch-label" id="smsSwitchLabel">Enable SMS recovery</span>
+</div>
+</section>
+<section aria-labelledby="alertsHeading" class="section">
+<div class="section-head">
+<div>
+<h2 id="alertsHeading">Alerts</h2>
+<p class="section-note">Get a Slack or Discord message when something important happens — big recoveries and high-value failed payments. Paste an incoming-webhook URL (Slack: Settings → Integrations → Incoming Webhooks; Discord: Server Settings → Integrations).</p>
+</div>
+</div>
+<div class="field-grid two">
+<div class="field" style="grid-column:1/-1">
+<label for="alertWebhookUrl">Slack / Discord webhook URL</label>
+<input autocomplete="off" class="mono" id="alertWebhookUrl" name="alertWebhookUrl" placeholder="https://hooks.slack.com/services/…" spellcheck="false" type="url"/>
+<p class="inline-error" id="alertWebhookError">Enter a valid http(s) webhook URL.</p>
+</div>
+<div class="field">
+<label for="alertMinAmount">Alert on recoveries of at least</label>
+<input id="alertMinAmount" inputmode="numeric" min="0" name="alertMinAmount" placeholder="0" step="1" type="number"/>
+<p class="help">In your currency's major unit (e.g. 100 = ₹100). 0 alerts on every recovery.</p>
+</div>
+<div class="field" style="justify-content:end;display:flex;align-items:end">
+<button class="inline-btn" id="testAlertBtn" type="button">Send test alert</button>
+</div>
+</div>
+</section>
 <section aria-labelledby="brandHeading" class="section">
 <div class="section-head">
 <div>
@@ -616,6 +697,41 @@
 </div>
 </fieldset>
 </form>
+<section aria-labelledby="apiKeysHeading" class="settings-card glass-card" id="apiKeysCard" style="margin-top:26px">
+<fieldset>
+<div class="section-head">
+<div>
+<h2 id="apiKeysHeading">API keys</h2>
+<p class="section-note">Programmatic access to your recovery metrics. Send the key as an <code>X-API-Key</code> header to <code>GET /api/v1/dashboard-summary</code>. The full key is shown only once, right after you create it — we store a SHA-256 hash, never the key itself.</p>
+</div>
+</div>
+<div class="copy-row">
+<input aria-label="New key label" autocomplete="off" id="newKeyLabel" placeholder="Label (e.g. Zapier, internal dashboard)" type="text"/>
+<button class="inline-btn" id="createKeyBtn" type="button">Generate key</button>
+</div>
+<div class="codebox" hidden="" id="newKeyBox">
+<code id="newKeyValue">rvsk_…</code>
+<button class="inline-btn" data-copy-target="newKeyValue" type="button">Copy</button>
+<span class="warn">Copy this now — you won't see it again.</span>
+</div>
+<ul class="key-list" id="keyList"></ul>
+</fieldset>
+</section>
+<section aria-labelledby="inviteHeading" class="settings-card glass-card" id="inviteCard" style="margin-top:26px">
+<fieldset>
+<div class="section-head">
+<div>
+<h2 id="inviteHeading">Invite others</h2>
+<p class="section-note">Share your referral link. When someone signs up through it, their organization is attributed to you — you'll see it here as a referred signup.</p>
+</div>
+</div>
+<div class="copy-row">
+<input aria-label="Your referral link" class="mono" id="referralLink" readonly="" spellcheck="false" type="text"/>
+<button class="inline-btn" data-copy-target="referralLink" type="button">Copy link</button>
+</div>
+<p class="help" id="referralStats" style="margin-top:10px">Loading…</p>
+</fieldset>
+</section>
 </main>
 <!-- Tooltip popovers retained for the action-bar navigation inspiration. -->
 
@@ -639,6 +755,7 @@
     let rzpKeyTouched = false;
     let rzpSecretTouched = false;
     let tone = "professional";
+    let smsEnabled = false;
     window.tone = tone;
 
     const $ = (sel, root = document) => root.querySelector(sel);
@@ -657,6 +774,8 @@
       rzpKeyId: $('#rzpKeyId'),
       rzpKeySecret: $('#rzpKeySecret'),
       razorpayError: $('#razorpayError'),
+      smsSwitch: $('#smsSwitch'),
+      smsSwitchLabel: $('#smsSwitchLabel'),
       brandName: $('#brandName'),
       senderName: $('#senderName'),
       senderEmail: $('#senderEmail'),
@@ -664,6 +783,17 @@
       senderNameError: $('#senderNameError'),
       senderEmailError: $('#senderEmailError'),
       toneField: $('#toneField'),
+      alertWebhookUrl: $('#alertWebhookUrl'),
+      alertWebhookError: $('#alertWebhookError'),
+      alertMinAmount: $('#alertMinAmount'),
+      testAlertBtn: $('#testAlertBtn'),
+      newKeyLabel: $('#newKeyLabel'),
+      createKeyBtn: $('#createKeyBtn'),
+      newKeyBox: $('#newKeyBox'),
+      newKeyValue: $('#newKeyValue'),
+      keyList: $('#keyList'),
+      referralLink: $('#referralLink'),
+      referralStats: $('#referralStats'),
       saveBtn: $('#saveBtn'),
       saveText: $('#saveText'),
       cancelBtn: $('#cancelBtn'),
@@ -715,6 +845,12 @@
       $$('.tone-card').forEach(card => {
         card.setAttribute('aria-pressed', card.dataset.tone === tone ? 'true' : 'false');
       });
+    }
+
+    function setSmsEnabled(value){
+      smsEnabled = value === true || value === 'true';
+      els.smsSwitch.setAttribute('aria-checked', smsEnabled ? 'true' : 'false');
+      els.smsSwitchLabel.textContent = smsEnabled ? 'SMS recovery enabled' : 'Enable SMS recovery';
     }
 
     function showMessage(type, text){
@@ -823,6 +959,13 @@
       els.senderName.value = valueOf(settings, ['senderName','sender_name']);
       els.senderEmail.value = valueOf(settings, ['senderEmail','sender_email']);
       setTone(valueOf(settings, ['tone'], 'professional'));
+      setSmsEnabled(valueOf(settings, ['smsEnabled','sms_enabled'], false));
+
+      /* Alerts (F12). GET returns alertWebhookUrl + alertMinAmountCents;
+         the input is in major units, so cents → major for display. */
+      els.alertWebhookUrl.value = valueOf(settings, ['alertWebhookUrl','alert_webhook_url']);
+      const alertCents = Number(settings && (settings.alertMinAmountCents ?? settings.alert_min_amount_cents) || 0);
+      els.alertMinAmount.value = alertCents > 0 ? String(alertCents / 100) : '';
     }
 
     function validateAndBuildPayload(){
@@ -851,12 +994,23 @@
         firstInvalid ||= (!razorpayKeyId ? els.rzpKeyId : els.rzpKeySecret);
       }
 
+      /* Alerts (F12): optional webhook URL, but must be http(s) if present.
+         Both fields are always sent — an empty URL string clears the stored
+         one, an empty amount keeps 0 (= alert on every recovery). */
+      const alertWebhookUrl = els.alertWebhookUrl.value.trim();
+      if(alertWebhookUrl && !/^https?:\/\/.+/i.test(alertWebhookUrl)){
+        setInlineError(els.alertWebhookUrl, els.alertWebhookError, 'Enter a valid http(s) webhook URL.');
+        firstInvalid ||= els.alertWebhookUrl;
+      }
+
       if(firstInvalid){
         firstInvalid.focus();
         return null;
       }
 
-      const payload = { organizationId, brandName, senderName, senderEmail, tone };
+      const payload = { organizationId, brandName, senderName, senderEmail, tone, smsEnabled };
+      payload.alertWebhookUrl = alertWebhookUrl;
+      payload.alertMinAmount = els.alertMinAmount.value.trim();
       if(connectionAttempt){
         payload.razorpayKeyId = razorpayKeyId;
         payload.razorpayKeySecret = razorpayKeySecret;
@@ -871,11 +1025,57 @@
       els.saveText.textContent = isSaving ? 'Saving…' : 'Save settings';
     }
 
+    function formatBackfillAmount(data){
+      const cents = Number(data && data.newCasesAmountCents || 0);
+      const currency = (data && data.newCasesCurrency) || 'INR';
+      try {
+        return new Intl.NumberFormat('en-IN', { style: 'currency', currency, maximumFractionDigits: 0 }).format(cents / 100);
+      } catch (_) {
+        return `${currency} ${(cents / 100).toLocaleString('en-IN')}`;
+      }
+    }
+
+    /* 90-day historical scan (Razorpay backfill). Runs as a separate request
+       right after a successful settings save that connected Razorpay for the
+       first time, so a slow or failing scan never blocks or breaks the
+       settings save itself — the live webhook is what matters. */
+    async function scanRazorpayHistory(){
+      showMessage('success', 'Settings saved. Scanning your last 90 days for missed recoveries…');
+      try {
+        const response = await fetch('/api/razorpay/backfill', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ organizationId })
+        });
+
+        if(!response.ok){
+          throw new Error(await parseResponseDetail(response));
+        }
+
+        const data = await response.json();
+        const created = Number(data && data.newCasesCreated || 0);
+
+        if(created > 0){
+          showMessage('success', `Found ${created} missed payment${created === 1 ? '' : 's'} worth ${formatBackfillAmount(data)} — check your dashboard.`);
+        } else {
+          showMessage('success', 'Scanned your last 90 days — no missed payments found.');
+        }
+      } catch (error) {
+        console.warn('Revessent Razorpay 90-day scan failed.', error);
+        showMessage('success', 'Settings saved. The 90-day history scan could not complete — your live Razorpay webhook is active either way.');
+      }
+    }
+
     async function saveSettings(event){
       event.preventDefault();
       const result = validateAndBuildPayload();
       if(!result) return;
 
+      const wasConnectedBefore = Boolean(initialRzpKeyId);
+      const shouldScanHistory = result.connectionAttempt && Boolean(result.razorpayKeyId) && !wasConnectedBefore;
       setSaving(true);
       try {
         const response = await fetch('/api/settings', {
@@ -903,6 +1103,176 @@
         showMessage('error', error.message || 'Could not save settings. Please try again.');
       } finally {
         setSaving(false);
+      }
+
+      if(shouldScanHistory){
+        await scanRazorpayHistory();
+      }
+    }
+
+    /* ────────────────────────── Test alert (F12) ──────────────────────────
+       Sends a fixed test payload through the same alert path the recovery
+       pipeline uses, so you can verify the webhook URL before relying on it. */
+    async function sendTestAlert(){
+      els.testAlertBtn.disabled = true;
+      els.testAlertBtn.textContent = 'Sending…';
+      try{
+        const response = await fetch('/api/alerts/test', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ organizationId })
+        });
+        if(!response.ok) throw new Error(await parseResponseDetail(response));
+        showMessage('success', 'Test alert sent — check your Slack/Discord channel.');
+      } catch (error) {
+        showMessage('error', error.message || 'Could not send test alert.');
+      } finally {
+        els.testAlertBtn.disabled = false;
+        els.testAlertBtn.textContent = 'Send test alert';
+      }
+    }
+
+    /* ─────────────────────────── API keys (F13) ───────────────────────────
+       The full key is returned exactly once at creation; after that only the
+       stored prefix is ever shown. Revoke is a soft delete (revoked_at). */
+    function fmtDate(iso){
+      if(!iso) return '';
+      try { return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); }
+      catch (_) { return iso; }
+    }
+
+    function renderKeys(keys){
+      els.keyList.innerHTML = '';
+      if(!keys.length){
+        const li = document.createElement('li');
+        li.className = 'help';
+        li.textContent = 'No API keys yet. Generate one above to pull your recovery metrics programmatically.';
+        els.keyList.appendChild(li);
+        return;
+      }
+      keys.forEach((key) => {
+        const li = document.createElement('li');
+        li.className = 'key-row' + (key.revoked ? ' revoked' : '');
+
+        const prefix = document.createElement('span');
+        prefix.className = 'kp';
+        prefix.textContent = key.keyPrefix + '…';
+        li.appendChild(prefix);
+
+        if(key.label){
+          const label = document.createElement('span');
+          label.className = 'kl';
+          label.textContent = key.label;
+          li.appendChild(label);
+        }
+
+        const meta = document.createElement('span');
+        const bits = [];
+        bits.push('created ' + (fmtDate(key.createdAt) || '—'));
+        if(key.lastUsedAt) bits.push('used ' + fmtDate(key.lastUsedAt));
+        if(key.revoked) bits.push('revoked');
+        meta.className = 'kmeta';
+        meta.textContent = bits.join(' · ');
+        li.appendChild(meta);
+
+        if(!key.revoked){
+          const revoke = document.createElement('button');
+          revoke.className = 'inline-btn danger';
+          revoke.type = 'button';
+          revoke.textContent = 'Revoke';
+          revoke.addEventListener('click', () => revokeKey(key.id, key.keyPrefix));
+          li.appendChild(revoke);
+        }
+        els.keyList.appendChild(li);
+      });
+    }
+
+    async function loadKeys(){
+      try{
+        const response = await fetch('/api/keys', {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        if(!response.ok) throw new Error(await parseResponseDetail(response));
+        const data = await response.json();
+        renderKeys(Array.isArray(data.keys) ? data.keys : []);
+      } catch (error) {
+        console.warn('Revessent API keys load failed.', error);
+        els.keyList.innerHTML = '';
+        const li = document.createElement('li');
+        li.className = 'help';
+        li.textContent = 'API keys could not be loaded. Refresh the page to retry.';
+        els.keyList.appendChild(li);
+      }
+    }
+
+    async function createKey(){
+      const label = els.newKeyLabel.value.trim().slice(0, 80);
+      els.createKeyBtn.disabled = true;
+      els.createKeyBtn.textContent = 'Generating…';
+      els.newKeyBox.hidden = true;
+      try{
+        const response = await fetch('/api/keys', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ label })
+        });
+        if(!response.ok) throw new Error(await parseResponseDetail(response));
+        const data = await response.json();
+        els.newKeyValue.textContent = data.apiKey || '';
+        els.newKeyBox.hidden = false;
+        els.newKeyLabel.value = '';
+        await loadKeys();
+      } catch (error) {
+        showMessage('error', error.message || 'Could not create API key.');
+      } finally {
+        els.createKeyBtn.disabled = false;
+        els.createKeyBtn.textContent = 'Generate key';
+      }
+    }
+
+    async function revokeKey(keyId, keyPrefix){
+      if(!window.confirm(`Revoke API key ${keyPrefix}…? Anything using it will stop working immediately.`)) return;
+      try{
+        const response = await fetch('/api/keys', {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ keyId })
+        });
+        if(!response.ok) throw new Error(await parseResponseDetail(response));
+        showMessage('success', 'API key revoked.');
+        await loadKeys();
+      } catch (error) {
+        showMessage('error', error.message || 'Could not revoke API key.');
+      }
+    }
+
+    /* ─────────────────────────── Referrals (F15) ────────────────────────── */
+    async function loadReferrals(){
+      try{
+        const response = await fetch('/api/referrals', {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        if(!response.ok) throw new Error(await parseResponseDetail(response));
+        const data = await response.json();
+        els.referralLink.value = data.referralLink || '';
+        const count = Number(data.referredCount || 0);
+        els.referralStats.textContent = count === 0
+          ? 'No referrals yet — share your link to get started.'
+          : `${count} organization${count === 1 ? '' : 's'} signed up through your link.`;
+      } catch (error) {
+        console.warn('Revessent referrals load failed.', error);
+        els.referralStats.textContent = 'Referral link could not be loaded. Refresh the page to retry.';
       }
     }
 
@@ -943,6 +1313,13 @@
           showWarning("Previous settings couldn't be loaded. You can still save new settings.");
         }
 
+        /* Keys + referrals live outside the save form — load them once the
+           session is ready. Failures are non-fatal (sections show a retry
+           hint). These tables are created by the SQL migration; if it hasn't
+           run yet the endpoints report it and we degrade gracefully. */
+        loadKeys();
+        loadReferrals();
+
         finishAppLoading();
       } catch (error) {
         console.error('Revessent settings boot failed.', error);
@@ -952,6 +1329,11 @@
 
     $$('.tone-card').forEach(card => {
       card.addEventListener('click', () => setTone(card.dataset.tone));
+    });
+
+    els.smsSwitch.addEventListener('click', () => {
+      setSmsEnabled(!smsEnabled);
+      clearMessage();
     });
 
     els.rzpKeyId.addEventListener('input', () => { rzpKeyTouched = true; });
@@ -971,6 +1353,39 @@
     els.settingsCard.addEventListener('submit', saveSettings);
     els.cancelBtn.addEventListener('click', () => { window.location.reload(); });
     els.reloadBtn.addEventListener('click', () => { window.location.reload(); });
+
+    /* Alerts / API keys / referrals wiring. */
+    els.testAlertBtn.addEventListener('click', sendTestAlert);
+    els.createKeyBtn.addEventListener('click', createKey);
+    els.alertWebhookUrl.addEventListener('input', () => {
+      clearMessage();
+      els.alertWebhookUrl.removeAttribute('aria-invalid');
+      els.alertWebhookError.classList.remove('show');
+    });
+    els.alertMinAmount.addEventListener('input', clearMessage);
+
+    /* Copy buttons — data-copy-target points at the element holding the text
+       (works for both the <code> key display and the referral <input>). */
+    $$('.inline-btn[data-copy-target]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const target = document.getElementById(button.dataset.copyTarget);
+        if(!target) return;
+        const text = target.value !== undefined ? target.value : target.textContent;
+        try{
+          if(navigator.clipboard && navigator.clipboard.writeText){
+            await navigator.clipboard.writeText(text || '');
+          } else {
+            target.select && target.select();
+            document.execCommand('copy');
+          }
+          const original = button.textContent;
+          button.textContent = 'Copied ✓';
+          setTimeout(() => { button.textContent = original; }, 1600);
+        } catch (_) {
+          showMessage('error', 'Could not copy — select the text and copy manually.');
+        }
+      });
+    });
 
     boot();
   </script>
