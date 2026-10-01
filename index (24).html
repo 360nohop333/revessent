@@ -1,0 +1,3154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Revessent — Never lose another member to a failed card</title>
+<meta name="description" content="Revessent is revenue intelligence for subscription businesses — it detects failed payments, retries at the best moment, and acts on churn and upgrade signals before they become outcomes.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23fff8e9'/%3E%3Cstop offset='1' stop-color='%23ecdcc0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='url(%23g)'/%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='none' stroke='%23ffffff' stroke-opacity='.55'/%3E%3Cpath d='M9 21h3l2-7 3 10 2.4-8 2.6 5H24' fill='none' stroke='%2335608f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap');
+:root{
+  --canvas:#f9f4ea;            /* base ivory — fallback & under-canvas */
+  --page:#f1e8d4;
+  /* ── Contrast system — LIGHT MODE tuned for the brightest sky ──
+     primary ~16.8:1 vs white ( #1D1C1A ) — not pure black, warm charcoal
+     secondary ~10.4:1 vs white ( #3C3B37 ) — body / descriptions
+     muted ~5.6:1 vs white ( #6B6860 ) — labels / metadata, still subtle but AA-passing
+     inverse #FDFCF8 — text on dark buttons/toasts */
+  --text-primary:#1D1C1A;
+  --text-secondary:#3C3B37;
+  --text-muted:#6B6860;
+  --text-inverse:#FDFCF8;
+  --text-faint:#8E8C86;
+  /* legacy aliases — keep --ink vars working for any external/JS refs */
+  --ink:var(--text-primary);
+  --ink2:var(--text-secondary);
+  --ink3:var(--text-muted);
+  --glass1:rgba(255,253,247,.42);   /* far frosted — +12% opacity for legibility */
+  --glass2:rgba(255,253,248,.58);   /* mid frosted — +12% */
+  --glass3:rgba(255,254,250,.74);   /* near / clearer — +10% */
+  --glass-hi:rgba(255,255,255,.68);
+  /* theme-aware channels & edges */
+  --cc:255 253 247;             /* interior surface tint (chips, wells) */
+  --lc:112 90 55;               /* quiet line tint */
+  --edge:rgba(255,255,255,.68);
+  --hi:rgba(255,255,255,.84);
+  --icB:rgba(255,255,255,.78);
+  /* action + success + avatar/mark tints (light values) */
+  --btnA:#35639a; --btnAtx:#fbf6ec;
+  --ok:#8ba889; --okTx:#5f7450; --err:#c06a52;
+  --avaA:#e9f1f9; --avaB:#bdd6ee; --avaTx:#335f8e;
+  --mkA:#eef5fc; --mkB:#afcdf0; --mkC:#6d9fd8;
+  --accC:109 159 214;           /* accent channels — set per palette by JS */
+  --acc:#6d9fd6;
+  --acc-ink:#35608f;
+  --acc-line:rgb(var(--accC)/.35);
+  --acc-wash:rgb(var(--accC)/.10);
+  --r-xl:26px;--r-lg:22px;--r-md:17px;--r-sm:12px;
+  --sh-sm:inset 0 1px 0 rgba(255,255,255,.6),0 1px 1px rgba(64,48,26,.05),0 10px 28px -20px rgba(64,48,26,.25);
+  --sh-md:inset 0 1px 0 rgba(255,255,255,.72),0 1px 1px rgba(64,48,26,.05),0 22px 46px -22px rgba(64,48,26,.32);
+  --f-sans:"Manrope RV",-apple-system,BlinkMacSystemFont,"Segoe UI Variable Text","Segoe UI",Inter,Roboto,"Helvetica Neue",Arial,ui-sans-serif,system-ui,sans-serif;
+  --f-serif:"Instrument Serif RV","Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,Cambria,serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+}
+html{scroll-behavior:smooth;scroll-padding-top:104px;-webkit-text-size-adjust:100%}
+body{
+  font-family:var(--f-sans);color:var(--text-primary);font-weight:450;line-height:1.68;
+  letter-spacing:-.01em;font-size:16.5px;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;
+  font-optical-sizing:auto;
+  /* flat base tone — the winter light lives on the sky canvas (a fixed layer),
+     so scrolling never repaints a giant gradient background */
+  background:var(--page,#f1e8d4);
+  overflow-x:hidden;
+}
+::selection{background:var(--acc);color:#f4f9ff}
+img,svg{display:block}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--acc-ink);outline-offset:3px;border-radius:8px}
+em.it{font-family:var(--f-serif);font-style:italic;font-weight:400;font-size:1.045em;letter-spacing:-.01em;color:var(--acc-ink)}
+.wrap{width:min(1120px,100% - clamp(36px,6.4vw,84px));margin-inline:auto;position:relative}
+.num{font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+
+/* ============================================================
+   THE WINDOW — atmosphere layers
+   skybox: displaced by the animated glass filter (JS-gated)
+   ============================================================ */
+#skybox{position:fixed;inset:-70px;z-index:0;pointer-events:none;overflow:visible;transition:opacity .9s ease}
+#sky{width:100%;height:100%;display:block;opacity:1}
+/* Evening aurora — the dark-mode gradient sky (pure CSS, animated). */
+#gradbg{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0;transition:opacity .9s ease;overflow:hidden;background:radial-gradient(120% 90% at 50% 0%,#17263f 0%,#0d1322 48%,#080d16 100%)}
+html[data-theme=dark] #gradbg{opacity:1;background:linear-gradient(180deg in oklab,#C4C6C9,#55585E,#5A544B,#5A544B)}
+/* a random FeralUI sky is active — its own ramp owns the fallback + canvas */
+html.randsky #gradbg{opacity:1;background:var(--rand-grad)!important}
+html.randsky #gradbg i{display:none}
+html.randsky #bluesky{opacity:1!important}
+html.randsky #skybox{opacity:0}
+/* Night-sky fallback (no WebGL) — same top-to-bottom stop order. */
+html[data-theme=dark] #gradbg i{display:none}
+/* Evening aurora — FeralUI-style flow blobs:
+   LAPIS #1E50A2 · ANCIENT PURPLE #895B8A · PEACH PINK #F09199 · MOON WHITE #EAF4FC */
+#gradbg i{position:absolute;border-radius:50%;filter:blur(70px);will-change:transform}
+#gradbg .o1{width:58vmax;height:58vmax;left:-15vmax;top:-17vmax;background:radial-gradient(circle,rgba(30,80,162,.55),transparent 65%);animation:drift1 26s ease-in-out infinite alternate}
+#gradbg .o2{width:50vmax;height:50vmax;right:-13vmax;top:6vmax;background:radial-gradient(circle,rgba(137,91,138,.40),transparent 65%);animation:drift2 32s ease-in-out infinite alternate}
+#gradbg .o3{width:42vmax;height:42vmax;left:20vmax;bottom:-17vmax;background:radial-gradient(circle,rgba(240,145,153,.20),transparent 65%);animation:drift3 24s ease-in-out infinite alternate}
+#gradbg .o4{width:62vmax;height:36vmax;left:8vmax;top:30vmax;background:radial-gradient(closest-side,rgba(234,244,252,.10),transparent 72%);animation:drift2 38s ease-in-out infinite alternate-reverse}
+@keyframes drift1{from{transform:translate(0,0) scale(1)}to{transform:translate(9vmax,6vmax) scale(1.12)}}
+@keyframes drift2{from{transform:translate(0,0) scale(1.05)}to{transform:translate(-8vmax,-5vmax) scale(.95)}}
+@keyframes drift3{from{transform:translate(0,0) scale(.95)}to{transform:translate(-6vmax,5vmax) scale(1.08)}}
+html.eco #gradbg i{animation:none}
+/* Blue-sky fallback (no WebGL) — FeralUI's own SKY fallback grammar. */
+html[data-theme=light] #gradbg{opacity:1;background:linear-gradient(180deg in oklab,#E6F2FF,#B3D9FF,#80B3FF,#6699E6)}
+html[data-theme=light] #skybox{opacity:0}
+html[data-theme=light] #gradbg i{display:none}
+/* exact-sky canvas — day + night, above the CSS fallback */
+#bluesky{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:0;transition:opacity .9s ease}
+html[data-theme=light] #bluesky,html[data-theme=dark] #bluesky{opacity:1}
+html.nosky #bluesky{display:none!important}
+html[data-theme=dark] #skybox{opacity:0}
+#veil{position:fixed;inset:0;z-index:1;pointer-events:none}
+#veil::before{ /* vignette + morning falloff — the glass shading */
+  content:"";position:absolute;inset:0;
+  background:
+    radial-gradient(125% 92% at 50% -4%, rgb(var(--cc)/.5), transparent 46%),
+    radial-gradient(150% 120% at 50% 50%, transparent 58%, rgba(94,70,34,.07) 100%);
+}
+#veil::after{ /* ground-glass micro-noise, fixed */
+  content:"";position:absolute;inset:0;opacity:.05;mix-blend-mode:soft-light;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23n)' opacity='0.85'/%3E%3C/svg%3E");
+}
+.js .page{display:none}
+.js .page.is-on{display:block}
+.page{position:relative;min-height:100vh;animation:pageIn .7s var(--spring) both}
+@keyframes pageIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+main{position:relative;z-index:2}
+
+/* ============================================================
+   header
+   ============================================================ */
+.hd{position:fixed;top:0;left:0;right:0;z-index:40;transition:background-color .6s ease,box-shadow .6s ease,border-color .6s ease;border-bottom:1px solid transparent}
+.hd.scrolled{
+  background:rgba(250,245,235,.64);
+  -webkit-backdrop-filter:blur(22px) saturate(1.25);backdrop-filter:blur(22px) saturate(1.25);
+  border-bottom-color:rgb(var(--lc)/.08);
+  box-shadow:0 12px 30px -26px rgba(64,48,26,.35);
+}
+.hd-in{display:flex;align-items:center;gap:26px;height:70px}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:20.5px;letter-spacing:-.03em}
+.brand .bmark{width:21px;height:21px;flex:none;border-radius:7px;overflow:hidden}
+.brand .dot{color:var(--acc-ink)}
+.nav{display:flex;gap:2px;margin-inline:auto}
+.nav a{padding:8px 15px;border-radius:999px;font-size:14px;color:var(--text-secondary);font-weight:580;letter-spacing:.005em;transition:color .3s,background-color .3s}
+.nav a:hover{color:var(--text-primary);background:rgba(90,70,35,.07)}
+.nav a.on{color:var(--text-primary)}
+.nav a.on::after{content:"";display:block;height:2px;width:14px;margin:4px auto -7px;border-radius:2px;background:var(--acc)}
+.hd-cta{display:flex;gap:10px;align-items:center}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;border-radius:999px;font-weight:600;font-size:14.5px;
+  padding:12px 24px;white-space:nowrap;letter-spacing:.002em;-webkit-tap-highlight-color:transparent;
+  transition:transform .35s var(--spring),box-shadow .45s ease,background-color .4s ease,border-color .4s ease,color .3s ease,filter .4s ease}
+.btn:active{transform:translateY(1px) scale(.977)}
+.btn-pri{background:var(--btnA);color:var(--btnAtx);box-shadow:inset 0 1px 0 rgb(var(--cc)/.16),0 16px 30px -18px rgba(64,48,26,.55)}
+.btn-pri:hover{transform:translateY(-1px);filter:brightness(1.07);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 20px 36px -18px rgba(64,48,26,.5)}
+.btn-glass{
+  background:rgb(var(--cc)/.56);
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  border:1px solid var(--edge);box-shadow:var(--sh-sm);color:var(--text-primary);font-weight:600}
+.btn-glass:hover{background:var(--hi);transform:translateY(-1px);box-shadow:var(--sh-md)}
+.btn-sm{padding:8px 16px;font-size:13.5px}
+.btn[data-accent]{background:var(--acc-wash);border:1px solid var(--acc-line);color:var(--acc-ink)}
+.btn[data-accent]:hover{background:var(--acc-wash)}
+.ic{width:18px;height:18px;flex:none}
+.burger{display:none;width:42px;height:42px;border-radius:13px;align-items:center;justify-content:center;
+  border:1px solid var(--edge);background:rgb(var(--cc)/.5);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+@media(max-width:860px){.nav{display:none}.hd-cta .btn-glass:not(.tgl){display:none}.burger{display:inline-flex}}
+
+/* mobile sheet — frosted door */
+.sheet{position:fixed;inset:0;z-index:60;visibility:hidden;opacity:0;
+  transition:opacity .45s ease,visibility 0s linear .45s}
+.sheet.open{visibility:visible;opacity:1;transition:opacity .45s ease,visibility 0s}
+.sheet-bg{position:absolute;inset:0;background:rgba(84,64,34,.18);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.sheet-panel{position:absolute;top:0;right:0;height:100%;width:min(86vw,400px);display:flex;flex-direction:column;gap:4px;padding:20px 22px;
+  background:rgba(249,244,232,.72);-webkit-backdrop-filter:blur(30px) saturate(1.2);backdrop-filter:blur(30px) saturate(1.2);
+  border-left:1px solid var(--edge);box-shadow:-40px 0 80px -40px rgba(64,48,26,.4);
+  transform:translateX(26px);transition:transform .5s var(--spring)}
+.sheet.open .sheet-panel{transform:none}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;padding:8px 4px 20px}
+.sheet a.m-link{display:flex;align-items:center;justify-content:space-between;font-size:24px;font-weight:580;letter-spacing:-.02em;
+  padding:13px 6px;border-bottom:1px solid var(--line-soft);transition:padding-left .3s var(--spring),color .3s}
+.sheet a.m-link:hover{padding-left:14px;color:var(--acc-ink)}
+.sheet .m-cta{margin-top:auto;display:flex;flex-direction:column;gap:10px;padding-top:18px}
+
+/* ============================================================
+   frosted surfaces
+   ============================================================ */
+.glass{position:relative;border:1px solid var(--edge);border-radius:var(--r-lg);
+  background:var(--glass1);
+  box-shadow:var(--sh-sm);
+  -webkit-backdrop-filter:blur(20px) saturate(1.18) brightness(1.02);
+  backdrop-filter:blur(20px) saturate(1.18) brightness(1.02)}
+.g2{background:var(--glass2)}        /* nearer */
+.g3{background:var(--glass3)}        /* clearest — crisp data */
+.g4{background:rgb(var(--cc)/.28);-webkit-backdrop-filter:blur(30px) saturate(1.14);backdrop-filter:blur(30px) saturate(1.14)} /* farthest — +8% solidity */
+.raise{transition:transform .55s var(--spring),box-shadow .55s ease,background-color .6s ease}
+.raise:hover{transform:translateY(-3px);box-shadow:var(--sh-md);background-color:var(--glass2)}
+.g3.raise:hover{background-color:rgb(var(--cc)/.78)}
+.hl{position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity .4s ease;
+  background:radial-gradient(460px 240px at var(--mx,50%) var(--my,-10%),rgb(var(--cc)/.5),transparent 62%)}
+[data-spot]:hover .hl{opacity:1}
+.hl-touch{opacity:.35}
+
+/* reveal */
+/* ============================================================
+   scroll reveal — one quiet choreography
+   hidden state: a breath lower, gently out of focus, sheet-scale.
+   arrival: rise · sharpen · settle — and stays put. Tuning per
+   family via --ry rise · --rb blur · --rs scale · --dur journey;
+   --rd (delay) is set by the script from data-d + family pace.
+   ============================================================ */
+.rv{
+  --ry:16px; --rb:6px; --rs:1; --dur:.8s;
+  opacity:0;
+  transform:translate3d(0,var(--ry),0) scale(var(--rs));
+  filter:blur(var(--rb));
+  transition:
+    opacity var(--dur) cubic-bezier(.16,1,.3,1) var(--rd,0ms),
+    transform var(--dur) cubic-bezier(.16,1,.3,1) var(--rd,0ms),
+    filter var(--dur) cubic-bezier(.16,1,.3,1) var(--rd,0ms);
+}
+.rv.in{opacity:1;transform:translate3d(0,0,0) scale(1);filter:blur(0)}
+
+/* Fallback: if JS hasn't run after 2s, show everything */
+@keyframes revealFallback { to { opacity:1; transform:none; filter:none; } }
+.rv { animation: revealFallback 0.01s 2s forwards; }
+
+/* glass surfaces emerge as sheets of glass — a hair of scale only */
+.rv.glass,.rv.wf-step,.rv.panel,.rv.feat,.rv.plan,.rv.quote-card,.rv.cta-band,.rv.sim-stage{--rs:.987}
+/* hero — text breathes up first, the dashboard rises a touch further */
+.hero .rv{--ry:18px;--dur:.85s}
+/* the five quiet moves: compact rise, the sequence reads left→right */
+.wf-step.rv{--ry:13px;--rb:5px;--dur:.72s}
+/* stat cells — small, quick, calm */
+.band-cell.rv,.kpi.rv{--ry:12px;--rb:4px;--dur:.6s}
+.band-note.rv{--ry:10px;--rb:3px;--dur:.7s}
+/* feature + pricing cascades run a touch faster */
+.feat.rv,.plan.rv{--dur:.7s}
+/* product page — large panels breathe from a little further down */
+.panel.rv{--ry:20px;--rb:5px;--dur:.85s}
+/* the glass CTA band settles as one surface */
+.cta-band.rv{--ry:26px;--rs:.99;--dur:.9s}
+.quote-card.rv{--dur:.9s}
+/* questions, answered — small, unhurried */
+.faq-item.rv{--ry:14px;--rb:4px;--dur:.65s}
+/* notification chips fade + sharpen in place (their float owns transform) */
+.hchips.rv{transform:none}
+/* touch screens: keep it lighter still */
+@media (pointer:coarse){.rv{--rb:3px;--dur:.6s}}
+
+/* skip link — for keyboard users, the door is before the window */
+.skip{position:fixed;top:10px;left:10px;z-index:300;transform:translateY(-160%);opacity:0;pointer-events:none;
+  padding:10px 18px;border-radius:999px;font-size:13px;font-weight:600;color:var(--btnAtx);background:var(--btnA);
+  box-shadow:var(--sh-md);transition:transform .3s var(--spring),opacity .3s}
+.skip:focus-visible{transform:none;opacity:1;pointer-events:auto}
+/* type */
+.eyebrow{display:inline-flex;align-items:center;gap:9px;font-size:11px;font-weight:650;letter-spacing:.20em;text-transform:uppercase;color:var(--text-muted)}
+.eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--acc);box-shadow:0 0 0 4px var(--acc-wash)}
+h1{font-family:var(--f-sans);font-size:clamp(2.85rem,5.6vw,4.2rem);font-weight:750;letter-spacing:-.05em;line-height:1.01;margin:0;text-wrap:balance;color:var(--text-primary)}
+/* the home hero sits beside its dashboard, so it holds its two designed lines */
+.hero h1{font-size:clamp(2.3rem,3.7vw,2.72rem)}
+h2{font-family:var(--f-sans);font-size:clamp(1.8rem,3.2vw,2.4rem);font-weight:680;letter-spacing:-.03em;line-height:1.14;text-wrap:balance;color:var(--text-primary)}
+h3{font-family:var(--f-sans);font-size:1.05rem;font-weight:640;letter-spacing:-.013em;color:var(--text-primary)}
+.lead{font-family:var(--f-sans);font-size:clamp(1.03rem,1.5vw,1.16rem);color:var(--text-secondary);line-height:1.72;max-width:58ch;margin-top:20px;font-weight:470;letter-spacing:-.01em}
+.sec-head{max-width:700px;margin-bottom:clamp(40px,5.5vw,64px)}
+.sec-head p{color:var(--text-secondary);font-weight:450;line-height:1.68}
+.sec-head h2{margin-top:16px}
+.sec-head p{margin-top:16px;color:var(--text-secondary);font-size:1.04rem;max-width:56ch}
+.meta{color:var(--text-muted);font-size:12.5px}
+
+/* chips & tags */
+.pill{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:620;color:var(--text-secondary);
+  border:1px solid var(--edge);background:rgb(var(--cc)/.4);padding:6px 13px;border-radius:999px;
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:var(--sh-sm)}
+.pill b{font-weight:600;color:var(--text-primary)}
+.pdot{width:6px;height:6px;border-radius:50%;background:var(--acc);flex:none}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:660;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--acc-ink);border:1px solid var(--acc-line);background:var(--acc-wash);padding:4px 10px;border-radius:999px}
+.live{position:relative}
+.live i{width:5px;height:5px;border-radius:50%;background:var(--acc);flex:none;position:relative}
+.live i::after{content:"";position:absolute;inset:-7px;border-radius:50%;border:1px solid var(--acc);opacity:.7;
+  animation:ring 3.2s var(--ease) infinite}
+@keyframes ring{0%{transform:scale(.55);opacity:.8}70%{transform:scale(1.5);opacity:0}100%{transform:scale(1.5);opacity:0}}
+.trustline{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:26px;font-size:13px;color:var(--text-muted);font-weight:570;letter-spacing:.01em}
+.trustline span{display:inline-flex;align-items:center;gap:8px}
+.trustline .tsep{width:3px;height:3px;border-radius:50%;background:var(--line)}
+
+/* ============================================================
+   HOME
+   ============================================================ */
+.sec{padding:clamp(70px,8vw,110px) 0;position:relative}
+.hero{min-height:100svh;display:flex;flex-direction:column;justify-content:center;padding-top:124px;padding-bottom:70px}
+.hero-grid{display:grid;grid-template-columns:1.04fr .96fr;gap:clamp(34px,4.5vw,72px);align-items:center}
+.hero-ctas{display:flex;gap:12px;margin-top:34px;flex-wrap:wrap}
+.hkick{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.hkick .pill-dot{width:6px;height:6px;border-radius:50%;background:#8ba889;box-shadow:0 0 0 4px rgba(139,168,137,.18)}
+
+/* hero right — one dashboard card behind the glass */
+.hw{position:relative;border-radius:24px;padding:20px 22px 18px;overflow:hidden}
+.hw .hl{opacity:1;background:radial-gradient(520px 300px at 30% -20%,rgb(var(--cc)/.55),transparent 60%)}
+.hw-top{display:flex;align-items:center;gap:11px}
+.hw-mark{width:30px;height:30px;border-radius:10px;background:radial-gradient(circle at 34% 28%,var(--mkA),var(--mkB) 58%,var(--mkC));box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 5px 12px -5px rgb(var(--accC)/.5)}
+.hw-name b{display:block;font-size:13.5px;letter-spacing:-.01em;font-weight:620}
+.hw-name small{font-size:11px;color:var(--text-muted)}
+.hw .live{margin-left:auto}
+.hw-kpis{display:grid;grid-template-columns:1.25fr .75fr;gap:12px;margin-top:16px}
+.kpi-chip{border-radius:14px;padding:13px 15px;border:1px solid var(--edge);background:rgb(var(--cc)/.28)}
+.kpi-chip .lab{font-size:10.5px;color:var(--text-muted);letter-spacing:.08em;text-transform:uppercase;font-weight:650}
+.kpi-chip .v{font-size:24px;font-weight:660;letter-spacing:-.03em;margin-top:3px;font-variant-numeric:tabular-nums}
+.kpi-chip .d{font-size:11px;color:var(--text-muted);margin-top:2px}
+.kpi-chip .d.up{color:var(--okTx)}
+.hw-chart{margin:14px -2px 2px}
+.hw-mini{display:grid;grid-template-columns:1fr 1fr;gap:1px;margin-top:12px;border-radius:14px;overflow:hidden;border:1px solid var(--edge)}
+.hw-mini>div{display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgb(var(--cc)/.22)}
+.hw-mini .ava{width:26px;height:26px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:680;color:var(--avaTx);background:linear-gradient(135deg,var(--avaA),var(--avaB))}
+.hw-mini .tx b{display:block;font-size:11.5px;font-weight:600;letter-spacing:-.01em}
+.hw-mini .tx small{font-size:9.5px;color:var(--text-muted)}
+.hw-mini .amt{margin-left:auto;font-size:11px;font-weight:650;color:var(--acc-ink);white-space:nowrap}
+/* frosted notifications emerging beneath the card */
+.hchips{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;grid-column:2}
+@media(max-width:1020px){.hchips{grid-column:auto}}
+.hchip{display:inline-flex;align-items:center;gap:9px;padding:8px 14px;border-radius:14px;font-size:12px;
+  border:1px solid var(--edge);background:rgb(var(--cc)/.22);color:var(--text-secondary);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:var(--sh-sm);
+  animation:bob 9s ease-in-out infinite}
+.hchip:nth-child(2){animation-delay:-3.2s}
+.hchip b{color:var(--text-primary);font-weight:640}
+.hchip .ico{width:24px;height:24px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--acc-wash);color:var(--acc-ink);flex:none}
+.hchip .ico .ic{width:13px;height:13px}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3.5px)}}
+@media(max-width:1020px){
+  .hero{min-height:0;padding-top:132px}
+  .hero-grid{grid-template-columns:1fr}
+  .hw{margin-top:6px}
+  .hero h1{font-size:clamp(2.45rem,6vw,3.6rem)}
+}
+@media(max-width:600px){
+  .hero h1{font-size:clamp(2.25rem,6.8vw,2.6rem)}
+}
+
+/* logos */
+.logos{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:24px 46px;
+  color:var(--text-muted);opacity:.7;transition:opacity .5s;padding:6px 4px}
+.logos:hover{opacity:.95}
+.logos .lg{font-weight:600;letter-spacing:-.01em;font-size:16px;color:var(--text-muted);transition:color .35s}
+.logos .lg:hover{color:var(--text-primary)}
+.lg-s{font-family:var(--f-serif);font-style:italic;font-weight:500}
+.lg-sb{letter-spacing:.26em;font-size:12.5px;font-weight:600}
+.lg-serif{font-family:var(--f-serif);font-size:18px;letter-spacing:-.01em}
+
+/* steps */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.step-card{padding:26px 26px 24px;overflow:hidden}
+.step-n{font-family:var(--f-serif);font-style:italic;font-size:13.5px;color:var(--acc-ink)}
+.step-card h3{margin-top:12px;font-size:1.06rem}
+.step-card p{margin-top:8px;color:var(--text-secondary);font-size:14.3px;line-height:1.64;font-weight:460}
+.step-card .sico{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  background:rgb(var(--cc)/.4);border:1px solid var(--edge);color:var(--acc-ink);margin-top:16px;
+  transition:transform .5s var(--spring)}
+.step-card:hover .sico{transform:translateY(-2px)}
+.step-card .sico .ic{width:17px;height:17px}
+
+/* stats band */
+.band{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.band-cell{border-radius:var(--r-md);padding:20px 22px}
+.band-cell .b-n{font-size:clamp(1.5rem,2.4vw,1.9rem);font-weight:650;letter-spacing:-.035em}
+.band-cell small{display:block;margin-top:6px;color:var(--text-secondary);font-size:12.6px;line-height:1.58;font-weight:470}
+.band-note{margin-top:16px;font-size:11.5px;color:var(--text-muted)}
+.band-src{margin-top:6px;font-size:10.5px;color:var(--text-muted)}
+.band-src a{color:var(--text-secondary);border-bottom:1px dotted var(--acc-line);transition:color .3s}
+.band-src a:hover{color:var(--acc-ink);border-bottom-style:solid}
+@media(max-width:900px){.steps,.band{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.steps,.band{grid-template-columns:1fr}}
+
+/* features */
+.grid-feat{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.feat{padding:22px;border-radius:var(--r-md)}
+.feat .f-ic{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+  background:rgb(var(--cc)/.42);border:1px solid var(--edge);color:var(--acc-ink)}
+.feat .f-ic .ic{width:16px;height:16px}
+.feat h3{font-size:.99rem;margin-top:14px}
+.feat p{margin-top:6px;color:var(--text-secondary);font-size:13.8px;line-height:1.64;font-weight:460}
+@media(max-width:980px){.grid-feat{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:640px){.grid-feat{grid-template-columns:1fr}}
+
+/* quotes */
+.quote-card{border-radius:var(--r-xl);padding:clamp(34px,5vw,60px);text-align:center;overflow:hidden}
+.quote-card::before,.quote-card::after{content:"";position:absolute;inset:0;pointer-events:none}
+.quote-card::before{background:radial-gradient(560px 240px at 50% 0%,rgb(var(--cc)/.5),transparent 70%)}
+.quote-card::after{background:radial-gradient(74% 90% at 50% -16%,var(--acc-wash),transparent 78%)}
+.quote-card .big-q,.quote-card .quote-who{position:relative;z-index:1}
+.quote-card .big-q{font-size:clamp(1.25rem,2.3vw,1.7rem);line-height:1.52;font-weight:550;letter-spacing:-.016em;color:var(--text-primary);max-width:760px;margin:0 auto;position:relative}
+.quote-card .big-q em{font-family:var(--f-serif);font-style:italic;color:var(--acc-ink)}
+.quote-who{margin-top:26px;display:flex;align-items:center;justify-content:center;gap:12px;position:relative}
+.quote-who .ava{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-weight:650;font-size:13px;color:var(--avaTx);background:linear-gradient(135deg,var(--avaA),var(--avaB))}
+.quote-who b{display:block;font-size:13.5px}
+.quote-who small{color:var(--text-muted);font-size:12px}
+
+/* CTA band */
+.cta-band{position:relative;overflow:hidden;border-radius:var(--r-xl);text-align:center;
+  padding:clamp(42px,6vw,76px) clamp(20px,4vw,60px)}
+.cta-band::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(52% 90% at 50% -10%, rgb(var(--cc)/.55), transparent 70%),
+    radial-gradient(40% 60% at 18% 110%, var(--acc-wash), transparent 70%),
+    radial-gradient(40% 60% at 84% 108%, var(--acc-wash), transparent 70%)}
+.cta-band>*{position:relative}
+.cta-form{display:flex;gap:10px;justify-content:center;margin-top:30px;flex-wrap:wrap}
+.email{width:min(360px,100%);padding:13px 20px;border-radius:999px;font-size:15px;
+  border:1px solid var(--edge);background:rgb(var(--cc)/.55);color:var(--text-primary);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  box-shadow:inset 0 1px 4px rgba(96,74,38,.08);transition:border-color .35s,box-shadow .35s}
+.email::placeholder{color:var(--text-muted)}
+.email:focus{outline:none;border-color:var(--acc-line);box-shadow:0 0 0 4px var(--acc-wash)}
+.cta-note{margin-top:16px;font-size:13.5px;color:var(--text-primary)}
+
+/* footer */
+footer{border-top:1px solid rgb(var(--lc)/.08);padding:60px 0 30px;position:relative;margin-top:0}
+.f-grid{display:grid;grid-template-columns:1.7fr 1fr 1fr 1fr;gap:32px}
+.f-col p{color:var(--text-primary);font-size:14px;max-width:30ch;margin-top:13px;line-height:1.7;font-weight:560}
+.f-col h4{font-size:12px;letter-spacing:.19em;text-transform:uppercase;color:var(--text-primary);font-weight:700;margin-bottom:15px}
+.f-col a{display:block;color:var(--text-primary);font-size:15px;padding:4.5px 0;font-weight:550;transition:color .3s,padding-left .35s var(--spring)}
+.f-col a:hover{color:var(--text-primary);padding-left:4px}
+.f-bottom{margin-top:48px;padding-top:20px;border-top:1px solid rgb(var(--lc)/.08);display:flex;flex-wrap:wrap;gap:10px;
+  align-items:center;justify-content:space-between;font-size:13.5px;color:var(--text-primary);font-weight:500}
+.pal-note b{font-family:var(--f-serif);font-style:italic;font-weight:400;color:var(--acc-ink)}
+/* footer — full-black legibility in light (user request) */
+html[data-theme=light] footer .f-col p,
+html[data-theme=light] footer .f-col h4,
+html[data-theme=light] footer .f-col a,
+html[data-theme=light] footer .f-col .fdead,
+html[data-theme=light] footer .f-bottom{color:#0A0A0B}
+html[data-theme=light] footer .f-col .fdead::after{color:#0A0A0B}
+
+@media(max-width:860px){.f-grid{grid-template-columns:1fr 1fr}.f-col:first-child{grid-column:1/-1}}
+
+/* ============================================================
+   PRODUCT
+   ============================================================ */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px}
+.kpi{padding:18px 20px;border-radius:var(--r-md)}
+.kpi .lab{font-size:11px;color:var(--text-muted);letter-spacing:.07em;text-transform:uppercase;font-weight:660;display:flex;align-items:center;gap:7px}
+.kpi .val{font-size:clamp(1.4rem,2.2vw,1.75rem);font-weight:660;letter-spacing:-.03em;margin-top:8px;font-variant-numeric:tabular-nums}
+.kpi .dlt{font-size:11px;color:var(--text-muted);margin-top:3px;display:flex;gap:6px;align-items:center}
+.kpi .dlt .up{width:5px;height:5px;background:var(--ok);display:inline-block;transform:rotate(45deg)}
+@media(max-width:960px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.panel-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;margin-top:14px}
+.panel-grid .wide{grid-column:1/-1}
+@media(max-width:1000px){.panel-grid{grid-template-columns:1fr}}
+.panel{padding:22px;border-radius:var(--r-lg)}
+.panel h3{display:flex;align-items:center;gap:9px;font-size:1rem}
+.panel h3 .ic{width:15px;height:15px;color:var(--acc-ink)}
+.panel .sub{color:var(--text-muted);font-size:12px;margin-top:3px}
+.chart-legend{display:flex;gap:16px;font-size:11px;color:var(--text-muted);margin-top:8px;flex-wrap:wrap}
+.chart-legend i{display:inline-block;width:15px;height:2px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.chart-legend i.l-main{background:var(--acc);height:2.5px}
+.chart-legend i.l-leak{background:var(--text-muted);opacity:.6}
+.h-dl{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;font-size:9.5px;color:var(--text-muted);margin-top:4px}
+.h-dl span{text-align:center}
+.h-dl .now{color:var(--acc-ink);font-weight:650}
+.feed{list-style:none}
+.feed li{display:flex;gap:12px;align-items:center;padding:11px 2px;border-bottom:1px solid var(--line-soft)}
+.feed li:last-child{border-bottom:0}
+.feed .ava{width:34px;height:34px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:650;color:var(--avaTx);background:linear-gradient(135deg,var(--avaA),var(--avaB))}
+.feed .f-t b{display:block;font-size:13px;font-weight:590;letter-spacing:-.01em}
+.feed .f-t small{font-size:11px;color:var(--text-muted)}
+.feed .amt{margin-left:auto;font-size:11.5px;font-weight:650;color:var(--acc-ink);white-space:nowrap}
+.feed a{font-size:11.5px;color:var(--text-secondary);border-bottom:1px solid var(--acc-line);transition:color .3s}
+.feed a:hover{color:var(--acc-ink)}
+
+/* rescue sim */
+.sim-stage{border-radius:var(--r-md);padding:14px 16px;display:flex;flex-direction:column;gap:2px;
+  background:rgb(var(--cc)/.18);border:1px dashed rgb(var(--lc)/.22);min-height:270px}
+.sim-row{display:flex;gap:12px;align-items:flex-start;padding:10px 8px;border-radius:12px;transition:background-color .5s}
+.sim-row.doing{background:rgb(var(--cc)/.4)}
+.sim-dot{width:9px;height:9px;border-radius:50%;margin-top:6px;flex:none;background:rgb(var(--lc)/.25);position:relative;transition:all .45s ease}
+.sim-row.doing .sim-dot{background:var(--acc);animation:dotpulse 1.6s ease-in-out infinite}
+@keyframes dotpulse{0%,100%{box-shadow:0 0 0 0 var(--acc-line)}55%{box-shadow:0 0 0 5px transparent}}
+.sim-row.done .sim-dot{background:var(--ok)}
+.sim-row.done .sim-dot::after{content:"✓";position:absolute;left:-6px;top:-9px;font-size:10px;color:var(--okTx);font-weight:800}
+.sim-t b{font-size:13px;font-weight:590;display:block;letter-spacing:-.01em}
+.sim-t small{font-size:11px;color:var(--text-muted)}
+.sim-row .st{display:inline-flex;margin-left:auto;align-self:center;font-size:9.5px;font-weight:660;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--text-muted);border:1px solid var(--line-soft);padding:3px 9px;border-radius:999px;white-space:nowrap}
+.sim-row.doing .st,.sim-row.done .st{color:var(--acc-ink);border-color:var(--acc-line);background:rgb(var(--cc)/.5)}
+.sim-win{border-radius:var(--r-md);padding:16px;display:none;align-items:center;gap:14px;margin-top:10px;
+  background:rgb(var(--cc)/.4);border:1px solid var(--edge)}
+.sim-win.show{display:flex;animation:pop .6s var(--spring)}
+@keyframes pop{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+.sim-win .w-n{font-size:1.25rem;font-weight:660;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.sim-win small{color:var(--acc-ink);font-size:11.5px;display:block;margin-top:2px}
+.sim-win .w-ic{width:40px;height:40px;border-radius:50%;background:var(--icB);display:flex;align-items:center;
+  justify-content:center;color:var(--acc-ink);box-shadow:var(--sh-sm);flex:none}
+
+/* email compare */
+.email-compare{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+@media(max-width:1000px){.email-compare{grid-template-columns:1fr}}
+.mail{border-radius:var(--r-md);overflow:hidden;display:flex;flex-direction:column;border:1px solid var(--edge);
+  background:rgb(var(--cc)/.3)}
+.mail.clear{background:rgb(var(--cc)/.52);box-shadow:var(--sh-sm)}
+.mail-head{display:flex;align-items:center;gap:9px;padding:11px 15px;border-bottom:1px solid rgb(var(--lc)/.09);font-size:12px;font-weight:620}
+.mail-head .tag{margin-left:auto;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;padding:3px 9px;border-radius:999px}
+.tag-rev{background:var(--acc-wash);color:var(--acc-ink);border:1px solid var(--acc-line)}
+.tag-old{background:rgb(var(--lc)/.06);color:var(--text-muted)}
+.mail-body{padding:17px 19px;font-size:13px;color:var(--text-secondary);line-height:1.68;font-weight:450}
+.mail-body .m-sub{font-size:14.5px;font-weight:620;color:var(--text-primary);letter-spacing:-.01em;margin-bottom:10px}
+.mail-body p+p{margin-top:9px}
+.mail-cta{display:inline-flex;align-items:center;gap:8px;margin-top:13px;padding:9px 17px;border-radius:999px;
+  background:var(--btnA);color:var(--btnAtx);font-size:12.5px;font-weight:560;box-shadow:inset 0 1px 0 rgba(255,255,255,.15),0 10px 20px -12px rgba(64,48,26,.5)}
+.mail.old .mail-body{color:var(--text-muted)}
+.mail.old{background:rgb(var(--cc)/.16)}
+.mail.old .m-sub{color:var(--text-muted)}
+
+/* moments */
+.moment{display:flex;gap:14px;align-items:flex-start;padding:15px 2px;border-bottom:1px solid var(--line-soft)}
+.moment:last-of-type{border-bottom:0}
+.moment .why{font-size:12.6px;color:var(--text-secondary);margin-top:5px;line-height:1.58;font-weight:450}
+.moment .why b{color:var(--text-primary);font-weight:650}
+.moment .pot{margin-left:auto;text-align:right;flex:none}
+.moment .pot b{display:block;font-size:13px;font-weight:650;font-variant-numeric:tabular-nums}
+.moment .pot small{font-size:10px;color:var(--text-muted);letter-spacing:.07em;display:block;margin-top:2px}
+.pitch-preview{margin-top:12px;border-radius:var(--r-sm);background:rgb(var(--cc)/.42);border:1px solid var(--edge);
+  padding:14px 16px;font-size:12.8px;color:var(--text-secondary);line-height:1.64;font-weight:450}
+.pp-sub{display:flex;align-items:center;gap:8px;font-size:10px;font-weight:650;color:var(--text-muted);letter-spacing:.13em;
+  text-transform:uppercase;margin-bottom:8px}
+.pp-sub i{width:5px;height:5px;border-radius:50%;background:var(--acc)}
+.pitch-preview b{color:var(--text-primary)}
+.pp-actions{display:flex;gap:9px;margin-top:12px;flex-wrap:wrap}
+
+/* jumps */
+.jumps{display:flex;flex-wrap:wrap;gap:8px;margin-top:30px}
+.jump{font-size:12.5px;color:var(--text-secondary);border:1px solid var(--edge);background:rgb(var(--cc)/.35);
+  padding:8px 15px;border-radius:999px;font-weight:540;transition:all .35s ease;
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.jump:hover{color:var(--text-primary);background:var(--icB);transform:translateY(-1px)}
+
+/* ============================================================
+   PRICING
+   ============================================================ */
+.pricing-sw{display:flex;align-items:center;justify-content:center;gap:14px;margin:6px 0 42px}
+.sw{position:relative;width:54px;height:29px;border-radius:999px;border:1px solid var(--edge);
+  background:rgb(var(--cc)/.35);box-shadow:inset 0 1px 3px rgba(96,74,38,.18);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:background-color .4s}
+.sw i{position:absolute;top:2.5px;left:2.5px;width:22px;height:22px;border-radius:50%;background:#fff;
+  box-shadow:0 2px 6px rgba(96,74,38,.3),inset 0 -1px 0 rgba(96,74,38,.08);transition:transform .4s var(--spring)}
+.sw:active i{transform:scale(.94)}
+.sw[aria-checked=true]{background:var(--btnA)}
+.sw[aria-checked=true] i{transform:translateX(25px)}
+.sw-lab{font-size:13.5px;color:var(--text-muted);font-weight:540}
+.sw-lab.act{color:var(--text-primary);font-weight:600}
+.sw-lab small{font-size:10.5px;color:var(--acc-ink);background:var(--acc-wash);border:1px solid var(--acc-line);padding:2px 8px;border-radius:999px;margin-left:6px}
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:stretch}
+.plan{display:flex;flex-direction:column;border-radius:var(--r-xl);padding:30px 28px;position:relative;overflow:hidden}
+.plan .p-name{font-size:12px;font-weight:660;letter-spacing:.18em;text-transform:uppercase;color:var(--text-muted)}
+.plan .p-amt{display:flex;align-items:baseline;gap:6px;margin-top:14px}
+.plan .p-amt .cur{font-size:1.1rem;font-weight:600}
+.plan .p-amt .n{font-size:2.75rem;font-weight:660;letter-spacing:-.045em;line-height:1;font-variant-numeric:tabular-nums}
+.plan .p-amt small{color:var(--text-muted);font-size:12.5px}
+.plan .p-desc{color:var(--text-secondary);font-size:13.3px;margin-top:10px;min-height:40px;line-height:1.58;font-weight:460}
+.plan ul{list-style:none;margin:20px 0 26px;display:flex;flex-direction:column;gap:10px;flex:1}
+.plan li{display:flex;gap:10px;font-size:13.6px;align-items:flex-start}
+.plan li .ic{width:15px;height:15px;color:var(--acc-ink);margin-top:2.5px;flex:none}
+.plan li.mut{color:var(--text-muted)}
+.plan .btn{width:100%}
+.plan.featured{
+  background:rgb(var(--cc)/.5);
+  -webkit-backdrop-filter:blur(14px) saturate(1.2);backdrop-filter:blur(14px) saturate(1.2);
+  border-color:rgba(255,255,255,.9);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.85),0 24px 54px -24px rgba(96,70,30,.4)}
+.plan.featured::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(70% 44% at 50% -6%, rgb(var(--cc)/.6), transparent 70%),
+              radial-gradient(60% 50% at 50% 112%, var(--acc-wash), transparent 75%)}
+.plan.featured>*:not(.badge){position:relative}
+.plan.featured .p-name{color:var(--acc-ink)}
+.plan .badge{position:absolute;top:-11px;left:50%;transform:translateX(-50%);z-index:2;font-size:10px;font-weight:660;
+  letter-spacing:.14em;text-transform:uppercase;background:var(--btnA);color:var(--btnAtx);padding:5px 13px;border-radius:999px;
+  box-shadow:0 8px 18px -8px rgba(64,48,26,.55);white-space:nowrap}
+@media(max-width:960px){.plans{grid-template-columns:1fr;max-width:460px;margin-inline:auto}.plan.featured{order:-1}}
+.guarantee{display:flex;gap:16px;align-items:center;border-radius:var(--r-lg);padding:24px 28px;margin-top:14px;
+  background:rgb(var(--cc)/.36);border:1px solid var(--acc-line);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.guarantee .g-ic{width:44px;height:44px;border-radius:14px;background:var(--icB);display:flex;align-items:center;
+  justify-content:center;color:var(--acc-ink);flex:none;box-shadow:var(--sh-sm)}
+.guarantee b{font-size:15px;letter-spacing:-.01em}
+.guarantee p{font-size:13px;color:var(--acc-ink);margin-top:3px;line-height:1.6}
+.faq{max-width:740px;margin:60px auto 0}
+.faq-q{width:100%;display:flex;align-items:center;gap:14px;padding:19px 4px;text-align:left;font-size:15.5px;font-weight:570;letter-spacing:-.008em}
+.faq-q .fq-x{margin-left:auto;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;
+  border:1px solid rgb(var(--lc)/.16);background:rgb(var(--cc)/.4);transition:transform .5s var(--spring)}
+.faq-item.open .fq-x{transform:rotate(45deg);border-color:var(--acc-line);background:var(--acc-wash)}
+.faq-item{border-bottom:1px solid var(--line-soft)}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .6s var(--spring)}
+.faq-a p{padding:2px 4px 22px;color:var(--text-secondary);font-size:14.5px;line-height:1.72;max-width:62ch;font-weight:450}
+.faq-item.open .faq-a{max-height:300px}
+
+/* toast */
+.toast-wrap{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:90;display:flex;flex-direction:column;gap:10px;align-items:center;pointer-events:none;width:max-content;max-width:92vw}
+.toast{display:flex;gap:10px;align-items:center;background:rgba(60,50,36,.9);color:#fdf5e6;padding:12px 19px;border-radius:999px;
+  font-size:13.5px;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  box-shadow:0 20px 44px -16px rgba(60,44,20,.5),inset 0 1px 0 rgba(255,255,255,.12);animation:toastIn .55s var(--spring)}
+.toast.out{animation:toastOut .5s ease forwards}
+.toast .ic{width:15px;height:15px;color:var(--acc-ink)}
+@keyframes toastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes toastOut{to{opacity:0;transform:translateY(8px)}}
+
+
+/* ============================================================
+   REVESSENT · refinements
+   ============================================================ */
+/* workflow — five quiet moves */
+.wf{display:grid;grid-template-columns:repeat(5,1fr);gap:13px}
+.wf-step{position:relative;border-radius:var(--r-md);padding:20px 19px 18px;overflow:hidden;
+  background:rgb(var(--cc)/.3);border:1px solid var(--edge);box-shadow:var(--sh-sm);
+  -webkit-backdrop-filter:blur(12px) saturate(1.12);backdrop-filter:blur(12px) saturate(1.12);
+  transition:transform .5s var(--spring),background-color .55s ease,box-shadow .55s ease}
+.wf-step:hover{transform:translateY(-3px);background:rgb(var(--cc)/.5);box-shadow:var(--sh-md)}
+.wf-top{display:flex;align-items:baseline;gap:9px}
+.wf-no{font-size:10.5px;font-weight:680;letter-spacing:.18em;color:var(--acc-ink)}
+.wf-tag{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-muted);font-weight:650}
+.wf-step h3{margin-top:13px;font-size:1.02rem}
+.wf-step p{margin-top:6px;color:var(--text-secondary);font-size:12.9px;line-height:1.62;font-weight:460}
+@media(max-width:1020px){.wf{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:680px){.wf{grid-template-columns:1fr}}
+
+/* intelligence panel */
+.rec{border-radius:var(--r-md);margin-top:14px;padding:15px 16px;
+  background:rgb(var(--cc)/.4);border:1px solid var(--edge);box-shadow:inset 0 1px 0 rgb(var(--cc)/.6)}
+.r-lab{display:block;font-size:9.5px;font-weight:700;letter-spacing:.17em;text-transform:uppercase;color:var(--text-muted)}
+.rec b{display:block;font-size:14.5px;font-weight:640;letter-spacing:-.012em;line-height:1.4;margin-top:9px}
+.rec p{font-size:12.4px;color:var(--text-secondary);line-height:1.62;margin-top:7px;font-weight:450}
+.conf{margin-top:13px;display:flex;flex-direction:column;gap:6px}
+.conf>span{display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted)}
+.rec-why{display:inline-flex;align-items:center;gap:7px;margin-top:11px;font-size:11.5px;font-weight:620;color:var(--acc-ink);
+  border-bottom:1px dotted var(--acc-line);padding-bottom:1px;letter-spacing:.015em;transition:color .3s}
+.rec-why:hover{color:var(--text-primary)}
+.rec-why .rw-x{font-size:13px;line-height:1;transition:transform .45s var(--spring)}
+.rec-why[aria-expanded=true] .rw-x{transform:rotate(45deg)}
+.rec-trail{margin:13px 0 2px;padding:3px 0 2px 15px;border-left:2px solid var(--acc-line);display:flex;flex-direction:column;gap:9px}
+.rec-trail[hidden]{display:none}
+.rec-trail li{list-style:none;font-size:12.3px;color:var(--text-secondary);line-height:1.64;font-weight:450}
+.rec-trail b{color:var(--text-primary);font-weight:640}
+.rec-trail.show{animation:recIn .55s cubic-bezier(.16,1,.3,1)}
+@keyframes recIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.conf b{display:inline;font-size:11px;margin:0;color:var(--acc-ink)}
+.conf .meter{display:block;height:4px;border-radius:99px;background:rgb(var(--lc)/.14);overflow:hidden}
+.conf .meter i{display:block;height:100%;width:94%;border-radius:inherit;background:linear-gradient(90deg,var(--acc),var(--acc-ink))}
+.rec-actions{display:flex;gap:8px;margin-top:13px;flex-wrap:wrap}
+.intel-facts{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+.if-cell{border-radius:13px;padding:11px 13px;background:rgb(var(--cc)/.3);border:1px solid var(--edge)}
+.if-cell b{display:block;font-size:17px;font-weight:660;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.if-cell small{font-size:10.5px;color:var(--text-muted);display:block;margin-top:1px}
+
+/* sign-in modal (pilot placeholder state) */
+.sgn{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;padding:22px;
+  visibility:hidden;opacity:0;transition:opacity .4s ease,visibility 0s linear .4s}
+.sgn.open{visibility:visible;opacity:1;transition:opacity .4s ease,visibility 0s}
+.sgn-bg{position:absolute;inset:0;background:rgba(64,48,22,.22);-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px)}
+.sgn-card{position:relative;width:min(440px,100%);border-radius:26px;padding:30px 30px 26px;
+  background:rgba(251,247,238,.88);border:1px solid var(--edge);
+  -webkit-backdrop-filter:blur(34px) saturate(1.25);backdrop-filter:blur(34px) saturate(1.25);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 40px 90px -40px rgba(64,48,22,.55);
+  transform:translateY(10px) scale(.985);transition:transform .5s var(--spring)}
+.sgn.open .sgn-card{transform:none}
+.sgn-card h2{font-size:1.35rem;letter-spacing:-.02em;margin-top:18px}
+.sgn-card .sgn-sub{color:var(--text-secondary);font-size:13.5px;line-height:1.66;margin-top:9px;font-weight:450}
+.sgn .f{margin-top:16px}
+.sgn .f label{display:block;font-size:11px;font-weight:620;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px}
+.sgn .f input{width:100%;padding:12px 15px;border-radius:13px;border:1px solid rgb(var(--lc)/.14);
+  background:rgb(var(--cc)/.5);font-size:14.5px;color:var(--text-secondary)}
+.sgn .sgn-note{margin-top:14px;font-size:12px;color:var(--text-muted);line-height:1.62;font-weight:500}
+.sgn-actions{display:flex;gap:9px;margin-top:20px;flex-wrap:wrap}
+.sgn-close{position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:50%;display:flex;
+  align-items:center;justify-content:center;border:1px solid rgb(var(--lc)/.15);background:rgb(var(--cc)/.55);
+  transition:background-color .3s,transform .3s}
+.sgn-close:hover{background:#fff;transform:rotate(90deg)}
+.sgn-close .ic{width:14px;height:14px}
+
+/* footer — honest links */
+.f-col .fdead{display:block;color:var(--text-primary);font-size:15px;padding:4.5px 0;cursor:default;opacity:1;font-weight:500}
+.f-col .fdead::after{content:" soon";font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-primary);opacity:.72;margin-left:5px}
+.sig{font-family:var(--f-serif);font-style:italic;font-size:14.5px;color:var(--acc-ink);letter-spacing:-.005em}
+
+
+/* ============================================================
+   TYPE SYSTEM — Revessent 2026 Contrast & Legibility
+   Manrope (var(--f-sans)) carries ALL headings, body, lead, and UI copy
+   for premium, highly-readable paragraphs. IBM Plex Mono (var(--f-mono))
+   is reserved ONLY for financial figures, KPIs, step numbers, metadata,
+   confidence %, and technical labels — never for prose.
+   Weights bumped +40–70 for crispness over the live bright sky.
+   ============================================================ */
+/* ============================================================
+   TYPE · the data layer — IBM Plex Mono speaks for the figures
+   Manrope carries the voice; mono carries the numbers, quietly.
+   ============================================================ */
+.b-n,.kpi .val,.kpi-chip .v,.if-cell b,.conf b,.feed .amt,
+.hw-mini .amt,.moment .pot b,.wf-no,.wf-tag,.r-lab,.eyebrow,
+.meta,.sim-row .st,.hw-name small,.w-n .mon{
+  font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+/* figures — steady, financial, aligned */
+.b-n{font-weight:500;letter-spacing:0}
+.kpi .val{font-weight:500;letter-spacing:0}
+.kpi-chip .v{font-weight:600;letter-spacing:0;font-size:22.5px}
+.if-cell b{font-weight:600;letter-spacing:0}
+.conf b{font-weight:600;letter-spacing:0;font-size:11.5px}
+.feed .amt{font-weight:500;letter-spacing:0}
+.hw-mini .amt{font-weight:500;letter-spacing:0}
+.moment .pot b{font-weight:500;letter-spacing:0;font-size:12.5px}
+.w-n .mon{font-weight:600}
+/* micro metadata & step labels — 500, room to breathe */
+.eyebrow{font-family:var(--f-mono);font-weight:600;letter-spacing:.16em;font-size:10.5px}
+.wf-no{font-weight:600;letter-spacing:.2em;font-size:10.5px}
+.wf-tag{font-family:var(--f-mono);font-weight:600;letter-spacing:.14em;font-size:10px}
+.r-lab{font-family:var(--f-mono);font-weight:600;letter-spacing:.15em;font-size:10px}
+.sim-row .st{font-family:var(--f-mono);font-weight:600;letter-spacing:.1em;font-size:9.5px}
+.hw-name small{font-family:var(--f-mono);font-weight:500;font-size:10px;letter-spacing:.02em;color:var(--text-muted)}
+.meta{font-family:var(--f-mono);font-weight:500;font-size:11.5px;letter-spacing:.01em;color:var(--text-muted)}
+/* pricing numerals — Manrope display figures, tight and tabular */
+.plan .p-amt .n{font-weight:700;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+
+/* ============================================================
+   REVESSENT · light-blue voice + day/night themes
+   ============================================================ */
+/* brand mark & charts follow the accent — CSS wins over presentation attrs */
+.bmark path{stroke:var(--acc-ink)}
+svg g[stroke]{stroke:rgb(var(--lc)/.12)}
+#pg-home svg g[stroke]{stroke:rgb(var(--lc)/.12)}
+svg .vline{stroke:var(--acc)}
+svg .vline[stroke-dasharray]{stroke:var(--text-muted)}
+svg .node{stroke:var(--acc)}
+#ag stop,#lg stop{stop-color:var(--acc)}
+.hw-chart svg .vline{stroke:url(#lg)}
+html[data-theme=dark] #ag stop,html[data-theme=dark] #lg stop{stop-color:var(--acc)}
+
+/* theme toggle — a quiet glass switch between day and night */
+.tgl{width:42px;height:42px;padding:0;border-radius:14px;display:inline-flex;align-items:center;justify-content:center;
+  border:1px solid var(--edge);background:rgb(var(--cc)/.5);
+  -webkit-backdrop-filter:blur(10px) saturate(1.15);backdrop-filter:blur(10px) saturate(1.15);
+  box-shadow:var(--sh-sm);transition:background-color .4s ease,transform .35s var(--spring),box-shadow .45s ease}
+.tgl:hover{transform:translateY(-1px);background:var(--hi);box-shadow:var(--sh-md)}
+.tgl .ic{width:17px;height:17px;color:var(--text-secondary);transition:color .4s,transform .6s var(--spring)}
+.tgl:hover .ic{color:var(--text-primary)}
+.tgl .ic-moon,.tgl .ic-oled{display:none}
+html[data-theme=dark] .tgl .ic-sun{display:none}
+html[data-theme=dark] .tgl .ic-moon{display:inline-block}
+html[data-theme=amoled] .tgl .ic-sun,html[data-theme=amoled] .tgl .ic-moon{display:none}
+html[data-theme=amoled] .tgl .ic-oled{display:inline-block}
+html[data-theme=light] .tgl .ic-moon,html[data-theme=light] .tgl .ic-oled{display:none}
+
+/* ============================================================
+   THEME POPOVER — a curved box that blooms out of the toggle,
+   its text arriving from blur into focus, one line after another.
+   ============================================================ */
+.tglwrap{position:relative;display:inline-flex}
+.tgl[aria-expanded="true"]{background:var(--hi);box-shadow:var(--sh-md)}
+.tgl[aria-expanded="true"] .ic{color:var(--text-primary);transform:rotate(-18deg) scale(.92)}
+
+.tmenu{
+  position:absolute;top:calc(100% + 12px);right:0;z-index:120;
+  width:232px;padding:8px;
+  border-radius:26px;                       /* the curved box */
+  border:1px solid var(--edge);
+  background:rgb(var(--cc)/.72);
+  -webkit-backdrop-filter:blur(26px) saturate(1.35);backdrop-filter:blur(26px) saturate(1.35);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5), 0 32px 64px -28px rgba(16,24,40,.42), 0 2px 8px -4px rgba(16,24,40,.18);
+  transform-origin:calc(100% - 21px) top;
+  opacity:0;visibility:hidden;pointer-events:none;
+  transform:translateY(-10px) scale(.72);
+  filter:blur(6px);
+  transition:opacity .22s ease, transform .34s cubic-bezier(.2,1.5,.4,1), filter .26s ease, visibility 0s .4s;
+}
+.tmenu::before{ /* the little curved beak pointing at the button */
+  content:"";position:absolute;top:-6px;right:14px;width:12px;height:12px;
+  background:inherit;border-left:1px solid var(--edge);border-top:1px solid var(--edge);
+  border-radius:3px 0 0 0;transform:rotate(45deg);
+  -webkit-backdrop-filter:inherit;backdrop-filter:inherit;
+}
+.tmenu.open{
+  opacity:1;visibility:visible;pointer-events:auto;
+  transform:translateY(0) scale(1);filter:blur(0);
+  transition:opacity .26s ease, transform .52s cubic-bezier(.16,1.28,.32,1), filter .3s ease, visibility 0s 0s;
+}
+.tmenu-h{
+  display:block;padding:8px 12px 9px;
+  font-family:var(--f-mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--text-faint);
+}
+.tmenu-i{
+  --d:0ms;
+  width:100%;display:flex;align-items:center;gap:11px;
+  padding:10px 12px;border:0;border-radius:18px;background:transparent;cursor:pointer;
+  text-align:left;color:var(--text-primary);font-family:var(--f-sans);font-size:13.5px;
+  transition:background-color .28s ease, transform .3s var(--spring);
+}
+.tmenu-i:hover{background:rgb(var(--cc)/.85)}
+html[data-theme=dark] .tmenu-i:hover,html[data-theme=amoled] .tmenu-i:hover{background:rgba(255,255,255,.07)}
+.tmenu-i:active{transform:scale(.975)}
+.tmenu-i .sw{
+  flex:0 0 auto;width:22px;height:22px;border-radius:8px;border:1px solid var(--edge);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.4);
+}
+.tmenu-i[data-theme-set=light]  .sw{background:linear-gradient(140deg,#fffdf7,#ecdcc0)}
+.tmenu-i[data-theme-set=dark]   .sw{background:linear-gradient(140deg,#C4C6C9 0%,#55585E 45%,#5A544B 100%)}
+.tmenu-i[data-theme-set=amoled] .sw{background:linear-gradient(140deg,#1a1a1a,#000)}
+.tmenu-i .lbl{display:flex;flex-direction:column;line-height:1.25;min-width:0}
+.tmenu-i .lbl small{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint);margin-top:2px}
+.tmenu-i .tick{margin-left:auto;width:15px;height:15px;color:var(--acc);opacity:0;transform:scale(.6);transition:opacity .3s ease,transform .4s var(--spring)}
+.tmenu-i[aria-checked="true"] .tick{opacity:1;transform:scale(1)}
+.tmenu-i[aria-checked="true"]{background:rgb(var(--cc)/.6)}
+.tmenu-i:focus-visible{outline:2px solid var(--acc);outline-offset:-2px}
+
+/* random / surprise-me row */
+.tmenu-sep{height:1px;margin:6px 10px;background:var(--line-soft);border:0}
+.tmenu-i.rnd .sw{
+  display:grid;place-items:center;
+  background:conic-gradient(from 0deg,#E6F2FF,#C4C6C9,#5A544B,#000,#80B3FF,#E6F2FF);
+}
+.tmenu-i.rnd .sw svg{width:12px;height:12px;color:#fff;mix-blend-mode:difference}
+.tmenu-i.rnd:hover .sw{animation:rndspin 1.1s linear infinite}
+@keyframes rndspin{to{transform:rotate(360deg)}}
+.tmenu-i.rnd .tick{display:none}
+.tmenu-i.rnd .lbl small{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tmenu-sky{
+  --d:300ms;display:flex;align-items:center;gap:8px;margin:2px 4px 2px;padding:7px 10px 8px;
+  border-radius:14px;background:rgb(var(--cc)/.55);
+}
+.tmenu-sky .meta b{text-transform:uppercase}
+.tmenu-sky .meta{display:flex;flex-direction:column;gap:1px;min-width:0}
+.tmenu-sky .meta b{font-family:var(--f-mono);font-size:9px;letter-spacing:.14em;font-weight:500;color:var(--text-secondary)}
+.tmenu-sky .meta small{font-size:10.5px;color:var(--text-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tmenu-sky .dots{margin-left:auto;display:flex;gap:3px}
+.tmenu-sky .dots i{width:7px;height:7px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.tmenu-sky[hidden]{display:none}
+
+/* text emerges from blur to clear, staggered down the list */
+.tmenu .tmenu-h,.tmenu .tmenu-i{filter:blur(9px);opacity:0;transform:translateY(6px)}
+.tmenu.open .tmenu-h,.tmenu.open .tmenu-i{
+  filter:blur(0);opacity:1;transform:translateY(0);
+  transition:filter .5s cubic-bezier(.22,.8,.3,1) var(--d),
+             opacity .46s ease var(--d),
+             transform .5s cubic-bezier(.22,.9,.3,1) var(--d),
+             background-color .28s ease;
+}
+.tmenu.open .tmenu-i:active{transform:scale(.975)}
+@media (prefers-reduced-motion: reduce){
+  .tmenu,.tmenu.open,.tmenu .tmenu-h,.tmenu .tmenu-i{transition-duration:.001s;filter:none;transform:none}
+}
+@media(max-width:600px){ .tmenu{width:min(232px,calc(100vw - 32px))} }
+
+.m-app{margin:14px 0 0}
+.m-app .m-app-l{display:block;font-size:10.5px;font-weight:620;letter-spacing:.13em;text-transform:uppercase;color:var(--text-muted);margin:0 4px 9px}
+.m-seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:rgb(var(--cc)/.5);border:1px solid var(--edge);border-radius:15px;padding:4px;
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.m-topt{display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 4px;border-radius:11px;font-size:12px;font-weight:560;
+  color:var(--text-secondary);transition:background-color .35s ease,color .3s ease}
+.m-topt small{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);font-weight:620;transition:color .3s}
+.m-topt[aria-pressed=true]{background:var(--acc-wash);color:var(--acc-ink)}
+.m-topt[aria-pressed=true] small{color:var(--acc-ink);opacity:.8}
+
+.pill-dot.ok{background:var(--ok)}
+/* scroll feel: the winter world answers your movement — see the wind module in
+   the scene script. The room (content) always stays crisp. */
+/* the recolor sweep — colour travels from the top of the window downward */
+.tsw{position:fixed;left:0;top:0;width:100%;height:100%;z-index:210;pointer-events:none;visibility:hidden;transform:translateY(-102%);
+  -webkit-mask-image:linear-gradient(180deg,transparent 0%,#000 13%,#000 87%,transparent 100%);
+  mask-image:linear-gradient(180deg,transparent 0%,#000 13%,#000 87%,transparent 100%)}
+.tsw.run{visibility:visible}
+@media (prefers-reduced-motion: reduce){.tsw{display:none!important}}
+
+/* ============================================================
+   EVENING + PURE BLACK — the two dark appearances
+   structural surfaces are shared; pure black takes true #000
+   ============================================================ */
+html[data-theme=dark]{
+  /* Sooty Bamboo #5A544B · Quiet Pewter #C4C6C9 · Cloud Grey #55585E */
+  --canvas:#1c1a17; --page:#161512;
+  --text-primary:#EFECE4; --text-secondary:#C4C6C9; --text-muted:#96938C; --text-inverse:#161512;
+  --ink:var(--text-primary); --ink2:var(--text-secondary); --ink3:var(--text-muted);
+  --glass1:rgba(34,32,28,.50);
+  --glass2:rgba(39,37,33,.64);
+  --glass3:rgba(45,43,38,.78);
+  --glass-hi:rgba(255,255,255,.10);
+  --cc:42 40 36;
+  --lc:196 198 201;
+  --edge:rgba(224,222,214,.20);
+  --hi:rgba(255,255,255,.13);
+  --icB:rgba(255,255,255,.15);
+  --accC:196 198 201;
+  --acc:#C4C6C9; --acc-ink:#EFECE4;
+  --btnA:#C4C6C9; --btnAtx:#1d1b18;
+  --ok:#8FA089; --okTx:#d5dfc9; --err:#D79A82;
+  --avaA:#3a3730; --avaB:#55585E; --avaTx:#E2E0D9;
+  --mkA:#4a4740; --mkB:#6b6c6e; --mkC:#9EA0A3;
+  --line:rgb(196 198 201 / .16);
+  --line-soft:rgb(196 198 201 / .10);
+  --sh-sm:inset 0 1px 0 rgba(255,255,255,.10),0 1px 1px rgba(0,0,0,.35),0 10px 28px -20px rgba(0,0,0,.62);
+  --sh-md:inset 0 1px 0 rgba(255,255,255,.12),0 1px 1px rgba(0,0,0,.4),0 22px 46px -22px rgba(0,0,0,.7);
+}
+html[data-theme=amoled]{
+  --canvas:#000000; --page:#000000;
+  --text-primary:#E9E9ED; --text-secondary:#A0A6B2; --text-muted:#7A808C; --text-inverse:#FDFCF8;
+  --ink:var(--text-primary); --ink2:var(--text-secondary); --ink3:var(--text-muted);
+  --glass1:rgba(255,255,255,.030);
+  --glass2:rgba(255,255,255,.055);
+  --glass3:rgba(255,255,255,.085);
+  --glass-hi:rgba(255,255,255,.06);
+  --cc:22 25 33;
+  --lc:96 108 130;
+  --edge:rgba(255,255,255,.13);
+  --hi:rgba(255,255,255,.09);
+  --icB:rgba(255,255,255,.11);
+  --btnA:#69a6e8; --btnAtx:#02131f;
+  --ok:#61956f; --okTx:#cde8c2; --err:#e5947c;
+  --avaA:#0e1622; --avaB:#16263c; --avaTx:#bcd6f0;
+  --mkA:#0c1a2c; --mkB:#163052; --mkC:#2c5c92;
+  --line:rgb(120 134 160 / .20);
+  --line-soft:rgb(120 134 160 / .12);
+  --sh-sm:inset 0 1px 0 rgba(255,255,255,.07),0 1px 1px rgba(0,0,0,.6),0 12px 30px -14px rgba(0,0,0,.9);
+  --sh-md:inset 0 1px 0 rgba(255,255,255,.09),0 1px 1px rgba(0,0,0,.65),0 24px 52px -18px rgba(0,0,0,.95);
+}
+html[data-theme=dark] body{background:#161512}
+html[data-theme=amoled] body{background:#000}
+html[data-theme=dark] #veil::before{
+  background:
+    radial-gradient(125% 92% at 50% -4%, rgba(226,225,219,.09), transparent 46%),
+    radial-gradient(150% 120% at 50% 50%, transparent 52%, rgba(20,18,15,.50) 100%);
+}
+html[data-theme=amoled] #veil::before{
+  background:
+    radial-gradient(125% 92% at 50% -4%, rgba(150,180,240,.045), transparent 46%),
+    radial-gradient(150% 120% at 50% 50%, transparent 60%, rgba(0,0,0,.55) 100%);
+}
+html[data-theme=dark] ::selection{background:var(--acc);color:#1d1b18}
+html[data-theme=amoled] ::selection{background:var(--acc);color:#0b1522}
+html[data-theme=dark] .hd.scrolled{background:rgba(26,24,21,.62);border-bottom-color:rgb(var(--lc)/.15);box-shadow:0 12px 30px -26px rgba(0,0,0,.65)}
+html[data-theme=amoled] .hd.scrolled{background:rgba(0,0,0,.72);border-bottom-color:rgb(var(--lc)/.2);box-shadow:0 12px 30px -26px rgba(0,0,0,.9)}
+html[data-theme=dark] .nav a:hover,html[data-theme=amoled] .nav a:hover{background:rgba(255,255,255,.06)}
+html[data-theme=dark] .btn-pri:hover,html[data-theme=amoled] .btn-pri:hover{filter:brightness(.94)}
+html[data-theme=dark] .sheet-bg,html[data-theme=amoled] .sheet-bg{background:rgba(0,0,0,.62)}
+html[data-theme=dark] .sheet-panel{background:rgba(26,24,21,.92);border-left-color:var(--edge);box-shadow:-40px 0 80px -40px rgba(0,0,0,.6)}
+html[data-theme=amoled] .sheet-panel{background:rgba(0,0,0,.9);border-left-color:rgba(255,255,255,.09);box-shadow:-40px 0 80px -40px rgba(0,0,0,.9)}
+html[data-theme=dark] .sgn-bg,html[data-theme=amoled] .sgn-bg{background:rgba(0,0,0,.7)}
+html[data-theme=dark] .sgn-card{background:rgba(29,27,24,.94);border-color:var(--edge);box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 40px 90px -40px rgba(0,0,0,.72)}
+html[data-theme=amoled] .sgn-card{background:rgba(0,0,0,.92);border-color:rgba(255,255,255,.12);box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 40px 90px -40px rgba(0,0,0,.95)}
+html[data-theme=dark] .toast{background:rgba(31,29,25,.95);box-shadow:0 20px 44px -16px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.1)}
+html[data-theme=amoled] .toast{background:rgba(0,0,0,.92);border:1px solid rgba(255,255,255,.1);box-shadow:0 20px 44px -16px rgba(0,0,0,.9),inset 0 1px 0 rgba(255,255,255,.06)}
+html[data-theme=dark] .sgn-close:hover,html[data-theme=amoled] .sgn-close:hover{background:rgb(var(--cc)/.95)}
+html[data-theme=dark] .jump:hover,html[data-theme=amoled] .jump:hover{background:rgb(var(--cc)/.32)}
+html[data-theme=dark] .hw .hl,html[data-theme=amoled] .hw .hl{background:radial-gradient(520px 300px at 30% -20%,rgba(255,255,255,.30),transparent 60%)}
+html[data-theme=dark] .plan.featured,html[data-theme=amoled] .plan.featured{border-color:var(--edge);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 24px 54px -24px rgba(0,0,0,.62)}
+html[data-theme=dark] .plan.featured::before,html[data-theme=amoled] .plan.featured::before{
+  background:radial-gradient(70% 44% at 50% -6%, var(--acc-wash), transparent 70%),
+              radial-gradient(60% 50% at 50% 112%, var(--acc-wash), transparent 75%)}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))){
+  html[data-theme=dark] .glass{background:rgba(32,30,26,.94)}
+  html[data-theme=dark] .glass.g2{background:rgba(37,35,31,.95)}
+  html[data-theme=dark] .glass.g4{background:rgba(28,26,23,.92)}
+  html[data-theme=dark] .hd.scrolled{background:rgba(27,25,22,.97)}
+  html[data-theme=amoled] .glass{background:#000}
+  html[data-theme=amoled] .glass.g2{background:#000}
+  html[data-theme=amoled] .glass.g4{background:#000}
+  html[data-theme=amoled] .hd.scrolled{background:#000}
+}
+
+/* eco — automatic calm for machines that struggle */
+
+html.eco #skybox{filter:none!important}
+html.scrolling #skybox{filter:none!important} /* pause refraction mid-motion — imperceptible, frees the compositor */
+html.eco .glass{-webkit-backdrop-filter:blur(7px) saturate(1.08)!important;backdrop-filter:blur(7px) saturate(1.08)!important}
+html.eco .hd.scrolled{-webkit-backdrop-filter:blur(10px)!important;backdrop-filter:blur(10px)!important}
+html.eco .sheet-panel{-webkit-backdrop-filter:blur(14px)!important;backdrop-filter:blur(14px)!important}
+html.eco .btn-glass,html.eco .burger{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+
+/* reduced motion & fallbacks */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.001s!important;animation-iteration-count:1!important;transition-duration:.01s!important}
+  html{scroll-behavior:auto}
+  .rv{opacity:1;transform:none;filter:blur(0)}
+  .hl,.hchip,.live i{animation:none}
+  #gradbg i{animation:none}
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))){
+  .glass{background:rgba(252,249,241,.86)}
+  .glass.g4{background:rgba(252,249,241,.72)}
+  .glass.g2{background:rgba(252,249,241,.9)}
+  .hd.scrolled{background:rgba(250,245,235,.96)}
+}
+
+/* ============================================================
+   REVESSENT 10/10 POLISH OVERLAY — senior designer pass
+   Tokens · type · spacing · cards · hero · workflow · pricing
+   Reduced visual noise 20-30% · calm, expensive, confident
+   ============================================================ */
+
+/* ---- Design tokens — spacing & radii refinement ---- */
+:root{
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:20px; --s-6:24px; --s-8:32px; --s-10:40px; --s-12:48px; --s-16:64px; --s-20:80px; --s-24:96px;
+  --ease-spring:cubic-bezier(.16,1,.3,1);
+  --ease-out:cubic-bezier(.16,1,.3,1);
+  /* refined radii — mathematically consistent, slightly tighter than original 26/22 */
+  --r-xl:24px; --r-lg:18px; --r-md:14px; --r-sm:11px;
+  /* restrained shadows — less inset glare, softer ambient */
+  --sh-sm:inset 0 1px 0 rgba(255,255,255,.58),0 1px 1px rgba(64,48,26,.05),0 10px 24px -18px rgba(64,48,26,.22);
+  --sh-md:inset 0 1px 0 rgba(255,255,255,.66),0 1px 1px rgba(64,48,26,.05),0 18px 36px -20px rgba(64,48,26,.28);
+  --sh-lg:inset 0 1px 0 rgba(255,255,255,.70),0 1px 1px rgba(64,48,26,.05),0 24px 48px -22px rgba(64,48,26,.32);
+}
+
+/* ---- Visual noise reduction — calmer atmosphere ---- */
+#veil::after{opacity:.03}
+#gradbg .o1{animation-duration:42s}
+#gradbg .o2{animation-duration:48s}
+#gradbg .o3{animation-duration:36s}
+#gradbg .o4{animation-duration:52s}
+.glass{-webkit-backdrop-filter:blur(16px) saturate(1.14) brightness(1.01);backdrop-filter:blur(16px) saturate(1.14) brightness(1.01)}
+.g4{-webkit-backdrop-filter:blur(12px) saturate(1.1);backdrop-filter:blur(12px) saturate(1.1)}
+.hd.scrolled{-webkit-backdrop-filter:blur(18px) saturate(1.2);backdrop-filter:blur(18px) saturate(1.2)}
+.raise:hover{transform:translateY(-2px)}
+
+/* ---- Typography — intentional scale, hierarchy, line length ---- */
+h1{font-size:clamp(2.65rem,5vw,3.95rem);font-weight:680;letter-spacing:-.044em;line-height:.98}
+h2{font-size:clamp(1.72rem,2.9vw,2.32rem);font-weight:660;letter-spacing:-.028em;line-height:1.12}
+h3{font-size:1.02rem;font-weight:630;letter-spacing:-.015em;line-height:1.25}
+.lead{font-size:clamp(1.02rem,1.35vw,1.12rem);line-height:1.68;max-width:54ch;font-weight:440}
+.sec-head{max-width:640px;margin-bottom:clamp(36px,5vw,56px)}
+.sec-head h2{margin-top:14px}
+.sec-head p{font-size:1.02rem;max-width:54ch;line-height:1.68}
+.eyebrow{font-size:10.5px;letter-spacing:.16em;font-weight:600}
+.wrap{width:min(1120px,100% - clamp(24px,5.6vw,72px))}
+.sec{padding:clamp(72px,7.2vw,116px) 0}
+body{font-size:16px;line-height:1.66}
+@media(max-width:640px){
+  h1{font-size:clamp(2.15rem,8vw,2.85rem);letter-spacing:-.03em}
+  .lead{font-size:1.02rem}
+}
+
+/* ---- Navigation — restrained, tactile ---- */
+.hd-in{height:68px}
+.nav a{font-size:13.5px;font-weight:560;padding:7px 13px}
+.nav a:hover{background:rgba(90,70,35,.06)}
+.btn{font-weight:600;letter-spacing:.002em;transition:transform .28s var(--ease-spring),box-shadow .32s ease,background-color .28s ease,border-color .28s ease}
+.btn:active{transform:translateY(1px) scale(.98)}
+.btn-pri{box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 12px 24px -16px rgba(64,48,26,.45)}
+.btn-pri:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 16px 28px -16px rgba(64,48,26,.44)}
+.burger{width:40px;height:40px;border-radius:12px}
+
+/* ---- Hero — what / why / why different in 5 seconds ---- */
+.hero-grid{gap:clamp(32px,4.2vw,64px);align-items:start;padding-top:28px}
+.hero-copy{padding-top:6px}
+.hero-ctas{gap:12px;margin-top:26px}
+.trustline{margin-top:22px;font-size:12.5px;gap:14px}
+.hw{padding:22px 22px 18px}
+.hw-top{margin-bottom:2px}
+.hw-kpis{gap:12px;margin-top:18px}
+.hw-kpis .kpi-chip{padding:16px 16px}
+.hw-chart{margin-top:16px}
+.hw-mini{margin-top:12px}
+.hchip{font-size:12.5px;padding:10px 14px}
+.hero h1 em.it{letter-spacing:-.025em}
+/* new recovery pipeline strip — tells the story without a screenshot */
+.hw-flow{display:flex;align-items:center;gap:8px;margin:14px 0 2px;padding:10px 12px;border-radius:999px;background:rgb(var(--cc)/.38);border:1px solid var(--edge);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);flex-wrap:wrap;justify-content:center}
+.hf-step{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:9.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);white-space:nowrap}
+.hf-step i{width:7px;height:7px;border-radius:50%;background:var(--line);box-shadow:0 0 0 3px rgb(var(--cc)/.6);flex:none}
+.hf-step.done{color:var(--text-secondary)}
+.hf-step.done i{background:var(--acc);box-shadow:0 0 0 3px var(--acc-wash)}
+.hf-step.active{color:var(--acc-ink)}
+.hf-step.active i{background:var(--acc-ink);box-shadow:0 0 0 4px var(--acc-wash);animation:hfPulse 2.4s infinite}
+.hf-line{flex:1;height:1px;background:linear-gradient(90deg,var(--acc-line),var(--line));opacity:.9}
+@keyframes hfPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+@media(max-width:860px){.hw-flow{padding:9px 10px;gap:6px}.hf-step{font-size:8.8px}}
+
+/* ---- Cards — one system, subtle depth ---- */
+.glass{border-color:rgb(var(--lc)/.09);box-shadow:var(--sh-sm)}
+.g2{background:var(--glass2)}
+.g3{background:var(--glass3)}
+.feat{padding:24px 22px 22px;border-radius:var(--r-md)}
+.feat .f-ic{width:34px;height:34px;border-radius:10px}
+.feat h3{margin-top:14px;font-size:.98rem}
+.feat p{font-size:13.6px;line-height:1.62;margin-top:8px}
+.kpi{padding:18px 18px}
+.kpi .lab{font-size:10.5px;letter-spacing:.07em}
+.kpi .val{font-size:clamp(1.35rem,2vw,1.68rem);margin-top:6px}
+.panel{padding:22px 22px;border-radius:var(--r-lg)}
+.band{ gap:16px }
+.band-cell{padding:20px 20px}
+.cta-band{padding:clamp(32px,5vw,56px) clamp(24px,4vw,48px)}
+.quote-card{padding:clamp(32px,4.5vw,52px)}
+
+/* ---- Workflow — coherent system with progression line ---- */
+.wf{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;position:relative}
+.wf::before{content:"";position:absolute;top:34px;left:calc(10% + 12px);right:calc(10% + 12px);height:1px;background:linear-gradient(90deg,var(--acc-line) 0%,rgb(var(--lc)/.14) 100%);z-index:0;pointer-events:none}
+.wf-step{padding:22px 18px 18px;text-align:left}
+.wf-top{align-items:center;gap:8px}
+.wf-no{width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;background:var(--acc-wash);border:1px solid var(--acc-line);color:var(--acc-ink);font-size:10.5px;font-weight:700;letter-spacing:.08em;flex:none}
+.wf-tag{font-size:9px;letter-spacing:.14em}
+.wf-step h3{margin-top:14px;font-size:.98rem}
+.wf-step p{font-size:12.7px;line-height:1.6;margin-top:7px}
+.wf-step::after{content:"→";position:absolute;top:34px;right:-10px;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-muted);background:rgb(var(--cc)/.65);border:1px solid var(--edge);border-radius:50%;z-index:2}
+.wf-step:last-child::after{display:none}
+@media(max-width:1020px){
+  .wf{grid-template-columns:repeat(3,1fr)}
+  .wf::before{display:none}
+  .wf-step::after{display:none}
+}
+@media(max-width:680px){
+  .wf{grid-template-columns:1fr}
+}
+
+/* ---- Intelligence — precise, not magical ---- */
+.rec{padding:16px 16px;background:rgb(var(--cc)/.44)}
+.rec-signals{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px}
+.rs-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;font-family:var(--f-mono);font-size:10px;font-weight:600;letter-spacing:.04em;color:var(--text-secondary);background:rgb(var(--cc)/.55);border:1px solid var(--edge)}
+.rs-chip::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--acc);flex:none}
+.rec b{font-size:14.5px;line-height:1.35;margin-top:10px;letter-spacing:-.01em}
+.rec p{font-size:12.6px;line-height:1.62;margin-top:8px}
+.conf{margin-top:12px;gap:7px}
+.conf .meter{height:4px;background:rgb(var(--lc)/.12)}
+.conf .meter i{width:94%;background:linear-gradient(90deg,var(--acc),var(--acc-ink))}
+.rec-actions{gap:8px;margin-top:14px}
+.intel-facts{gap:10px;margin-top:14px}
+.if-cell{padding:12px 14px}
+
+/* ---- Pricing — natural middle choice, no manipulation ---- */
+.plans{gap:18px;align-items:stretch}
+.plan{padding:28px 26px;border-radius:24px}
+.plan .p-name{font-size:11px;letter-spacing:.16em;font-weight:660}
+.plan .p-amt{margin-top:14px;gap:4px}
+.plan .p-amt .cur{font-size:1rem}
+.plan .p-amt .n{font-size:2.6rem;font-weight:700;letter-spacing:-.04em}
+.plan .p-desc{font-size:13.1px;min-height:38px;margin-top:10px}
+.plan ul{margin:18px 0 24px;gap:10px}
+.plan li{font-size:13.4px;gap:10px}
+.plan li .ic{width:14px;height:14px}
+.plan .btn{padding:12px 18px;font-size:14.2px}
+.plan.featured{border:1px solid var(--acc-line);box-shadow:inset 0 1px 0 rgba(255,255,255,.78),0 20px 44px -20px rgba(96,70,30,.30);transform:translateY(-2px)}
+.plan.featured::before{opacity:.9}
+.plan.featured .badge{top:-10px;padding:5px 12px;font-size:9.5px;letter-spacing:.14em;box-shadow:0 6px 14px -6px rgba(64,48,26,.45)}
+.pricing-sw{margin:6px 0 36px;gap:12px}
+.sw{width:52px;height:28px}
+.sw i{width:21px;height:21px;top:2.5px;left:2.5px}
+.sw[aria-checked=true] i{transform:translateX(24px)}
+.sw-lab{font-size:13.2px}
+.guarantee{padding:22px 24px;border-radius:var(--r-lg);gap:16px}
+.faq{max-width:720px;margin:52px auto 0}
+.faq-q{font-size:15.2px;padding:18px 4px}
+.faq-a p{font-size:14.2px;max-width:60ch}
+@media(max-width:960px){
+  .plans{grid-template-columns:1fr;max-width:440px}
+  .plan.featured{order:-1;transform:none}
+}
+
+/* ---- Trust / band — credible, distinguished ---- */
+.band-cell small{font-size:12.4px;line-height:1.56;margin-top:7px}
+.band-note{font-size:12.5px;margin-top:14px;color:var(--text-muted)}
+.band-src{font-size:11.5px;line-height:1.6;margin-top:8px;max-width:72ch}
+.band-src a{color:var(--text-secondary);text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgb(var(--lc)/.18)}
+.band-src a:hover{color:var(--acc-ink);text-decoration-color:var(--acc-line)}
+
+/* ---- Responsive — true recompositions, not just shrink ---- */
+@media(max-width:1024px){
+  .hero-grid{grid-template-columns:1fr;gap:28px}
+  .hw{max-width:640px;margin-inline:auto}
+}
+@media(max-width:768px){
+  .wrap{width:min(1120px,100% - 24px)}
+  .sec{padding:56px 0}
+  .sec-head p{font-size:1rem}
+  .kpis{grid-template-columns:repeat(2,1fr);gap:12px}
+  .panel-grid{grid-template-columns:1fr;gap:12px}
+  .band{grid-template-columns:repeat(2,1fr);gap:12px}
+  .grid-feat{grid-template-columns:1fr 1fr;gap:12px}
+}
+@media(max-width:430px){
+  .wrap{width:min(1120px,100% - 20px)}
+  .kpis{grid-template-columns:1fr}
+  .band{grid-template-columns:1fr}
+  .hw-kpis{grid-template-columns:1fr}
+  .plan{padding:24px 20px}
+  .cta-band h2{font-size:1.6rem}
+}
+@media(max-width:375px){
+  .hero-ctas{flex-direction:column;align-items:stretch}
+  .hero-ctas .btn{width:100%;justify-content:center}
+  .cta-form{flex-direction:column}
+  .cta-form .email,.cta-form .btn{width:100%}
+}
+@media(min-width:1440px){
+  .wrap{width:min(1180px,100% - 80px)}
+  .hero-grid{gap:72px}
+}
+@media(min-width:1920px){
+  .wrap{width:min(1240px,100% - 96px)}
+}
+
+/* ---- Accessibility — focus, keyboard, semantics ---- */
+:focus-visible{outline:2px solid var(--acc-ink);outline-offset:2px}
+.skip{position:fixed;top:10px;left:10px;z-index:100;background:var(--btnA);color:var(--btnAtx);padding:10px 14px;border-radius:999px;font-size:13px;font-weight:600;transform:translateY(-120%);transition:transform .28s var(--ease-spring)}
+.skip:focus{transform:none}
+.sheet a.m-link:focus-visible,.faq-q:focus-visible,.sw:focus-visible{outline-offset:2px}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  .rv{opacity:1;transform:none;filter:none}
+}
+
+/* ---- Footer — already near-black; tighten spacing ---- */
+footer{padding:56px 0 28px}
+.f-grid{gap:28px}
+.f-bottom{margin-top:44px}
+@media(max-width:860px){
+  .f-grid{grid-template-columns:1fr 1fr;gap:24px}
+}
+
+/* ---- Microinteractions — tactile, restrained ---- */
+.btn:hover{filter:brightness(1.03)}
+.btn:active{filter:brightness(.98)}
+.feat:hover,.kpi:hover,.plan:hover{transform:translateY(-2px)}
+.plan.featured:hover{transform:translateY(-3px)}
+.faq-item.open .faq-a{max-height:320px}
+
+/* ---- Charts — remain readable across themes ---- */
+svg .vline{stroke-width:2.2}
+#pg-home .hw-chart svg{height:auto}
+
+/* ---- Performance — contain, will-change where justified ---- */
+.hw,.panel,.feat,.plan{contain:layout paint}
+#sky,#bluesky,#gradbg{will-change:opacity}
+
+</style>
+</head>
+<body>
+<script>document.documentElement.classList.add('js')</script>
+<button type="button" class="skip" data-skip>Skip to content</button>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="rmg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff7e6"/><stop offset="1" stop-color="#f0e2c6"/></linearGradient></defs></svg>
+
+<!-- ============ THE WINDOW: sky (canvas) + glass displacement (svg) + frost veil ============ -->
+<div id="skybox" aria-hidden="true"><canvas id="sky"></canvas></div>
+<div id="gradbg" aria-hidden="true"></div>
+<canvas id="bluesky" aria-hidden="true"></canvas>
+<svg id="fx" aria-hidden="true" style="position:absolute;width:0;height:0">
+  <defs>
+    <filter id="windowFx" x="-4%" y="-4%" width="108%" height="108%" color-interpolation-filters="sRGB">
+      <feTurbulence id="winTurb" type="fractalNoise" baseFrequency="0.0009 0.0014" numOctaves="2" seed="17" result="t">
+        <animate id="wfAnim" attributeName="baseFrequency" values="0.0009 0.0014;0.0013 0.0011;0.0009 0.0014" dur="70s" repeatCount="indefinite"/>
+      </feTurbulence>
+      <feGaussianBlur in="t" stdDeviation="2.6 1.8" result="b"/>
+      <feDisplacementMap in="SourceGraphic" in2="b" scale="0" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+</svg>
+<div id="veil" aria-hidden="true"></div>
+
+<!-- ================= HEADER ================= -->
+<header class="hd" id="hd">
+  <div class="wrap hd-in">
+    <a class="brand" href="#/" data-nav="home" aria-label="Revessent home"><svg class="bmark" viewBox="0 0 28 28" aria-hidden="true"><rect x="1.2" y="1.2" width="25.6" height="25.6" rx="8" fill="url(#rmg)"/><rect x="1.2" y="1.2" width="25.6" height="25.6" rx="8" fill="none" stroke="#fff" stroke-opacity=".6"/><path d="M7 18.5h2.6l1.9-6 2.6 8 2.2-7 2 5H21" fill="none" stroke="#8a5f33" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>revessent<span class="dot">.</span></a>
+    <nav class="nav" aria-label="Primary">
+      <a href="#/product" data-nav="product">Product</a>
+      <a href="#/pricing" data-nav="pricing">Pricing</a>
+    </nav>
+    <div class="hd-cta">
+      <div class="tglwrap">
+        <button type="button" class="tgl" data-theme-menu aria-haspopup="true" aria-expanded="false" aria-label="Change theme" title="Change theme"><svg class="ic ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.6A8 8 0 0 1 10.4 3.4a8 8 0 1 0 10.2 10.2z"/></svg><svg class="ic ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.6"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></svg><svg class="ic ic-oled" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="7.2" stroke-opacity=".35"/><circle cx="12" cy="12" r="4.3" fill="currentColor" stroke="none"/></svg></button>
+
+      <div class="tmenu" id="tmenu" role="menu" aria-label="Theme">
+        <span class="tmenu-h" style="--d:40ms">Appearance</span>
+        <button type="button" role="menuitemradio" class="tmenu-i" data-theme-set="light"  aria-checked="false" style="--d:90ms"><span class="sw" aria-hidden="true"></span><span class="lbl">Light theme<small>ivory</small></span><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></button>
+        <button type="button" role="menuitemradio" class="tmenu-i" data-theme-set="dark"   aria-checked="false" style="--d:150ms"><span class="sw" aria-hidden="true"></span><span class="lbl">Dark theme<small>pewter</small></span><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></button>
+        <button type="button" role="menuitemradio" class="tmenu-i" data-theme-set="amoled" aria-checked="false" style="--d:210ms"><span class="sw" aria-hidden="true"></span><span class="lbl">Amoled theme<small>pure black</small></span><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></button>
+        <hr class="tmenu-sep" aria-hidden="true">
+        <button type="button" role="menuitem" class="tmenu-i rnd" data-theme-random style="--d:265ms"><span class="sw" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg></span><span class="lbl">Random theme<small>surprise me</small></span></button>
+        <div class="tmenu-sky" id="tskynow" hidden><span class="meta"><b data-sky-name></b><small data-sky-en></small></span><span class="dots" data-sky-dots aria-hidden="true"></span></div>
+      </div>
+      </div>
+      <a href="/login.html" class="btn btn-glass btn-sm">Sign in</a>
+      <a href="/login.html" class="btn btn-pri btn-sm">Start free pilot</a>
+      <button class="burger" id="burger" aria-label="Open menu" aria-expanded="false"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7.5h16M4 12h16M4 16.5h10"/></svg></button>
+    </div>
+  </div>
+</header>
+
+<!-- mobile sheet -->
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Menu" aria-hidden="true">
+  <div class="sheet-bg" data-close></div>
+  <div class="sheet-panel">
+    <div class="sheet-head"><span class="brand"><svg class="bmark" viewBox="0 0 28 28" aria-hidden="true"><rect x="1.2" y="1.2" width="25.6" height="25.6" rx="8" fill="url(#rmg)"/><rect x="1.2" y="1.2" width="25.6" height="25.6" rx="8" fill="none" stroke="#fff" stroke-opacity=".6"/><path d="M7 18.5h2.6l1.9-6 2.6 8 2.2-7 2 5H21" fill="none" stroke="#8a5f33" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>revessent<span class="dot">.</span></span>
+      <button class="burger" data-close style="display:inline-flex" aria-label="Close menu"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    </div>
+    <a class="m-link" href="#/" data-nav="home" data-close>Home <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></a>
+    <a class="m-link" href="#/product" data-nav="product" data-close>Product <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></a>
+    <a class="m-link" href="#/pricing" data-nav="pricing" data-close>Pricing <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></a>
+          <div class="m-app">
+        <span class="m-app-l">Appearance</span>
+        <div class="m-seg" role="group" aria-label="Appearance">
+          <button type="button" class="m-topt" data-theme-set="light" aria-pressed="true">Daylight<small>ivory</small></button>
+          <button type="button" class="m-topt" data-theme-set="dark" aria-pressed="false">Evening<small>pewter</small></button>
+          <button type="button" class="m-topt" data-theme-set="amoled" aria-pressed="false">Pure black<small>AMOLED</small></button>
+          <button type="button" class="m-topt" data-theme-random>Random<small>surprise me</small></button>
+        </div>
+      </div>
+    <div class="m-cta">
+      <a class="btn btn-pri" href="/login.html" data-close>Start free pilot</a>
+      <a class="btn btn-glass" href="/login.html" data-close>Sign in</a>
+    </div>
+  </div>
+</div>
+
+<main id="views">
+<!-- ============================================================
+     PAGE · HOME
+     ============================================================ -->
+<section class="page is-on" id="pg-home" data-page="home">
+
+  <div class="wrap hero">
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <div class="hkick rv" data-d="0">
+          <span class="pill"><span class="pill-dot"></span>Revenue intelligence</span>
+          <span class="pill"><span class="pill-dot ok"></span>14-day free pilot · Razorpay-native</span>
+        </div>
+        <h1 class="rv" data-d="1" style="margin-top:24px">Never lose another <em class="it">member</em><br>to a failed card.</h1>
+        <p class="lead rv" data-d="2">Revessent recovers revenue that would otherwise be lost. It intelligently decides <em>when</em> and <em>how</em> to retry each failed payment — timed to the member’s history, sent in your voice, and tracked to the dollar.</p>
+        <div class="hero-ctas rv" data-d="3">
+          <a class="btn btn-pri" href="#/pricing" data-nav="pricing">Start your free pilot</a>
+          <a class="btn btn-glass" href="#/product" data-nav="product">See Revessent in action</a>
+        </div>
+        <div class="trustline rv" data-d="4">
+          <span>Razorpay-native</span><span class="tsep"></span>
+          <span>No full card numbers</span><span class="tsep"></span>
+          <span>PCI-conscious architecture</span>
+        </div>
+      </div>
+
+      <!-- one dashboard card, seen through the window -->
+      <div class="hw glass g2 spot raise rv" data-d="5" data-spot>
+        <span class="hl" aria-hidden="true"></span>
+        <div class="hw-top">
+          <span class="hw-mark" aria-hidden="true"></span>
+          <div class="hw-name"><b>Example workspace</b><small>Razorpay live · illustrative data</small></div>
+          <span class="live"><i></i>active</span>
+        </div>
+        <div class="hw-flow" aria-label="Recovery pipeline">
+          <span class="hf-step done"><i></i>Failed</span><span class="hf-line"></span>
+          <span class="hf-step done"><i></i>Analyze</span><span class="hf-line"></span>
+          <span class="hf-step active"><i></i>Retry 9:40</span><span class="hf-line"></span>
+          <span class="hf-step"><i></i>Retained</span>
+        </div>
+        <div class="hw-kpis">
+          <div class="kpi-chip">
+            <div class="lab">Recovered · 30 days</div>
+            <div class="v cnt" data-count="18240" data-prefix="$" data-dec="0">$0</div>
+            <div class="d up">↑ 18% vs last period · example</div>
+          </div>
+          <div class="kpi-chip">
+            <div class="lab">Revenue at risk</div>
+            <div class="v cnt" data-count="4830" data-prefix="$" data-dec="0">$0</div>
+            <div class="d">12 members · right now</div>
+          </div>
+        </div>
+        <div class="hw-chart">
+          <svg viewBox="0 0 640 190" width="100%" role="img" aria-label="Recovered revenue climbing from zero to eighteen thousand dollars over forty days">
+            <defs>
+              <linearGradient id="ag" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#c98f5f" stop-opacity=".32"/>
+                <stop offset="1" stop-color="#c98f5f" stop-opacity="0"/>
+              </linearGradient>
+              <linearGradient id="lg" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stop-color="#c98f5f" stop-opacity=".3"/>
+                <stop offset="1" stop-color="#b07a4f"/>
+              </linearGradient>
+            </defs>
+            <g stroke="rgba(112,90,55,.12)" stroke-width="1">
+              <line x1="0" y1="48" x2="640" y2="48"/><line x1="0" y1="96" x2="640" y2="96"/><line x1="0" y1="144" x2="640" y2="144"/>
+            </g>
+            <path class="area-fade" d="M0,158 C70,155 120,146 180,138 C240,130 300,126 350,112 C400,98 470,90 540,76 C590,66 620,60 640,57 L640,190 L0,190 Z" fill="url(#ag)"/>
+            <path class="vline draw" d="M0,158 C70,155 120,146 180,138 C240,130 300,126 350,112 C400,98 470,90 540,76 C590,66 620,60 640,57" stroke="url(#lg)" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+            <circle class="node" cx="640" cy="57" r="4.5" fill="#fff" stroke="#b07a4f" stroke-width="2"/>
+          </svg>
+        </div>
+        <div class="hw-mini">
+          <div><span class="ava">ZK</span><span class="tx"><b>Zoe Park · recovered</b><small>+$184/mo · just now</small></span><span class="amt">✓</span></div>
+          <div><span class="ava">MC</span><span class="tx"><b>Maya Chen · retry set</b><small>tomorrow · 9:40 AM local</small></span><span class="amt">↻</span></div>
+        </div>
+      </div>
+
+      <!-- two quiet notifications drifting beneath the glass -->
+      <div class="hchips rv" data-d="6">
+        <span class="hchip"><span class="ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span><b>Recovery confirmed</b> · Zoe · +$184/mo</span></span>
+        <span class="hchip"><span class="ico"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 7-8.5 8.5-5-5L2 17"/></svg></span><span><b>Retry scheduled</b> · Maya · 9:40 AM</span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- the fog sits between the hero and the story: no logos, no invented customers -->
+  <!-- how it works -->
+  <div class="wrap sec" style="padding-bottom:0">
+    <div class="sec-head rv">
+      <span class="eyebrow">The workflow</span>
+      <h2>From failed payment to <em class="it">recovered revenue</em></h2>
+      <p>One quiet loop, running for every member — each step with a reason, each outcome remembered.</p>
+    </div>
+    <div class="wf">
+      <article class="wf-step rv" data-d="0" data-spot>
+        <span class="hl" aria-hidden="true"></span>
+        <div class="wf-top"><span class="wf-no">01</span><span class="wf-tag">detect</span></div>
+        <h3>Detect</h3>
+        <p>A payment fails, or a retention signal appears — a pause, a decline, a member going quiet.</p>
+      </article>
+      <article class="wf-step rv" data-d="1" data-spot>
+        <span class="hl" aria-hidden="true"></span>
+        <div class="wf-top"><span class="wf-no">02</span><span class="wf-tag">understand</span></div>
+        <h3>Understand</h3>
+        <p>Revessent reads the context: decline reason, payment history, plan, member value.</p>
+      </article>
+      <article class="wf-step rv" data-d="2" data-spot>
+        <span class="hl" aria-hidden="true"></span>
+        <div class="wf-top"><span class="wf-no">03</span><span class="wf-tag">decide</span></div>
+        <h3>Decide</h3>
+        <p>The best next action — and the exact moment for it. A retry now, a note tomorrow morning, a human review.</p>
+      </article>
+      <article class="wf-step rv" data-d="3" data-spot>
+        <span class="hl" aria-hidden="true"></span>
+        <div class="wf-top"><span class="wf-no">04</span><span class="wf-tag">recover</span></div>
+        <h3>Recover</h3>
+        <p>The payment comes home quietly — retried at the right hour, or settled through a note and a checkout that works.</p>
+      </article>
+      <article class="wf-step rv" data-d="4" data-spot>
+        <span class="hl" aria-hidden="true"></span>
+        <div class="wf-top"><span class="wf-no">05</span><span class="wf-tag">learn</span></div>
+        <h3>Learn</h3>
+        <p>What worked is logged. The next signal for this member is handled even better.</p>
+      </article>
+    </div>
+    </div>
+  </div>
+
+  <!-- stats -->
+  <div class="wrap sec" style="padding-bottom:0">
+    <div class="sec-head rv">
+      <span class="eyebrow">The quiet leak</span>
+      <h2>You don't have a churn problem. You have a <em class="it">payment</em> problem.</h2>
+    </div>
+    <div class="band">
+      <div class="band-cell glass g4 rv" data-d="0"><span class="b-n cnt" data-count="20" data-suffix="–40%">0</span><small>of subscription churn is involuntary — a card that failed, not a customer who left</small></div>
+      <div class="band-cell glass g4 rv" data-d="1"><span class="b-n cnt" data-count="9" data-prefix="~" data-suffix="%">0</span><small>of a typical SaaS's MRR leaks to failed payments every single year</small></div>
+      <div class="band-cell glass g4 rv" data-d="2"><span class="b-n cnt" data-count="47.6" data-suffix="%" data-dec="1">0</span><small>median recovery rate — most teams recoup under half of what's savable</small></div>
+      <div class="band-cell glass g4 rv" data-d="3"><span class="b-n cnt" data-count="7" data-suffix="+">0</span><small>months a recovered member stays, on average, after their rescue</small></div>
+    </div>
+    <p class="band-note rv">Illustrative — industry benchmarks from public studies by Recurly, Chargebee, Razorpay &amp; Baremetrics.</p>
+    <p class="band-src rv" data-d="4">Read the studies: <a href="https://www.payfacile.com/en/blog/subscription-commerce/reduce-failed-payments-churn" target="_blank" rel="noopener noreferrer" title="Recurly figures — failed payments, churn share and retry recovery">Payfacile &middot; Recurly data</a> &middot; <a href="https://www.digitalapplied.com/blog/failed-payment-recovery-dunning-playbook-2026" target="_blank" rel="noopener noreferrer" title="Digital Applied — 2026 failed-payment recovery playbook">Digital Applied playbook</a> &middot; <a href="https://subrevival.com/guides/what-is-involuntary-churn" target="_blank" rel="noopener noreferrer" title="Subrevival — involuntary churn by revenue stage">Subrevival guide</a> &middot; <a href="https://ustechautomations.com/resources/blog/saas-dunning-automation-pain-solution-recover-70-percent" target="_blank" rel="noopener noreferrer" title="USTechAutomations — MRR lost to failed payments">USTechAutomations analysis</a></p>
+  </div>
+
+  <!-- features -->
+  <div class="wrap sec">
+    <div class="sec-head rv">
+      <span class="eyebrow">The craft</span>
+      <h2>Everything a billing platform's default retry <em class="it">won't</em> do</h2>
+    </div>
+    <div class="grid-feat">
+      <article class="feat glass g4 raise rv" data-d="0" data-spot><span class="hl" aria-hidden="true"></span><span class="f-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg></span><h3>Retries at the best moment</h3><p>Each member has a window when payments succeed. Revessent finds it and retries silently — most recoveries happen before anyone notices.</p></article>
+      <article class="feat glass g4 raise rv" data-d="1" data-spot><span class="hl" aria-hidden="true"></span><span class="f-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></span><h3>Recovery notes in your voice</h3><p>Short, warm notes sent in your name — never “final notices”, never guilt. A heads-up reads like a heads-up.</p></article>
+      <article class="feat glass g4 raise rv" data-d="2" data-spot><span class="hl" aria-hidden="true"></span><span class="f-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></span><h3>A checkout that finishes</h3><p>Dead ends are where members are lost. Recovery pages carry your brand, take every payment method, and close in seconds.</p></article>
+      <article class="feat glass g4 raise rv" data-d="0" data-spot><span class="hl" aria-hidden="true"></span><span class="f-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/></svg></span><h3>Upgrade signals</h3><p>Notices the week a power user outgrows their plan and drafts a gentle one-click pitch. You approve — timing handled.</p></article>
+      <article class="feat glass g4 raise rv" data-d="1" data-spot><span class="hl" aria-hidden="true"></span><span class="f-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span><h3>Decline forensics</h3><p>A calm weekly digest of why payments failed — expiries, limits, bank declines — with the fix that prevents each pattern.</p></article>
+      <article class="feat glass g4 raise rv" data-d="2" data-spot><span class="hl" aria-hidden="true"></span><span class="f-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1 1 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg></span><h3>Trust by construction</h3><p>Read-only access to start, tokens never card numbers, and every send routed through your approval flow.</p></article>
+    </div>
+  </div>
+
+  <!-- quote -->
+  <div class="wrap sec" style="padding-top:0">
+    <div class="quote-card glass g3 rv">
+      <p class="big-q">“A failed payment isn't a lost customer. It's a signal with a timestamp — and most signals resolve themselves when the next action is the <em class="it">right one</em>.”</p>
+      <div class="quote-who" style="gap:14px"><span class="pdot" style="width:7px;height:7px"></span><span class="meta" style="letter-spacing:.18em;text-transform:uppercase;font-size:10.5px;font-weight:640">Revessent · a decision engine, not a dashboard</span></div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="wrap sec" style="padding-top:0">
+    <div class="cta-band glass g2 rv">
+      <span class="pill" style="margin-bottom:22px"><span class="pdot"></span>Free 14-day pilot · your first recovery typically lands in week one</span>
+      <h2>Meet the member you almost lost.</h2>
+      <p class="lead" style="margin-inline:auto;margin-top:12px">Connect Razorpay and Revessent starts watching — most workspaces see their first recovery inside the first week.</p>
+      <form class="cta-form" data-form="pilot" novalidate>
+        <input class="email" type="email" required placeholder="you@yourcompany.com" aria-label="Work email">
+        <button class="btn btn-pri" type="submit">Start free pilot</button>
+      </form>
+      <p class="cta-note">No card required · cancel anytime · if we don't recover more than we cost in 90 days, we refund you.</p>
+    </div>
+  </div>
+
+  <div class="wrap"><div class="footer-partial"></div></div>
+</section>
+
+<!-- ============================================================
+     PAGE · PRODUCT
+     ============================================================ -->
+<section class="page" id="pg-product" data-page="product">
+
+  <div class="wrap sec" style="padding-top:136px">
+    <div class="demo-head">
+      <span class="pill rv" data-d="0" style="display:inline-flex"><span class="pdot"></span>Product tour · example workspace · illustrative data</span>
+      <h1 class="rv" data-d="1" style="margin-top:22px">Revenue intelligence,<br><em class="it">quietly</em> working.</h1>
+      <p class="lead rv" data-d="2">Every decline becomes a decision. See the signals, the reasoning behind each action, and the revenue that comes home.</p>
+      <div class="jumps rv" data-d="3">
+        <a class="jump" href="#recovery">The recovery flow</a>
+        <a class="jump" href="#moments">Upgrade signals</a>
+        <a class="jump" href="#emails">The emails</a>
+      </div>
+    </div>
+
+    <!-- KPIs — one clear pane -->
+    <div class="kpis">
+      <div class="kpi glass g3 raise rv" data-d="0" data-spot><span class="hl" aria-hidden="true"></span><span class="lab">Recovered · 30 days</span><div class="val cnt" data-count="18240" data-prefix="$" data-dec="0">$0</div><span class="dlt"><span class="up"></span>18% vs last period</span></div>
+      <div class="kpi glass g3 raise rv" data-d="1" data-spot><span class="hl" aria-hidden="true"></span><span class="lab">Revenue at risk</span><div class="val cnt" data-count="4830" data-prefix="$" data-dec="0">$0</div><span class="dlt">12 members in recovery</span></div>
+      <div class="kpi glass g3 raise rv" data-d="2" data-spot><span class="hl" aria-hidden="true"></span><span class="lab">Protected · this week</span><div class="val cnt" data-count="1240" data-prefix="$" data-dec="0">$0</div><span class="dlt"><span class="up"></span>3 automatic actions</span></div>
+      <div class="kpi glass g3 raise rv" data-d="3" data-spot><span class="hl" aria-hidden="true"></span><span class="lab">Median recovery time</span><div class="val cnt" data-count="2.4" data-dec="1">0</div><span class="dlt">days · was 6.1 at onboarding</span></div>
+    </div>
+
+    <div class="panel-grid">
+      <div class="panel glass g2 rv" data-d="0" style="grid-column:1/-1" data-spot>
+        <span class="hl" aria-hidden="true"></span>
+        <div style="display:flex;align-items:flex-start;flex-wrap:wrap;gap:10px">
+          <div><h3>Recovered vs. lost, week by week</h3><p class="sub">What Revessent's retries and notes keep (warm) vs. what default retries lose (grey) — every recovery attributed per member</p></div>
+          <div class="chart-legend" style="margin-left:auto">
+            <span><i class="l-main"></i>Kept by Revessent</span>
+            <span><i class="l-leak"></i>Lost with defaults</span>
+          </div>
+        </div>
+        <svg viewBox="0 0 800 240" width="100%" style="margin-top:8px" role="img" aria-label="Chart showing recovered revenue rising while lost revenue declines">
+          <defs>
+            <linearGradient id="ag2" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#c98f5f" stop-opacity=".3"/>
+              <stop offset="1" stop-color="#c98f5f" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <g stroke="rgba(112,90,55,.12)">
+            <line x1="0" y1="60" x2="800" y2="60"/><line x1="0" y1="120" x2="800" y2="120"/><line x1="0" y1="180" x2="800" y2="180"/>
+          </g>
+          <path class="area-fade" d="M0,192 C120,187 180,182 240,166 C300,150 380,146 460,122 C540,98 660,90 800,62 L800,240 L0,240 Z" fill="url(#ag2)"/>
+          <path class="vline draw" d="M0,192 C120,187 180,182 240,166 C300,150 380,146 460,122 C540,98 660,90 800,62" stroke="#b07a4f" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+          <path class="vline" d="M0,80 C120,86 200,100 300,114 C420,132 540,154 640,168 C700,177 760,186 800,192" stroke="#9a9182" stroke-width="2" stroke-dasharray="2 7" stroke-linecap="round" opacity=".5" fill="none"/>
+          <circle class="node" cx="460" cy="122" r="4" fill="#fff" stroke="#b07a4f" stroke-width="2"/>
+          <circle class="node" cx="800" cy="62" r="5" fill="#fff" stroke="#b07a4f" stroke-width="2"/>
+        </svg>
+        <div class="h-dl"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span class="now">Sun</span></div>
+      </div>
+
+            <div class="panel glass g3 rv" data-d="1" data-spot>
+        <span class="hl" aria-hidden="true"></span>
+        <h3><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Revessent intelligence</h3>
+        <p class="sub">Twelve members need attention. Here is the one that matters most right now.</p>
+        <div class="rec">
+          <span class="r-lab">Recommended action — precise, not magical</span>
+          <div class="rec-signals" aria-label="Signals">
+            <span class="rs-chip">Expired ·4242</span><span class="rs-chip">Token available</span><span class="rs-chip">6/6 on-time at 09:30</span>
+          </div>
+          <b>Retry Maya's payment tomorrow at 9:40 AM.</b>
+          <p>Her last six successful payments landed between 9:20 and 10:05 AM local. The decline — an expired card — has a network token available, so no note is needed yet.</p>
+          <button type="button" class="rec-why" data-rec-why aria-expanded="false" aria-controls="recTrail">Why this timing<span class="rw-x">+</span></button>
+          <ul class="rec-trail" id="recTrail" hidden>
+            <li><b>The window.</b> Six successful payments sit between 9:20 and 10:05 AM local — 9:40 is the centre of that pattern, and retries work best inside it.</li>
+            <li><b>The cause.</b> The decline reason is an expired card. A network token is already available, so the retry is token-based and needs no note or checkout page.</li>
+            <li><b>The guard.</b> This remains a suggestion until you approve it. Nothing is sent and nothing is charged without you.</li>
+          </ul>
+          <div class="conf"><span>Confidence <b>94%</b></span><span class="meter"><i></i></span></div>
+          <div class="rec-actions">
+            <button class="btn btn-pri btn-sm" data-action="intel-approve">Approve</button>
+            <button class="btn btn-glass btn-sm" data-action="intel-review">Review</button>
+          </div>
+        </div>
+        <div class="intel-facts">
+          <div class="if-cell"><b class="cnt" data-count="1240" data-prefix="$" data-dec="0">$0</b><small>protected this week</small></div>
+          <div class="if-cell"><b class="cnt" data-count="3" data-dec="0">0</b><small>actions taken automatically</small></div>
+        </div>
+        <p class="meta" style="margin-top:12px">Decision expires in 22 hours · nothing sent without approval</p>
+      </div>
+
+      <div class="panel glass g4 rv" data-d="2" data-spot>
+        <span class="hl" aria-hidden="true"></span>
+        <h3>Recovery queue</h3><p class="sub">Who Revessent is acting for, right now</p>
+        <ul class="feed" style="margin-top:8px">
+          <li><span class="ava">LK</span><span class="f-t"><b>Lena Kovač · annual member</b><small>retry scheduled · 9:02 AM local</small></span><span class="amt">$420/yr</span></li>
+          <li><span class="ava">RN</span><span class="f-t"><b>Rahul Nair · pro</b><small>note sent · waiting 14 hours</small></span><span class="amt">$300/yr</span></li>
+          <li><span class="ava">AO</span><span class="f-t"><b>Amara Obi · scale</b><small>checkout opened · 4 minutes ago</small></span><span class="amt">$240/yr</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- signal → decision → result -->
+    <div class="panel-grid" id="recovery" style="scroll-margin-top:96px">
+      <div class="panel glass g2 rv wide" data-d="0" data-spot>
+        <span class="hl" aria-hidden="true"></span>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <h3>One member, end to end</h3>
+          <span class="pill">payment → signal → decision → recovery</span>
+          <button class="btn btn-pri btn-sm" id="simBtn" data-action="sim" style="margin-left:auto"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>Simulate a recovery</button>
+        </div>
+        <p class="sub" style="margin-top:6px">Zoe Park · $184/mo plan · card ending ·4242 expired last week · example workspace</p>
+        <div class="sim-stage" id="simStage">
+          <div class="sim-row" data-step><span class="sim-dot"></span><span class="sim-t"><b>Day 0 — Payment needs attention</b><small>“card expired” · the fourth default retry just failed</small></span><span class="st">queued</span></div>
+          <div class="sim-row" data-step><span class="sim-dot"></span><span class="sim-t"><b>Day 1 — Retention signal detected</b><small>decline reason read · a fresh network token exists for ·4242</small></span><span class="st">queued</span></div>
+          <div class="sim-row" data-step><span class="sim-dot"></span><span class="sim-t"><b>Day 2 — Best moment chosen</b><small>retry set for 9:02 AM local — Zoe's most reliable payment hour</small></span><span class="st">queued</span></div>
+          <div class="sim-row" data-step><span class="sim-dot"></span><span class="sim-t"><b>Day 3 — Recovered, quietly</b><small>token succeeds · no note needed · $184 comes home</small></span><span class="st">queued</span></div>
+        </div>
+        <div class="sim-win" id="simWin">
+          <span class="w-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+          <div><span class="w-n"><span class="mon">+$184</span> recovered</span><small>Zoe Park stays — the pattern is logged, and her next renewal gets the same quiet care.</small></div>
+        </div>
+      </div>
+    </div>
+
+
+    <div class="panel-grid">
+      <div class="panel glass g4 rv" data-d="0" id="emails" style="scroll-margin-top:96px">
+        <h3>What the member sees</h3><p class="sub">The same moment, two voices. Tone is a retention lever.</p>
+        <div class="email-compare">
+          <div class="mail clear">
+            <div class="mail-head">your product<span class="tag tag-rev">revessent</span></div>
+            <div class="mail-body">
+              <div class="m-sub">A quick card check</div>
+              <p>Hi Zoe — no stress, this happens all the time. The card on file (··4242) expired, so your membership couldn't renew.</p>
+              <p>Update it here and you're all set. Nothing else changes — Revessent quietly handles the retry.</p>
+              <span class="mail-cta">Update card · 30 seconds</span>
+            </div>
+          </div>
+          <div class="mail old">
+            <div class="mail-head">razorpay<span class="tag tag-old">default</span></div>
+            <div class="mail-body">
+              <div class="m-sub">Payment failed — action required</div>
+              <p>We were unable to charge your card ending in 4242. Please update your payment method to continue using the service.</p>
+              <p>If payment is not received within 3 days, your account may be paused.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel glass g3 rv" data-d="1" data-spot>
+        <span class="hl" aria-hidden="true"></span>
+        <h3>Recovery checkout</h3><p class="sub">Where members land — your brand, no dead ends</p>
+        <div style="margin-top:14px;border-radius:14px;border:1px solid var(--edge);background:rgb(var(--cc)/.32);padding:16px">
+          <div style="display:flex;align-items:center;gap:9px">
+            <svg class="bmark" viewBox="0 0 28 28" style="width:24px;height:24px;flex:none"><rect x="1.2" y="1.2" width="25.6" height="25.6" rx="8" fill="url(#rmg)"/><rect x="1.2" y="1.2" width="25.6" height="25.6" rx="8" fill="none" stroke="#fff" stroke-opacity=".6"/><path d="M7 18.5h2.6l1.9-6 2.6 8 2.2-7 2 5H21" fill="none" stroke="#8a5f33" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span style="font-size:13px;font-weight:620;letter-spacing:-.01em">Your product · renew membership</span>
+            <span class="live" style="margin-left:auto"><i></i>secure</span>
+          </div>
+          <div style="margin-top:13px;border-radius:10px;border:1px solid rgb(var(--lc)/.14);background:rgb(var(--cc)/.5);padding:10px 12px;font-size:12px;color:var(--text-secondary)">
+            Card ending ·4242 &nbsp;·&nbsp; <b style="color:var(--text-primary)">$184.00/mo</b> &nbsp;·&nbsp; renews today
+          </div>
+          <div style="margin-top:9px;border-radius:10px;border:1.5px dashed rgb(var(--lc)/.3);padding:14px;font-size:12px;color:var(--text-muted);text-align:center">card details go here — Revessent never sees the number</div>
+          <div style="display:flex;gap:9px;margin-top:11px">
+            <span class="btn btn-pri btn-sm" style="flex:1;font-size:13px">Pay &amp; stay a member</span>
+            <span class="btn btn-glass btn-sm">Not now</span>
+          </div>
+        </div>
+      </div>
+
+
+    <!-- upgrade moments -->
+    <div class="panel-grid" id="moments" style="scroll-margin-top:96px">
+      <div class="panel glass g2 rv wide" data-d="0" data-spot>
+        <span class="hl" aria-hidden="true"></span>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <h3>Upgrade signals</h3>
+          <span class="pill">Revessent recommendation · you approve · nothing is ever sent without you</span>
+        </div>
+        <p class="sub" style="margin-top:6px">When a member outgrows their plan, the product leaves evidence. Revessent reads it and drafts the quiet pitch.</p>
+
+        <div class="moment" data-moment>
+          <span class="ava" style="width:38px;height:38px">MC</span>
+          <div style="flex:1">
+            <b style="font-size:13.5px">Maya Chen · Starter plan</b>
+            <p class="why"><b>148 automation runs</b> this month — twice the Starter ceiling · 11 months in · renewal in 9 days</p>
+            <div class="pitch-preview">
+              <span class="pp-sub"><i></i>Revessent recommendation · your voice</span>
+              <p>“Maya — your automation runs have quietly doubled this quarter. You've touched the Starter ceiling twice this month, so here's the honest math: the next plan is $50 more a month and removes every limit you've met. No pressure — it's simply the right size now.”</p>
+              <div class="pp-actions">
+                <button class="btn btn-pri btn-sm" data-action="approve" data-amt="$150/mo" data-arr="1800" data-who="Maya Chen · Starter plan">Approve &amp; send</button>
+                <button class="btn btn-glass btn-sm">Edit tone</button>
+                <button class="btn btn-glass btn-sm">Snooze</button>
+              </div>
+            </div>
+          </div>
+          <div class="pot"><b>+$150/mo</b><small>ARR +$1,800</small></div>
+        </div>
+
+        <div class="moment" data-moment>
+          <span class="ava" style="width:38px;height:38px">AO</span>
+          <div style="flex:1">
+            <b style="font-size:13.5px">Amara Obi · Scale plan</b>
+            <p class="why"><b>Three teams added</b> in six weeks · workspace near the 50-seat cap · renewal in 23 days</p>
+            <div class="pitch-preview">
+              <span class="pp-sub"><i></i>Revessent recommendation · your voice</span>
+              <p>“Amara — you've grown fast this season. Unlimited seats keeps your next three hires free at today's per-seat price. Want us to switch it on at renewal?”</p>
+              <div class="pp-actions">
+                <button class="btn btn-pri btn-sm" data-action="approve" data-amt="$200/mo" data-arr="2400" data-who="Amara Obi · Scale plan">Approve &amp; send</button>
+                <button class="btn btn-glass btn-sm">Edit tone</button>
+              </div>
+            </div>
+          </div>
+          <div class="pot"><b>+$200/mo</b><small>ARR +$2,400</small></div>
+        </div>
+
+        <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:4px">
+          <span class="pill">matched, waiting: 6 more</span>
+          <span class="pill">sent only in the right week</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="cta-band glass g2 rv" style="margin-top:70px">
+      <h2>Your members are trying to stay. <em class="it">Let them.</em></h2>
+      <form class="cta-form" data-form="pilot" novalidate>
+        <input class="email" type="email" required placeholder="you@yourcompany.com" aria-label="Work email">
+        <button class="btn btn-pri" type="submit">Start free pilot</button>
+      </form>
+      <p class="cta-note">Razorpay-native · 14-day pilot · example workspace shown throughout</p>
+    </div>
+  </div>
+
+  <div class="wrap"><div class="footer-partial"></div></div>
+</section>
+
+<!-- ============================================================
+     PAGE · PRICING
+     ============================================================ -->
+<section class="page" id="pg-pricing" data-page="pricing">
+
+  <div class="wrap sec" style="padding-top:136px">
+    <div style="text-align:center;max-width:680px;margin:0 auto">
+      <span class="pill rv" data-d="0" style="display:inline-flex"><span class="pdot"></span>Outcome pricing — paid for by the revenue it recovers</span>
+      <h1 class="rv" data-d="1" style="margin-top:22px">Plans that pay for <em class="it">themselves</em>.</h1>
+      <p class="lead rv" data-d="2" style="margin-inline:auto">If Revessent doesn't recover more than it costs in the first 90 days, your fees are refunded. That's not a discount — it's how confident we are.</p>
+    </div>
+
+    <div class="pricing-sw rv" data-d="3" role="group" aria-label="Billing period">
+      <span class="sw-lab act" id="labMo">Monthly</span>
+      <button class="sw" id="sw" role="switch" aria-checked="false" aria-label="Toggle annual billing" tabindex="0"><i></i></button>
+      <span class="sw-lab" id="labAn">Annual <small>save 20%</small></span>
+    </div>
+
+    <div class="plans">
+      <article class="plan glass g4 rv" data-d="0">
+        <span class="p-name">Ember</span>
+        <div class="p-amt"><span class="cur">$</span><span class="n" data-price="0">0</span></div>
+        <p class="p-desc">For teams that want to meet their leak before paying to fix it.</p>
+        <ul>
+          <li><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>14-day full pilot, no card required</li>
+          <li><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Smart retries + recovery checkout</li>
+          <li><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Up to 1,000 members</li>
+          <li class="mut"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Upgrade moments</li>
+          <li class="mut"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Slack digests</li>
+        </ul>
+        <a class="btn btn-glass" href="#/pricing" data-nav="pricing" data-pilot>Start free pilot</a>
+      </article>
+
+      <article class="plan featured rv" data-d="1">
+        <span class="badge">Most chosen</span>
+        <span class="p-name">Revessent</span>
+        <div class="p-amt"><span class="cur">$</span><span class="n" data-price="249" data-price-a="199">249</span><small>/month</small></div>
+        <p class="p-desc">For growing teams ready to treat recovery as a revenue line.</p>
+        <ul>
+          <li><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Everything in Ember, unlimited members</li>
+          <li><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Upgrade signals — drafted, approved, sent</li>
+          <li><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Recovery notes in your brand voice</li>
+          <li><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Weekly decline forensics digest</li>
+          <li><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Slack alerts + tone A/B tests</li>
+        </ul>
+        <a class="btn btn-pri" href="#/pricing" data-nav="pricing" data-pilot>Start free pilot</a>
+      </article>
+
+      <article class="plan glass g4 rv" data-d="2">
+        <span class="p-name">Studio</span>
+        <div class="p-amt"><span class="cur">$</span><span class="n" data-price="599" data-price-a="479">599</span><small>/month</small></div>
+        <p class="p-desc">For portfolios, agencies and teams that sleep next to their MRR.</p>
+        <ul>
+          <li><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Everything in Revessent, up to 10 brands</li>
+          <li><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>SSO / SAML + granular roles</li>
+          <li><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Dedicated recovery concierge</li>
+          <li><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>API, webhooks, custom retry models</li>
+          <li><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>99.9% uptime SLA</li>
+        </ul>
+        <a class="btn btn-glass" href="#/pricing" data-nav="pricing" data-pilot>Start free pilot</a>
+      </article>
+    </div>
+
+    <div class="guarantee rv" data-d="3">
+      <span class="g-ic"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1 1 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg></span>
+      <div>
+        <b>The Revessent guarantee</b>
+        <p>Recoveries are attributed per member, per email, per retry. If your net recovered revenue doesn't exceed your platform fee in the first 90 days, we refund the full term — and you keep everything recovered.</p>
+      </div>
+    </div>
+
+    <div class="faq">
+      <span class="eyebrow">Questions, answered</span>
+      <div class="faq-item rv" data-d="0">
+        <button class="faq-q">Which billing platforms do you support?<span class="fq-x"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></button>
+        <div class="faq-a"><p>Razorpay is the native integration — connect in about six minutes, read-only to start. Additional billing connectors can come later, and every plan is priced the same regardless of platform.</p></div>
+      </div>
+      <div class="faq-item rv" data-d="1">
+        <button class="faq-q">What counts as a “recovery”?<span class="fq-x"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></button>
+        <div class="faq-a"><p>Any payment Revessent's retries, notes, or recovery checkout win back within 90 days of the first failure — including members who come back via your normal checkout after our nudge. Every dollar is attributed per member in the dashboard, so you always know exactly what you're paying for.</p></div>
+      </div>
+      <div class="faq-item rv" data-d="2">
+        <button class="faq-q">Will you email our customers as “Revessent”?<span class="fq-x"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></button>
+        <div class="faq-a"><p>Never. Every note goes out in your name, written to sound like you from a short sample and your approval history. During your pilot every send requires a human thumbs-up; after that you set the trust level.</p></div>
+      </div>
+      <div class="faq-item rv" data-d="3">
+        <button class="faq-q">Is this PCI-scope-heavy and scary?<span class="fq-x"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></button>
+        <div class="faq-a"><p>The opposite. Revessent never touches raw card numbers — it works with your billing platform's tokens and network credentials, which keeps the architecture PCI-conscious by design. Read-only access at first; revoke access in one click at any time.</p></div>
+      </div>
+    </div>
+
+    <div class="cta-band glass g2 rv" style="margin-top:64px">
+      <h2>Meet the member you almost lost.</h2>
+      <form class="cta-form" data-form="pilot" novalidate>
+        <input class="email" type="email" required placeholder="you@yourcompany.com" aria-label="Work email">
+        <button class="btn btn-pri" type="submit">Start free pilot</button>
+      </form>
+      <p class="cta-note">14 days free · no card · typical first recovery in week one</p>
+    </div>
+  </div>
+
+  <div class="wrap"><div class="footer-partial"></div></div>
+</section>
+</main>
+
+<!-- sign-in · honest placeholder while auth is invite-only -->
+<div class="sgn" id="sgn" role="dialog" aria-modal="true" aria-labelledby="sgnTitle" role="dialog" aria-modal="true" aria-labelledby="sgnTitle" aria-hidden="true">
+  <div class="sgn-bg"></div>
+  <div class="sgn-card">
+    <button class="sgn-close" aria-label="Close sign-in"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    <span class="brand"><svg class="bmark" viewBox="0 0 28 28"><rect x="1.2" y="1.2" width="25.6" height="25.6" rx="8" fill="url(#rmg)"/><rect x="1.2" y="1.2" width="25.6" height="25.6" rx="8" fill="none" stroke="#fff" stroke-opacity=".6"/><path d="M7 18.5h2.6l1.9-6 2.6 8 2.2-7 2 5H21" fill="none" stroke="#8a5f33" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>revessent<span class="dot">.</span></span>
+    <h2 id="sgnTitle">Sign in</h2>
+    <p class="sgn-sub">Sign-in opens with your pilot workspace — it is invite-only until then. The fastest way in is a 14-day pilot.</p>
+    <div class="f"><label for="sgnEmail">Work email</label><input id="sgnEmail" type="email" placeholder="you@yourcompany.com" autocomplete="email"></div>
+    <div class="f"><label for="sgnPass">Password</label><input id="sgnPass" type="password" placeholder="available once your pilot begins" autocomplete="off"></div>
+    <p class="sgn-note">No card required. We will write to you the moment your workspace is ready.</p>
+    <div class="sgn-actions">
+      <button class="btn btn-pri btn-sm sgn-pri" data-sgn-pilot>Request pilot access</button>
+      <button class="btn btn-glass btn-sm" data-close-sgn>Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- toast -->
+<div class="toast-wrap" id="toasts" aria-live="polite"></div>
+
+<script>
+/* ============================================================
+   REVESSENT · window engine
+   ------------------------------------------------------------
+   Sky layer (canvas): seeded fog fields, drifting vapor, warm
+   blooms, three snow populations, condensation frost.
+   Glass layer (svg displacement): barely-perceptible moving
+   refraction over the sky only. UI stays crisp.
+   ============================================================ */
+(function(){
+'use strict';
+var $  = s=>document.querySelector(s);
+var $$ = s=>Array.from(document.querySelectorAll(s));
+var rand = (a,b)=>a+Math.random()*(b-a);
+var pick = arr=>arr[Math.floor(Math.random()*arr.length)];
+var clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+var REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+var FINE = matchMedia('(pointer:fine)').matches;
+var COARSE = matchMedia('(pointer:coarse)').matches;
+var PAGE_TITLES = {home:'Revessent — never lose another member', product:'Product — Revessent', pricing:'Pricing — Revessent'};
+var TAU = Math.PI*2;
+
+/* ---------- noise-tile factory (fog, condensation) ---------- */
+function noiseTile(size, bf, seed, rgb, opts){
+  opts = opts||{};
+  var svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('width',size); svg.setAttribute('height',size);
+  var c1 = (rgb[0]/255).toFixed(3), c2=(rgb[1]/255).toFixed(3), c3=(rgb[2]/255).toFixed(3);
+  var blur = opts.blur||0;
+  var f = document.createElementNS('http://www.w3.org/2000/svg','filter');
+  f.setAttribute('id','nt'+seed);
+  f.innerHTML = '<feTurbulence type="fractalNoise" baseFrequency="'+bf+' '+(bf*0.87).toFixed(4)+'" numOctaves="'+(opts.oct||3)+'" stitchTiles="stitch" seed="'+seed+'"/>'+
+    (blur? '<feGaussianBlur stdDeviation="'+blur+'"/>':'')+
+    '<feColorMatrix type="matrix" values="0 0 0 0 '+c1+'  0 0 0 0 '+c2+'  0 0 0 0 '+c3+'  '+(opts.ac||0.4)+' '+(opts.ac||0.4)+' '+(opts.ac||0.4)+' 0 '+(opts.off||-0.5)+'"/>';
+  svg.appendChild(f);
+  var r = document.createElementNS('http://www.w3.org/2000/svg','rect');
+  r.setAttribute('width',size); r.setAttribute('height',size); r.setAttribute('filter','url(#nt'+seed+')');
+  svg.appendChild(r);
+  var xml = new XMLSerializer().serializeToString(svg);
+  var img = new Image();
+  img.src = 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(xml);
+  return img;
+}
+
+/* ---------- sprite helpers ---------- */
+var sprCache = {};
+function glowSprite(key, r, stops){
+  if(sprCache[key]) return sprCache[key];
+  var c = document.createElement('canvas'); c.width=c.height=Math.ceil(r*2);
+  var g = c.getContext('2d');
+  var gr = g.createRadialGradient(r,r,0,r,r,r);
+  stops.forEach(function(s){ gr.addColorStop(s[0], s[1]); });
+  g.fillStyle = gr; g.fillRect(0,0,c.width,c.height);
+  sprCache[key] = c; return c;
+}
+
+/* ---------- snow field ---------- */
+function makeSnow(count, cfg, jitter){
+  var s = [];
+  for(var i=0;i<count;i++){
+    s.push({
+      x0: rand(0,1), y: rand(0,1),
+      v: rand(cfg.vmin,cfg.vmax),
+      wv: rand(cfg.wvmin||0,cfg.wvmax||0),
+      a: rand(cfg.amin,cfg.amax),
+      ph: rand(0,TAU), sway: rand(cfg.swayMin,cfg.swayMax),
+      depth: rand(cfg.dMin||.7, cfg.dMax||1.3),
+      jit: jitter? rand(0.4,1): 1
+    });
+  }
+  return s;
+}
+
+/* ---------- engine ---------- */
+/* Layers:
+   world  — slow fog + light, composited offscreen at a low cadence
+   live   — snow, blooms, condensation, drawn every frame on top   */
+var cv = document.getElementById('sky');
+var ctx = cv.getContext('2d');
+var fogCv = document.createElement('canvas'), fogCtx = fogCv.getContext('2d');
+var W=0,H=0,RS=1,W2=0,H2=0;
+var fields=[], frost=[], snowFar=[], snowMid=[], snowNear=[];
+var blooms=[], bloomT=0, nextBloom=4;
+var t=0, sceneT=0, sceneAcc=0;
+var par={x:0,y:0}, parT={x:0,y:0};
+var accent = {r:109,g:159,b:214};
+var dayGrad=null, baseGrad=null, coldGrad=null;
+var farFill="#dcd9d2", frostCol=[255,255,252];
+/* outside-the-window palettes: cold morning air (light) and deep night (dark) */
+var SKYTHEMES={
+  light:{ base:["#fdfaf2","#faf3e6","#f3e9d5"], glow:[255,238,214], glowA:[.5,.13], cold:[214,222,236], coldA:[.09,0],
+    fog:[[255,249,238],[255,245,250],[255,240,232],[252,247,235]], far:"#dcd9d2", frost:[255,255,252] },
+  dark:{ base:["#1c1a17","#191714","#2a2823"], glow:[226,225,219], glowA:[.14,.045], cold:[132,134,138], coldA:[.10,0],
+    fog:[[46,44,39],[58,58,60],[42,40,36],[36,34,30]], fogA:[.30,.24,.18,.30], far:"#d3d4d6", frost:[214,215,217] },
+  amoled:{ base:["#000000","#000000","#000000"], glow:[148,178,240], glowA:[.05,.015], cold:[70,84,118], coldA:[.06,0],
+    fog:[[9,11,17],[13,17,25],[8,10,15],[7,9,13]], fogA:[.13,.11,.08,.13], far:"#b2c0d8", frost:[168,182,206] }
+};
+function skyTheme(){ return SKYTHEMES[currentTheme()]||SKYTHEMES.light; }
+/* the window reads the clock — in Daylight, the light outside quietly follows
+   the hour: a cool blue-white in the morning, brightest at noon, gold toward
+   the late afternoon. Evening and Pure black keep their own fixed skies. */
+var clockHour=null;                       /* null = real local time */
+function clockVal(){ return clockHour!=null ? clockHour : (new Date().getHours()+new Date().getMinutes()/60); }
+function clockTint(){
+  if(currentTheme()!=='light') return null;
+  var t=clockVal();
+  var glow=[255,238,214], ga=.5;
+  if(t>=6.5 && t<20.5){
+    var p=(t-6.5)/14, e=Math.sin(Math.PI*Math.max(0,Math.min(1,p)));
+    ga=.42+.58*e;
+    var cool=Math.exp(-Math.pow((t-8.8)/1.7,2));      /* morning chill    */
+    var gold=Math.exp(-Math.pow((t-16.4)/2.4,2));     /* late-afternoon gold */
+    var r=glow[0], gg=glow[1], b=glow[2];
+    r += (214-r)*cool*.55; gg += (226-gg)*cool*.55; b += (246-b)*cool*.55;
+    r += (255-r)*gold*.4;  gg += (203-gg)*gold*.4;  b += (158-b)*gold*.4;
+    glow=[Math.round(r),Math.round(gg),Math.round(b)];
+  }
+  return {glow:glow, ga:ga};
+}
+function makeSkyGrads(){
+  var k=skyTheme(), gl=k.glow, gA0=k.glowA[0], gA1=k.glowA[1], ck=clockTint();
+  if(ck){ gl=ck.glow; gA0=ck.ga; gA1=Math.round(ck.ga*.26*100)/100; }
+  baseGrad = fogCtx.createLinearGradient(0,0,0,H);
+  baseGrad.addColorStop(0,k.base[0]); baseGrad.addColorStop(.5,k.base[1]); baseGrad.addColorStop(1,k.base[2]);
+  dayGrad = fogCtx.createRadialGradient(W*0.5,H*0.18,0,W*0.5,H*0.18,H*0.8);
+  dayGrad.addColorStop(0,"rgba("+gl[0]+","+gl[1]+","+gl[2]+","+gA0+")");
+  dayGrad.addColorStop(.55,"rgba("+gl[0]+","+gl[1]+","+gl[2]+","+gA1+")");
+  dayGrad.addColorStop(1,"rgba("+gl[0]+","+gl[1]+","+gl[2]+",0)");
+  coldGrad = fogCtx.createRadialGradient(W2,H*1.12,0,W2,H*1.12,H*.55);
+  coldGrad.addColorStop(0,"rgba("+k.cold[0]+","+k.cold[1]+","+k.cold[2]+","+k.coldA[0]+")");
+  coldGrad.addColorStop(1,"rgba("+k.cold[0]+","+k.cold[1]+","+k.cold[2]+",0)");
+  farFill=k.far; frostCol=k.frost;
+}
+function retuneSky(){
+  if(!W) return;
+  makeSkyGrads(); buildFog(); buildFrost(); sceneAcc=1e9;
+}
+setInterval(function(){ if(currentTheme()==='light' && !REDUCED) retuneSky(); }, 5*60*1000);
+var fogSeed = Math.floor(rand(1,9999));
+var ECO = false, ecoApplied = false;
+var sceneInterval = 110;           /* ms between fog re-composites (eco raises it) */
+
+function isEco(){ return document.documentElement.classList.contains('eco'); }
+function applyEco(){
+  ECO = true; ecoApplied = true;
+  document.documentElement.classList.add('eco');
+  disableDisp();
+  sceneInterval = 320;             /* fog re-composite less often */
+  rebuild();
+}
+function rebuild(){
+  var w = innerWidth, h = innerHeight, pad = 70;
+  W = w+pad*2; H = h+pad*2; W2 = W/2; H2 = H/2;
+  RS = clamp((COARSE?1:devicePixelRatio||1),.75,1.5);
+  if(isEco()) RS *= .62;
+  var bw = Math.round(W*RS), bh = Math.round(H*RS);
+  cv.width=bw; cv.height=bh;
+  fogCv.width=bw; fogCv.height=bh;
+  ctx.setTransform(RS,0,0,RS,0,0);
+  fogCtx.setTransform(RS,0,0,RS,0,0);
+  makeSkyGrads();
+  buildFog(); buildFrost();
+  var n = clamp(Math.round(innerWidth/(ECO?24:16)),ECO?14:24,ECO?36:72);
+  snowFar  = makeSnow(n,        {vmin:6,vmax:9, wvmin:-5,wvmax:5, amin:.07,amax:.24, swayMin:0,swayMax:.3},  true);
+  snowMid  = makeSnow(Math.max(ECO?5:10,Math.round(n*0.32)), {vmin:38,vmax:62, wvmin:-16,wvmax:16, amin:.16,amax:.4, swayMin:1,swayMax:3.2});
+  snowNear = makeSnow(Math.max(ECO?1:3,Math.round(n*0.08)),  {vmin:70,vmax:106,wvmin:-30,wvmax:30, amin:.09,amax:.2, swayMin:2,swayMax:5});
+  if(ECO){ snowMid.forEach(function(p){p.a*=.7;}); snowNear.forEach(function(p){p.a*=.8;}); }
+  sceneAcc = 1e9;               /* force immediate composite */
+}
+function buildFog(){
+  fields=[];
+  var seeds=[fogSeed, fogSeed+97, fogSeed+1301, fogSeed+24001];
+  var k=skyTheme(), F=k.fog, FA=[.5,.42,.3,.5];
+  if(k.fogA) FA=k.fogA;
+  var defs=[
+    {tile:880, bf:.0026, col:F[0], alpha:FA[0], scale:1.05, blur:22, oct:3},
+    {tile:700, bf:.0038, col:F[1], alpha:FA[1], scale:1.16, blur:14, oct:3},
+    {tile:560, bf:.006,  col:F[2], alpha:FA[2], scale:1.5,  blur:8,  oct:3},
+    {tile:760, bf:.0031, col:F[3], alpha:FA[3], scale:1.2,  blur:16, oct:2}
+  ];
+  if(ECO) defs = defs.slice(0,3);
+  defs.forEach(function(d,i){
+    var img = noiseTile(d.tile, d.bf, seeds[i], d.col, {blur:d.blur, oct:d.oct});
+    fields.push({
+      img:img, pat:null, tile:d.tile, pad:d.tile*.6,
+      alpha:d.alpha, scale:d.scale,
+      cx:rand(-.25,.25)*W2, cy:rand(-.3,.2)*H2,
+      rot:rand(-.5,.5), x:rand(0,2000), vx:rand(-4.5,4.5),
+      ph:rand(0,TAU), ya:rand(.0006,.0016), yp:rand(0,40),
+      baseY:rand(-.2,.2)*H, ready:false
+    });
+    img.onload = (function(i){ return function(){
+      fields[i].pat = fogCtx.createPattern(img,'repeat');
+      fields[i].ready = true;
+    };})(i);
+  });
+}
+function buildFrost(){
+  frost=[];
+  var count = ECO?1 : (COARSE?2:4);
+  for(var i=0;i<count;i++){
+    var s = Math.round(rand(240,ECO?340:520));
+    var img = noiseTile(s, rand(.004,.009), Math.floor(rand(1,9e4)), frostCol, {blur:rand(6,14), oct:2, ac:.32, off:-.28});
+    frost.push({img:img, s:s, x:rand(0,1), y:rand(.05,.95), scale:rand(.8,1.5), a:rand(.012,.045),
+      ph:rand(0,TAU), sp:rand(.02,.09), dx:rand(-4,4), dy:rand(-4,4)});
+  }
+}
+/* composite pass — slow world, low cadence */
+function compositeScene(){
+  fogCtx.clearRect(0,0,W,H);
+  fogCtx.fillStyle = baseGrad; fogCtx.fillRect(0,0,W,H);
+  fogCtx.globalAlpha = .9 + .1*Math.sin(t*.05);
+  fogCtx.fillStyle = dayGrad; fogCtx.fillRect(0,0,W,H);
+  fogCtx.globalAlpha = 1;
+  fields.forEach(function(f){
+    if(!f.ready || !f.pat) return;
+    f.x += 0;                                     /* drift happens below at scene cadence */
+    var xo = f.x * (1);                            /* for clarity: fields carry x */
+    var rot = f.rot + Math.sin(t*.03+f.ph)*.09;
+    var yo = f.baseY + Math.sin(t*f.ya+f.yp)*26;
+    var cx = W2 + f.cx + par.x*9 + Math.sin(t*.02+f.ph*2)*8;
+    var cy = H2 + f.cy + yo + par.y*7;
+    var wrap = W+f.pad*2;
+    var off = -(((f.x % (wrap+f.tile)) + (wrap+f.tile)) % (wrap+f.tile));
+    fogCtx.save();
+    fogCtx.globalAlpha = f.alpha;
+    fogCtx.translate(cx,cy); fogCtx.rotate(rot); fogCtx.scale(f.scale,f.scale);
+    fogCtx.translate(-W2,-H2);
+    fogCtx.fillStyle = f.pat;
+    fogCtx.fillRect(off-f.pad*2, -f.pad*2, wrap+f.tile+f.pad*4, H+f.pad*4);
+    fogCtx.restore(); fogCtx.globalAlpha = 1;
+  });
+  fogCtx.globalAlpha = .7+.3*Math.sin(t*.11);
+  fogCtx.fillStyle = coldGrad; fogCtx.fillRect(0,H*.55,W,H*.45);
+  fogCtx.globalAlpha = 1;
+}
+/* snow sprite caches (built lazily) */
+var snowSpr = {};
+function sprFor(key,blurA){
+  if(!snowSpr[key]){
+    snowSpr[key] = glowSprite(key, 44, [[0,'rgba(255,255,255,'+(blurA*.55)+')'],[.5,'rgba(255,255,255,'+(blurA*.16)+')'],[1,'rgba(255,255,255,0)']]);
+  }
+  return snowSpr[key];
+}
+/* frame — draw live layers over the blitted world */
+function frame(now){
+  requestAnimationFrame(frame);
+  var dt = Math.min(.05,(now-(frame.last||now))/1000||.016); frame.last=now;
+  if(currentTheme()!=='amoled'){ return; }  /* gradient skies own light + dark — rest the canvas engine (AMOLED keeps the canvas night) */
+  t += dt;
+  stepGust(now);
+  par.x += (parT.x-par.x)*.02; par.y += (parT.y-par.y)*.02;
+  fields.forEach(function(f){ if(!REDUCED) f.x += f.vx*dt*gust; });
+  /* fog + light composite at a calm cadence */
+  if(sceneAcc >= sceneInterval){
+    sceneAcc = 0;
+    compositeScene();
+  }
+  /* blit world, then live layers */
+  ctx.setTransform(RS,0,0,RS,0,0);
+  ctx.globalAlpha = 1;
+  ctx.clearRect(0,0,W,H);
+  ctx.drawImage(fogCv,0,0,W,H);
+  if(!REDUCED) drawLive(dt);
+  ctx.globalAlpha = 1;
+}
+function drawLive(dt){
+  /* warm bloom — rare, slow, unpredictable */
+  bloomT += dt;
+  if(bloomT>nextBloom){
+    bloomT=0; nextBloom = rand(ECO?22:16, ECO?40:32);
+    if(!ECO || Math.random()<.7)
+      blooms.push({x:rand(.14,.86), y:rand(.2,.9), r:rand(240,ECO?300:620), a:rand(.05,.13), life:0, span:rand(10,21), ph:rand(0,TAU)});
+    if(blooms.length>3) blooms.shift();
+  }
+  for(var bi=blooms.length-1;bi>=0;bi--){
+    var b=blooms[bi]; b.life+=dt;
+    var k=b.life/b.span;
+    if(k>=1){ blooms.splice(bi,1); continue; }
+    var env=Math.sin(Math.PI*Math.min(1,k));
+    var spr = sprFor('bloom'+b.r, .9);
+    ctx.save(); ctx.globalCompositeOperation='lighter';
+    ctx.globalAlpha = b.a*env*(0.8+0.2*Math.sin(t*.4+b.ph));
+    ctx.drawImage(spr, (W2+(b.x-.5)*W)-b.r*2, (b.y-.3)*H*.9-b.r*2, b.r*4, b.r*4);
+    ctx.restore(); ctx.globalAlpha=1;
+  }
+  /* three snow populations */
+  snowFar.forEach(drawFar);
+  snowMid.forEach(function(p){ drawSnow(p,2.6,.3,1); });
+  snowNear.forEach(function(p){ drawSnow(p,1,.75,7); });
+  function drawFar(p){
+    p.y += p.v*0.0028*dt*gust; if(p.y>1.06) p.y=-.04;
+    p.dx=(p.dx||0)+p.wv*(gust-1)*dt;
+    var x = p.x0*W + p.dx + Math.sin(t*.1+p.ph)*6*(1+(gust-1)*.35) + par.x*2;
+    ctx.globalAlpha = p.a*(.7+.3*Math.sin(t*2.1+p.ph));
+    ctx.fillStyle=farFill;
+    ctx.fillRect(x, p.y*H, 1.3, 1.3);
+    ctx.globalAlpha=1;
+  }
+  function drawSnow(p,pxScale,blurA,parDepth){
+    p.y += p.v*dt*gust/(H+120); if(p.y>1.05){ p.y=-.03; p.x0=rand(0,1); }
+    p.dx=(p.dx||0)+p.wv*(gust-1)*dt;
+    var x = p.x0*W + p.dx + Math.sin(t*p.sway+p.ph)*(p.sway*7*(1+(gust-1)*.5)) + par.x*parDepth*p.depth;
+    var y = p.y*H + par.y*parDepth*p.depth*.3;
+    var d = pxScale*(0.7+p.depth*0.9)*26;
+    var spr = sprFor('sn'+blurA+pxScale, blurA);
+    ctx.globalAlpha = p.a*(0.85+0.15*Math.sin(t*1.4+p.ph));
+    ctx.drawImage(spr, x-d/2, y-d/2, d, d);
+    ctx.globalAlpha=1;
+  }
+  /* condensation — faint, nearer the glass */
+  frost.forEach(function(fr){
+    var a = fr.a*(.72+.28*Math.sin(t*fr.sp+fr.ph));
+    if(a<=0) return;
+    ctx.save(); ctx.globalAlpha=a;
+    var fx = fr.x*W + Math.sin(t*.05+fr.ph)*4 + fr.dx*Math.sin(t*.017+fr.ph);
+    var fy = fr.y*H + Math.cos(t*.044+fr.ph)*5 + fr.dy*Math.cos(t*.013+fr.ph);
+    var s = fr.s*fr.scale;
+    if(fr.img && fr.img.complete) ctx.drawImage(fr.img, fx-s/2, fy-s/2, s, s);
+    ctx.restore(); ctx.globalAlpha=1;
+  });
+}
+/* adaptive governor — if the machine struggles, calm everything down early.
+   The same probe decides whether the glass-refraction filter can be afforded:
+   enable it only on machines that sustain ~30fps+, then re-check after it is on
+   and switch it off again if it drags the frame rate down. */
+function probeFrames(dur, onDone){
+  var n=0, acc=0, s0=performance.now();
+  function step(now){
+    if(n>0) acc += now-(step.last||now); step.last=now;
+    n++;
+    if(n<30 && now-s0<dur) requestAnimationFrame(step);
+    else onDone(acc/Math.max(1,n-1));
+  }
+  requestAnimationFrame(step);
+}
+setTimeout(function(){
+  if(ecoApplied) return;
+  probeFrames(3200, function(avg){
+    if(avg>30){ applyEco(); return; }
+    enableDisplacement();
+    setTimeout(function(){
+      if(ecoApplied || !window.__dispOn) return;
+      probeFrames(3200, function(avg2){
+        if(avg2>32) disableDisp();   /* refraction costs too much here — drop it */
+      });
+    }, 600);
+  });
+}, 1400);
+
+/* ---------- glass: displacement over the sky, never over text ---------- */
+var fxSvg = document.getElementById('fx');
+var scaleEl = fxSvg && fxSvg.querySelector('feDisplacementMap');
+function disableDisp(){ try{ if(fxSvg) fxSvg.style.display='none'; }catch(e){} window.__dispOn=false; }
+function dispScale(){ return REDUCED||!FINE ? 0 : (innerWidth<680?2:3); }
+function enableDisplacement(){
+  var sb = document.getElementById('skybox');
+  if(!scaleEl || REDUCED || !FINE) return;
+  var ua = navigator.userAgent.toLowerCase();
+  var likely = ua.indexOf('chrome')>-1 || ua.indexOf('firefox')>-1 || ua.indexOf('edg')>-1;
+  if(!likely) return;                       /* engines that may not render svg-on-html filters */
+  try{
+    if(fxSvg) fxSvg.style.display='';
+    sb.style.filter = 'url(#windowFx)';
+    scaleEl.setAttribute('scale', dispScale());
+    window.__dispOn = true;
+    var anim = document.getElementById('wfAnim');
+    var started=false;
+    if(anim && anim.beginElement){ try{ anim.beginElement(); started=true; }catch(e){} }
+    if(!started){                          /* gentle js fallback: nudge turbulence, never jitter */
+      var ph=0;
+      setInterval(function(){
+        if(document.hidden) return;
+        ph += .7;
+        var f = document.getElementById('winTurb');
+        if(!f) return;
+        f.setAttribute('baseFrequency', (0.0009+0.00035*Math.sin(ph)).toFixed(5)+' '+(0.0012+0.0004*Math.cos(ph*.8)).toFixed(5));
+      }, 2600);
+    }
+  }catch(e){ try{ sb.style.filter=''; }catch(_){} }
+}
+
+/* ---------- header / sheet / nav ---------- */
+addEventListener('scroll', function(){ $('#hd').classList.toggle('scrolled', scrollY>10); }, {passive:true});
+var scrollTimer=null;
+addEventListener('scroll', function(){
+  document.documentElement.classList.add('scrolling');
+  clearTimeout(scrollTimer);
+  scrollTimer=setTimeout(function(){ document.documentElement.classList.remove('scrolling'); }, 650);
+}, {passive:true});
+var sheet=$('#sheet');
+var sheetFocusBack=null, sgnFocusBack=null;
+function modalOpen(){ return sgn.classList.contains('open') ? sgn : (sheet.classList.contains('open') ? sheet : null); }
+function focusables(host){
+  var all=host.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select,textarea,[tabindex]:not([tabindex="-1"])');
+  var out=[];
+  all.forEach(function(el){
+    var st=getComputedStyle(el);
+    if(st.display==='none'||st.visibility==='hidden') return;
+    if(el.getClientRects().length) out.push(el);
+  });
+  return out;
+}
+function openSheet(v){
+  if(v && !sheet.classList.contains('open') && !sgn.classList.contains('open')){
+    sheetFocusBack=document.activeElement;
+    sheet.classList.add('open');
+    sheet.setAttribute('aria-hidden','false');
+    $('#burger').setAttribute('aria-expanded','true');
+    document.body.style.overflow='hidden';
+    var fs0=focusables(sheet);
+    if(fs0.length) fs0[0].focus();
+    var self=this;
+    setTimeout(function(){
+      if(sheet.classList.contains('open') && !sheet.contains(document.activeElement)){
+        var fsx=focusables(sheet);
+        if(fsx.length) fsx[0].focus();
+      }
+    }, 500);
+  } else if(!v){
+    sheet.classList.remove('open');
+    sheet.setAttribute('aria-hidden','true');
+    $('#burger').setAttribute('aria-expanded','false');
+    if(!sgn.classList.contains('open')) document.body.style.overflow='';
+    if(sheetFocusBack && sheetFocusBack.isConnected && !sgn.classList.contains('open')){
+      try{ sheetFocusBack.focus(); }catch(e){}
+    }
+    sheetFocusBack=null;
+  }
+}
+$('#burger').addEventListener('click', function(){
+  if(sheet.classList.contains('open')) openSheet(false); else openSheet(true);
+});
+$$('[data-close]').forEach(function(el){
+  el.addEventListener('click', function(){
+    if(sgn.classList.contains('open')) return;
+    openSheet(false);
+  });
+});
+addEventListener('keydown', function(e){
+  if(e.key==='Escape'){ if(sgn.classList.contains('open')) closeSignin(); else openSheet(false); return; }
+  if(e.key!=='Tab') return;
+  var host=modalOpen();
+  if(!host) return;
+  var f=focusables(host);
+  if(!f.length){ e.preventDefault(); return; }
+  var first=f[0], last=f[f.length-1];
+  if(e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
+  else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
+  else if(!host.contains(document.activeElement)){ e.preventDefault(); first.focus(); }
+});
+/* sign-in — honest placeholder while auth is invite-only */
+var sgn = document.getElementById('sgn');
+function openSignin(){
+  openSheet(false);
+  sgnFocusBack=document.activeElement;
+  sgn.classList.add('open');
+  sgn.setAttribute('aria-hidden','false');
+  document.body.style.overflow='hidden';
+  function sgnFocus(){
+    var f=sgn.querySelector('.sgn-pri');
+    if(f) f.focus();
+    else { var fs1=focusables(sgn); if(fs1.length) fs1[0].focus(); }
+  }
+  sgnFocus();
+  setTimeout(sgnFocus, 420);   /* after the fade, in case it was mid-transition */
+}
+function closeSignin(){
+  var was=sgn.classList.contains('open');
+  sgn.classList.remove('open');
+  sgn.setAttribute('aria-hidden','true');
+  if(!sheet.classList.contains('open')) document.body.style.overflow='';
+  if(was && sgnFocusBack && sgnFocusBack.isConnected && !sheet.classList.contains('open')){
+    try{ sgnFocusBack.focus(); }catch(e){}
+  }
+  sgnFocusBack=null;
+}
+$$('[data-open-signin]').forEach(function(b){ b.addEventListener('click', openSignin); });
+var sgnBg=sgn.querySelector('.sgn-bg'), sgnX=sgn.querySelector('.sgn-close');
+if(sgnBg) sgnBg.addEventListener('click', closeSignin);
+if(sgnX) sgnX.addEventListener('click', closeSignin);
+$$('[data-close-sgn]').forEach(function(b){ b.addEventListener('click', closeSignin); });
+$$('[data-sgn-pilot]').forEach(function(b){
+  b.addEventListener('click', function(){
+    closeSignin();
+    toast("Almost there — drop your email below and we'll set up your 14-day pilot");
+    var email=document.querySelector('.page.is-on .email');
+    if(email){ email.scrollIntoView({behavior:'smooth',block:'center'}); setTimeout(function(){ email.focus(); },650); }
+  });
+});
+
+/* ---------- palettes — ice-blue family, quiet, wintered ---------- */
+var PALETTES = [
+  {name:'ice',    a:199, s:62, l:52},
+  {name:'air',    a:207, s:50, l:55},
+  {name:'tide',   a:214, s:44, l:51},
+  {name:'frost',  a:196, s:70, l:58},
+  {name:'periwinkle', a:224, s:38, l:57},
+  {name:'moonlight',  a:219, s:26, l:58},
+  {name:'slate',  a:211, s:30, l:47},
+  {name:'haze',   a:202, s:36, l:63}
+];
+var recent=[], pageCount=0;
+var curPal = null;
+function setAccent(pal){
+  curPal = pal;
+  var th=currentTheme();
+  var s = pal.s, l = pal.l, ink, v1, v2;
+  if(th==='amoled'){ s=Math.round(pal.s*.8); l=Math.min(80, pal.l+19); ink=Math.min(88, l+10); v1=.04; v2=.02; }
+  else if(th==='dark'){ s=Math.round(pal.s*.82); l=Math.min(76, pal.l+17); ink=Math.min(88, l+11); v1=.10; v2=.06; }
+  else { ink = Math.max(28, pal.l-14); v1=.26; v2=.14; }
+  accent = hsl(pal.a, s, l);
+  var rs = document.documentElement.style;
+  rs.setProperty('--acc','hsl('+pal.a+' '+s+'% '+l+'%)');
+  rs.setProperty('--acc-ink','hsl('+pal.a+' '+Math.round(s*.7)+'% '+ink+'%)');
+  rs.setProperty('--acc-line','hsl('+pal.a+' '+s+'% '+l+'% / .35)');
+  rs.setProperty('--acc-wash','hsl('+pal.a+' '+s+'% '+l+'% / .10)');
+  rs.setProperty('--accC', accent.r+' '+accent.g+' '+accent.b);
+  var veil = document.getElementById('veil');
+  veil.style.background = 'radial-gradient(70vmax 44vmax at 14% -4%, hsla('+pal.a+','+Math.round(s*.55)+'%,'+Math.min(96,l+24)+'%,'+v1+'), transparent 70%),'+
+    'radial-gradient(60vmax 40vmax at 92% 106%, hsla('+pal.a+','+Math.round(s*.45)+'%,'+Math.min(96,l+30)+'%,'+v2+'), transparent 70%)';
+  $$('.pal-note b').forEach(function(n){ n.textContent = pal.name; });
+}
+function hsl(h,s,l){ h=(h%360+360)%360; var c=(1-Math.abs(2*l/100-1))*s/100, x=c*(1-Math.abs((h/60)%2-1)), m=l/100-c/2; var rgb; if(h<60)rgb=[c,x,0]; else if(h<120)rgb=[x,c,0]; else if(h<180)rgb=[0,c,x]; else if(h<240)rgb=[0,x,c]; else if(h<300)rgb=[x,0,c]; else rgb=[c,0,x]; return {r:Math.round((rgb[0]+m)*255),g:Math.round((rgb[1]+m)*255),b:Math.round((rgb[2]+m)*255)}; }
+
+/* ---------- skip link — focus the content without touching the router ---------- */
+$$('[data-skip]').forEach(function(b){
+  b.addEventListener('click', function(){
+    var m=document.getElementById('views');
+    if(!m) return;
+    m.setAttribute('tabindex','-1');
+    m.focus({preventScroll:true});
+    m.scrollIntoView();
+  });
+});
+/* ---------- appearance engine: daylight / evening / pure black ---------- */
+function currentTheme(){ var t=document.documentElement.getAttribute('data-theme'); return (t==='dark'||t==='amoled')?t:'light'; }
+var savedTheme=null; try{ savedTheme=localStorage.getItem('rv.theme'); }catch(e){}
+if(savedTheme!=='dark' && savedTheme!=='light' && savedTheme!=='amoled') savedTheme=(matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+document.documentElement.setAttribute('data-theme', savedTheme);
+function nextTheme(t){ return t==='light'?'dark':(t==='dark'?'amoled':'light'); }
+function themeWord(t){ return t==='light'?'light theme':(t==='dark'?'dark theme':'amoled theme'); }
+var pendingPal=null;
+function rethemePalette(){
+  if(pendingPal){ var p=pendingPal; pendingPal=null; setAccent(p); return; }
+  if(curPal) setAccent(curPal);
+}
+function updateThemeUI(){
+  var cur=currentTheme(), nxt=nextTheme(cur);
+  $$('[data-theme-toggle]').forEach(function(b){
+    b.setAttribute('aria-label','Switch to '+themeWord(nxt));
+    b.setAttribute('aria-pressed', cur!=='light'?'true':'false');
+    b.title='Daylight · Evening · Pure black';
+  });
+  $$('[data-theme-set]').forEach(function(b){
+    var on = b.getAttribute('data-theme-set')===cur;
+    b.setAttribute('aria-pressed', on?'true':'false');
+    if(b.getAttribute('role')==='menuitemradio') b.setAttribute('aria-checked', on?'true':'false');
+  });
+  $$('[data-theme-menu]').forEach(function(b){ b.title='Change theme'; b.setAttribute('aria-label','Change theme — currently '+themeWord(cur)); });
+}
+var pendingClear=false;
+function swapTheme(){
+  if(pendingClear){ pendingClear=false; clearSky(); }
+  applyPendingSky();
+  rethemePalette(); retuneSky(); updateThemeUI();
+  try{ localStorage.setItem('rv.theme', currentTheme()); }catch(e){}
+}
+var themeBusy=false;
+var LEAVE_TONE={light:'#f3ead6',dark:'#5A544B',amoled:'#000000'};
+function setTheme(t){
+  if(themeBusy || t===currentTheme()) return;
+  var tsw=document.getElementById('tsw');
+  if(REDUCED || !tsw){ document.documentElement.setAttribute('data-theme',t); swapTheme(); return; }
+  themeBusy=true;
+  tsw.style.backgroundColor = LEAVE_TONE[currentTheme()]||'#000';
+  tsw.style.transform='translateY(-102%)';
+  tsw.classList.add('run');
+  var t0=performance.now(), dur=1000, doneSwap=false, h=innerHeight;
+  var step=function(){
+    var p=Math.min(1,(performance.now()-t0)/dur);
+    var y;
+    if(p<.13) y=-1.02+(p/.13)*1.02;        /* cover */
+    else y=((p-.13)/.87)*1.02;             /* travel down */
+    tsw.style.transform='translateY('+(y*h)+'px)';
+    if(!doneSwap && y>=0){
+      doneSwap=true;
+      document.documentElement.setAttribute('data-theme',t);
+      swapTheme();
+    }
+    if(p<1) return true;
+    clearInterval(sweepIv);
+    tsw.classList.remove('run'); tsw.style.transform=''; tsw.style.backgroundColor='';
+    themeBusy=false; return false;
+  };
+  step();
+  var sweepIv=setInterval(step,16);
+}
+$$('[data-theme-toggle]').forEach(function(b){
+  b.addEventListener('click', function(){ setTheme(nextTheme(currentTheme())); });
+});
+$$('[data-theme-set]').forEach(function(b){
+  b.addEventListener('click', function(){ pendingClear=true; setTheme(b.getAttribute('data-theme-set')); if(pendingClear){ pendingClear=false; clearSky(); } closeThemeMenu(); });
+});
+
+/* ---------- random theme — a different mode plus a fresh accent ---------- */
+var THEME_IDS=['light','dark','amoled'];
+function hex2hsl(h){
+  var v=parseInt(h.slice(1),16), r=(v>>16&255)/255, g=(v>>8&255)/255, b=(v&255)/255;
+  var mx=Math.max(r,g,b), mn=Math.min(r,g,b), d=mx-mn, H=0, L=(mx+mn)/2;
+  var S=d===0?0:d/(1-Math.abs(2*L-1));
+  if(d){ H = mx===r ? 60*(((g-b)/d)%6) : mx===g ? 60*((b-r)/d+2) : 60*((r-g)/d+4); }
+  return {h:(H+360)%360, s:Math.round(S*100), l:Math.round(L*100)};
+}
+function skyIsDark(sk){
+  var sum=0; sk.stops.forEach(function(h){ sum+=skyLum(h); });
+  return (sum/sk.stops.length) < 0.34;
+}
+/* the accent comes out of the sky itself: the most chromatic stop that still
+   has enough life in it, nudged into the palette's usual range */
+function skyAccent(sk){
+  var best=null;
+  sk.stops.forEach(function(h){
+    var c=hex2hsl(h), score=c.s*(1-Math.abs(c.l-52)/100);
+    if(!best||score>best.score) best={score:score,c:c};
+  });
+  var c=best.c;
+  return {name:sk.name.toLowerCase(), a:Math.round(c.h), s:Math.max(24,Math.min(72,c.s||34)), l:Math.max(42,Math.min(64,c.l))};
+}
+function skyGradCSS(sk){ return 'linear-gradient(180deg in oklab,'+sk.stops.join(',')+')'; }
+function showSkyChip(sk){
+  var box=document.getElementById('tskynow'); if(!box) return;
+  box.hidden=false;
+  box.querySelector('[data-sky-name]').textContent=sk.name;
+  box.querySelector('[data-sky-en]').textContent=sk.kind+' gradient';
+  box.querySelector('[data-sky-dots]').innerHTML=sk.stops.map(function(h){ return '<i style="background:'+h+'"></i>'; }).join('');
+}
+var lastSkyId=null;
+function randomTheme(){
+  var pool=RANDOM_SKIES.filter(function(x){ return x.id!==lastSkyId; });
+  var sk=pick(pool.length?pool:RANDOM_SKIES);
+  lastSkyId=sk.id;
+  pendingSky=sk;                        /* both applied mid-sweep, behind the curtain */
+  pendingPal=skyAccent(sk);
+  var mode=skyIsDark(sk)?'dark':'light';
+  if(mode===currentTheme()){ applyPendingSky(); swapTheme(); }   /* no mode change — swap in place */
+  else setTheme(mode);
+  toast('Random sky — '+sk.name+' · '+sk.kind);
+  showSkyChip(sk);
+  return sk;
+}
+var pendingSky=null;
+function applyPendingSky(){
+  if(!pendingSky) return;
+  activeSky=pendingSky; pendingSky=null;
+  var rt=document.documentElement;
+  rt.classList.add('randsky');
+  rt.style.setProperty('--rand-grad', skyGradCSS(activeSky));
+  rt.setAttribute('data-sky', activeSky.id);
+  try{ localStorage.setItem('rv.sky', activeSky.id); }catch(e){}
+  skySyncRamp(); skyKick();
+}
+function clearSky(){
+  activeSky=null; pendingSky=null; lastSkyId=null;
+  var rt=document.documentElement;
+  rt.classList.remove('randsky'); rt.style.removeProperty('--rand-grad'); rt.removeAttribute('data-sky');
+  var box=document.getElementById('tskynow'); if(box) box.hidden=true;
+  try{ localStorage.removeItem('rv.sky'); }catch(e){}
+  skySyncRamp(); skyKick();
+}
+$$('[data-theme-random]').forEach(function(b){
+  b.addEventListener('click', function(){ randomTheme(); closeThemeMenu(); });
+});
+
+/* ---------- theme popover: curved box, text blurring into focus ---------- */
+var tmBtn=$('[data-theme-menu]'), tmMenu=$('#tmenu');
+function themeMenuOpen(){ return !!(tmMenu && tmMenu.classList.contains('open')); }
+function openThemeMenu(){
+  if(!tmMenu) return;
+  tmMenu.classList.add('open');
+  tmBtn.setAttribute('aria-expanded','true');
+  var f=tmMenu.querySelector('[aria-checked="true"]')||tmMenu.querySelector('.tmenu-i');
+  setTimeout(function(){ if(themeMenuOpen() && f) f.focus({preventScroll:true}); }, 240);
+}
+function closeThemeMenu(refocus){
+  if(!tmMenu) return;
+  tmMenu.classList.remove('open');
+  if(tmBtn){ tmBtn.setAttribute('aria-expanded','false'); if(refocus) tmBtn.focus({preventScroll:true}); }
+}
+if(tmBtn && tmMenu){
+  tmBtn.addEventListener('click', function(e){
+    e.stopPropagation();
+    themeMenuOpen() ? closeThemeMenu() : openThemeMenu();
+  });
+  tmMenu.addEventListener('click', function(e){ e.stopPropagation(); });
+  document.addEventListener('click', function(){ if(themeMenuOpen()) closeThemeMenu(); });
+  document.addEventListener('keydown', function(e){
+    if(!themeMenuOpen()) return;
+    var items=Array.from(tmMenu.querySelectorAll('.tmenu-i'));
+    var i=items.indexOf(document.activeElement);
+    if(e.key==='Escape'){ e.preventDefault(); closeThemeMenu(true); }
+    else if(e.key==='ArrowDown'){ e.preventDefault(); items[(i+1+items.length)%items.length].focus(); }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); items[(i-1+items.length)%items.length].focus(); }
+    else if(e.key==='Tab'){ closeThemeMenu(); }
+  });
+  addEventListener('scroll', function(){ if(themeMenuOpen()) closeThemeMenu(); }, {passive:true});
+}
+updateThemeUI();
+
+/* Skies: light = exact WebGL blue sky (module below) over a CSS fallback — dark = pure-CSS aurora (#gradbg). */
+
+/* ---------- scroll wind — the world outside answers your movement ----------
+   While you scroll, fog drifts a little faster and snow falls with more purpose;
+   a beat after you stop, the scene settles back to its idle calm. Only the sky
+   layer moves — the room never does. Decay is real-time, inside the frame loop,
+   so the world is guaranteed to return to rest. */
+var gust=1, gustT=1, gLastY=scrollY, gLastEvent=0, gPrevT=0;
+if(!REDUCED){
+  addEventListener('scroll', function(){
+    var now=performance.now(), dy=Math.abs(scrollY-gLastY), gap=now-(gLastEvent||0);
+    gLastY=scrollY; gLastEvent=now;
+    if(dy<2) return;
+    var cap=ECO?1.20:1.55;
+    if(gap>280) gustT = 1 + Math.min(1.2, dy/700);     /* a new gesture */
+    else        gustT = Math.min(cap, gustT + dy/1100);  /* sustained motion */
+  }, {passive:true});
+}
+function stepGust(now){
+  if(REDUCED || !gLastEvent) return;
+  if(now-gLastEvent>600) gustT=1;                        /* rest → settle */
+  var real=Math.min(2, (now-(gPrevT||now))/1000);
+  gPrevT=now;
+  gust += (gustT-gust)*(1-Math.exp(-real*5));
+  if(gust<1.001) gust=1;
+}
+
+/* ============================================================
+   FeralUI SKY — exact day + night skies
+   Daylight: #E6F2FF/#B3D9FF/#80B3FF/#6699E6 · Dark (FeralUI Sooty Bamboo / Quiet Pewter): #5A544B/#C4C6C9/#5A544B/#55585E
+   Both: flow 100/100/100/dir 0, speed 100->50 user-tuned (clock: t += 0.6 * dt, t0 20.75).
+   Same WebGL sky shader + ramp math as FeralUI; one canvas, ramp re-uploaded
+   on theme switch (FeralUI's rampKey pattern). SKY ignores share-link grain —
+   the shader bakes its own (GRAIN_SCALE 2.5 / STRENGTH 0.014).
+   Drifts in light + dark · rests in AMOLED.
+   (No WebGL? .nosky hides the canvas; the CSS gradient shows.)
+   ============================================================ */
+var skyCv=document.getElementById('bluesky'), skyGL=null, skyOK=false;
+try{ skyGL=skyCv.getContext('webgl2',{antialias:false,depth:false,stencil:false,alpha:false})||skyCv.getContext('webgl',{antialias:false,depth:false,stencil:false,alpha:false})||skyCv.getContext('experimental-webgl'); }catch(e){ skyGL=null; }
+var SKY_VERT="attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}";
+var SKY_FRAG=`precision highp float;
+uniform vec2 u_res;
+uniform float u_t;
+uniform vec3 u_main;
+uniform vec3 u_low;
+uniform vec3 u_mid;
+uniform vec3 u_high;
+uniform float u_wind;   // wind speed
+uniform float u_warp;   // warp power
+uniform float u_nscale; // noise scale
+uniform sampler2D u_noise;
+
+const float FBM_STRENGTH = 0.912;
+const float BLUR_RADIUS = 1.2673;
+const float ZOOM = 0.3971;
+const float GRAIN_SCALE = 2.5;
+const float GRAIN_STRENGTH = 0.014;
+
+vec3 burn(vec3 base, vec3 blend, float op){
+  return max(base + blend - vec3(1.0), vec3(0.0))*op + base*(1.0-op);
+}
+float rand2(vec2 n){ return fract(sin(dot(n, vec2(12.9898, 4.1414)))*43758.5453); }
+float noise2(vec2 p){
+  vec2 ip = floor(p); vec2 u = fract(p);
+  u = u*u*(3.0-2.0*u);
+  float m = mix(mix(rand2(ip), rand2(ip+vec2(1.,0.)), u.x), mix(rand2(ip+vec2(0.,1.)), rand2(ip+vec2(1.,1.)), u.x), u.y);
+  return m*m;
+}
+float fbm4(vec2 x){
+  float v = 0.0; float a = 0.5;
+  vec2 shift = vec2(100.0);
+  mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.5));
+  for (int i = 0; i < 4; i++) { v += a*noise2(x); x = rot*x*2.0 + shift; a *= 0.5; }
+  return v;
+}
+vec4 permute4(vec4 x){ return mod((x*34.0 + 1.0)*x, 289.0); }
+vec4 tisqrt(vec4 r){ return 1.79284291400159 - 0.85373472095314*r; }
+vec3 fade3(vec3 t){ return t*t*t*(t*(t*6.0-15.0)+10.0); }
+float cnoise(vec3 P){
+  vec3 Pi0 = floor(P); vec3 Pi1 = Pi0 + vec3(1.0);
+  Pi0 = mod(Pi0, 289.0); Pi1 = mod(Pi1, 289.0);
+  vec3 Pf0 = fract(P); vec3 Pf1 = Pf0 - vec3(1.0);
+  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);
+  vec4 iy = vec4(Pi0.yy, Pi1.yy);
+  vec4 iz0 = vec4(Pi0.z); vec4 iz1 = vec4(Pi1.z);
+  vec4 ixy = permute4(permute4(ix) + iy);
+  vec4 ixy0 = permute4(ixy + iz0); vec4 ixy1 = permute4(ixy + iz1);
+  vec4 gx0 = ixy0/7.0; vec4 gy0 = fract(floor(gx0)/7.0) - 0.5; gx0 = fract(gx0);
+  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0); vec4 sz0 = step(gz0, vec4(0.0));
+  gx0 -= sz0*(step(vec4(0.0), gx0) - 0.5); gy0 -= sz0*(step(vec4(0.0), gy0) - 0.5);
+  vec4 gx1 = ixy1/7.0; vec4 gy1 = fract(floor(gx1)/7.0) - 0.5; gx1 = fract(gx1);
+  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1); vec4 sz1 = step(gz1, vec4(0.0));
+  gx1 -= sz1*(step(vec4(0.0), gx1) - 0.5); gy1 -= sz1*(step(vec4(0.0), gy1) - 0.5);
+  vec3 g000 = vec3(gx0.x, gy0.x, gz0.x); vec3 g100 = vec3(gx0.y, gy0.y, gz0.y);
+  vec3 g010 = vec3(gx0.z, gy0.z, gz0.z); vec3 g110 = vec3(gx0.w, gy0.w, gz0.w);
+  vec3 g001 = vec3(gx1.x, gy1.x, gz1.x); vec3 g101 = vec3(gx1.y, gy1.y, gz1.y);
+  vec3 g011 = vec3(gx1.z, gy1.z, gz1.z); vec3 g111 = vec3(gx1.w, gy1.w, gz1.w);
+  vec4 n0 = tisqrt(vec4(dot(g000,g000), dot(g010,g010), dot(g100,g100), dot(g110,g110)));
+  g000 *= n0.x; g010 *= n0.y; g100 *= n0.z; g110 *= n0.w;
+  vec4 n1 = tisqrt(vec4(dot(g001,g001), dot(g011,g011), dot(g101,g101), dot(g111,g111)));
+  g001 *= n1.x; g011 *= n1.y; g101 *= n1.z; g111 *= n1.w;
+  float n000 = dot(g000, Pf0); float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));
+  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z)); float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));
+  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z)); float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));
+  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz)); float n111 = dot(g111, Pf1);
+  vec3 fx = fade3(Pf0);
+  vec4 nz = mix(vec4(n000,n100,n010,n110), vec4(n001,n101,n011,n111), fx.z);
+  vec2 ny = mix(nz.xy, nz.zw, fx.y);
+  return 2.2*mix(ny.x, ny.y, fx.x);
+}
+uniform vec2 u_dirv; // (cos, sin) of the direction quarter-turn
+void main(){
+  vec2 st = gl_FragCoord.xy/u_res - 0.5;
+  st.x *= u_res.x/u_res.y;
+  st = mat2(u_dirv.x, u_dirv.y, -u_dirv.y, u_dirv.x)*st;
+  float time = u_t*0.85;
+  vec2 uv = st*(1.0/(2.0*ZOOM)) + 0.5;
+  // gl_FragCoord runs bottom-up, so the source's y flip is already this way up
+  float noiseX = cnoise(vec3(uv*u_nscale + vec2(0.0, 74.8572), time*0.3));
+  float noiseY = cnoise(vec3(uv*u_nscale + vec2(203.91282, 10.0), time*0.3));
+  uv += vec2(noiseX*2.0, noiseY)*u_warp;
+  float noiseA = cnoise(vec3(uv*18.0 + vec2(344.91282, 0.0), time*0.3))
+               + cnoise(vec3(uv*39.6 + vec2(723.937, 0.0), time*0.4))*0.5;
+  uv += noiseA*0.02;
+  uv.y -= 0.09;
+  float xf = (sin(time) + 1.0)*0.5;
+  vec2 texUv = uv*GRAIN_SCALE;
+  float d0 = mix(texture2D(u_noise, texUv).r - 0.5, texture2D(u_noise, vec2(texUv.x, 1.0-texUv.y)).g - 0.5, xf)*GRAIN_STRENGTH;
+  texUv += vec2(63.861, 368.937);
+  float d1 = mix(texture2D(u_noise, texUv).r - 0.5, texture2D(u_noise, vec2(texUv.x, 1.0-texUv.y)).g - 0.5, xf)*GRAIN_STRENGTH;
+  texUv += vec2(453.163, 1649.808);
+  float d3 = mix(texture2D(u_noise, texUv).r - 0.5, texture2D(u_noise, vec2(texUv.x, 1.0-texUv.y)).g - 0.5, xf)*GRAIN_STRENGTH;
+  uv += d0;
+  vec2 stF = uv*u_nscale;
+  vec2 q = vec2(fbm4(stF*0.5 + u_wind*time));
+  vec2 r = vec2(fbm4(stF + q + vec2(0.3, 9.2) + 0.15*time), fbm4(stF + q + vec2(8.3, 0.8) + 0.126*time));
+  float fv = fbm4(stF + r - q);
+  float full = (fv + 0.6*fv*fv + 0.7*fv + 0.5)*0.5;
+  full = pow(full, 0.55)*FBM_STRENGTH;
+  float blurR = BLUR_RADIUS*1.5;
+  vec2 uvA = uv + vec2((full-0.5)*1.2) + vec2(0.0, 0.025) + d0;
+  float snA = noise2(uvA*2.0 + vec2(0.0, time*0.5))*3.0;
+  float lA = pow(smoothstep(snA - 1.2*blurR, snA + 1.2*blurR, (uvA.y - 0.5)*5.0 + 0.5), 0.8);
+  vec2 uvB = uv + vec2((full-0.5)*0.85) + vec2(0.0, 0.025) + d1;
+  float snB = noise2(uvB*4.0 + vec2(293.0, time))*2.8;
+  float lB = pow(smoothstep(snB - 0.9*blurR, snB + 0.9*blurR, (uvB.y - 0.6)*5.0 + 0.5), 0.9);
+  vec2 uvC = uv + vec2((full-0.5)*1.1) + d3;
+  float snC = noise2(uvC*6.0 + vec2(153.0, time*1.2))*2.6;
+  float lC = smoothstep(snC - 0.7*blurR, snC + 0.7*blurR, (uvC.y - 0.9)*6.0 + 0.5);
+  vec3 col = burn(u_main, u_low, 1.0 - lA);
+  col = burn(col, mix(u_main, u_mid, 1.0 - lB), lA);
+  col = mix(col, mix(u_main, u_high, 1.0 - lC), lA*lB);
+  gl_FragColor = vec4(col, 1.0);
+}`;
+var SKY_DAY=["#E6F2FF","#B3D9FF","#80B3FF","#6699E6"];
+/* Dark mode sky — FeralUI "Sooty Bamboo / Quiet Pewter" SKY recipe
+   #5A544B · #C4C6C9 · #5A544B · #55585E · scale 100 · distortion 0 · swirl 100 · speed 24 */
+var SKY_NIGHT=["#5A544B","#C4C6C9","#5A544B","#55585E"];
+var SKY_FLOW={scale:100,distortion:100,swirl:100,dir:0};
+var SKY_FLOW_NIGHT={scale:100,distortion:0,swirl:100,dir:0};
+function skyFlow(){ if(activeSky) return {scale:activeSky.flow.scale,distortion:activeSky.flow.distortion,swirl:activeSky.flow.swirl,dir:0}; return document.documentElement.getAttribute('data-theme')==='dark'?SKY_FLOW_NIGHT:SKY_FLOW; }
+function skySpeed(){ if(activeSky) return activeSky.speed/100*1.2; return document.documentElement.getAttribute('data-theme')==='dark'?(24/100*1.2):(50/100*1.2); }
+var SKY_T0=20.75, SKY_SPD=50/100*1.2; /* light: recipe speed 100, tuned to 50% */
+function skyHx(h){ var v=parseInt(h.slice(1),16); return [v>>16&255,v>>8&255,v&255]; }
+function skyLum(h){ var c=skyHx(h); var f=function(x){ x/=255; return x<=.03928?x/12.92:Math.pow((x+.055)/1.055,2.4); }; return .2126*f(c[0])+.7152*f(c[1])+.0722*f(c[2]); }
+function skyRamp(stops){
+  var t=stops.slice().sort(function(a,b){ return skyLum(b)-skyLum(a); });
+  var n=t.length, f=function(h){ return skyHx(h).map(function(x){ return x/255; }); };
+  return {high:f(t[0]),main:f(t[Math.min(1,n-1)]),mid:f(t[Math.min(2,n-1)]),low:f(t[n-1])};
+}
+var skyU=null, skyKey='';
+/* ============================================================
+   RANDOM SKIES — FeralUI recipes, decoded from the shared links.
+   Each carries its stops, flow field and speed.
+   ============================================================ */
+var RANDOM_SKIES=[{"id":"iridescent-cloud","name":"Iridescent cloud","kind":"flowing","stops":["#EAF4FC","#1E50A2","#F09199","#895B8A"],"flow":{"scale":60,"distortion":50,"swirl":50},"speed":30},{"id":"opal","name":"Opal","kind":"flowing","stops":["#F6F9FF","#9BE0E8","#C4B5F7","#F8B8D9"],"flow":{"scale":52,"distortion":46,"swirl":8},"speed":24},{"id":"morning-haze","name":"Morning haze","kind":"columns","stops":["#FBF3E7","#F4B3C2","#B28FCE","#5654A2"],"flow":{"scale":60,"distortion":50,"swirl":50},"speed":30},{"id":"midnight-blue","name":"Midnight blue","kind":"silk","stops":["#02030A","#070D24","#101F4E","#1F3C8E","#4A6FD4","#B7CDFF"],"flow":{"scale":50,"distortion":62,"swirl":68},"speed":30},{"id":"ink-satin","name":"Ink satin","kind":"silk","stops":["#08080A","#1B1C21","#37393F","#5C5F66","#94989F","#E6E8EA"],"flow":{"scale":50,"distortion":64,"swirl":72},"speed":30},{"id":"glacier-silk","name":"Glacier silk","kind":"silk","stops":["#3E6376","#6E9CAF","#A2C8D8","#CBE6EF","#E9F7FB","#FDFFFF"],"flow":{"scale":50,"distortion":55,"swirl":76},"speed":30},{"id":"midnight-gold","name":"Midnight gold","kind":"silk","stops":["#040B16","#0A1E33","#123A50","#20596B","#3E8A87","#F2D9A0"],"flow":{"scale":50,"distortion":62,"swirl":70},"speed":30},{"id":"soundwave","name":"Soundwave","kind":"bars","stops":["#121519","#22406F","#345CB5","#3480D8","#34B2D7","#A8F0C8"],"flow":{"scale":60,"distortion":50,"swirl":50},"speed":30},{"id":"ice-pillars","name":"Ice pillars","kind":"prism","stops":["#123A8C","#3E7BD6","#9BC4F2","#EAF4FF"],"flow":{"scale":60,"distortion":50,"swirl":50},"speed":30},{"id":"gradient","name":"Gradient","kind":"glassy","stops":["#4C6CB3","#1E50A2","#181B3A","#C7F3E9","#EFF5F2"],"flow":{"scale":60,"distortion":50,"swirl":50},"speed":30}];
+var activeSky=null;                       /* null = the theme's own sky */
+function skyStops(){
+  if(activeSky) return activeSky.stops;
+  return document.documentElement.getAttribute('data-theme')==='dark'?SKY_NIGHT:SKY_DAY;
+}
+function skySyncRamp(){
+  if(!skyGL||!skyU) return;
+  var key=skyStops().join(',')+'|'+JSON.stringify(skyFlow());
+  if(key===skyKey) return;
+  skyKey=key;
+  var gl=skyGL, C=skyRamp(skyStops());
+  gl.uniform3f(skyU.main,C.main[0],C.main[1],C.main[2]);
+  gl.uniform3f(skyU.low,C.low[0],C.low[1],C.low[2]);
+  gl.uniform3f(skyU.mid,C.mid[0],C.mid[1],C.mid[2]);
+  gl.uniform3f(skyU.high,C.high[0],C.high[1],C.high[2]);
+  skySyncFlow();
+}
+function skySyncFlow(){
+  if(!skyGL||!skyU) return;
+  var gl=skyGL, F=skyFlow();
+  gl.uniform1f(skyU.nscale,.35+F.scale/100*1.15);
+  gl.uniform1f(skyU.warp,F.distortion/100*.47);
+  gl.uniform1f(skyU.wind,F.swirl/100*.36);
+  var g=(F.dir%4)*(Math.PI/2);
+  gl.uniform2f(skyU.dirv,Math.cos(g),Math.sin(g));
+}
+function skyInit(){
+  if(!skyGL) return false;
+  var gl=skyGL;
+  function sh(type,src){ var s=gl.createShader(type); gl.shaderSource(s,src); gl.compileShader(s); return s; }
+  var prog=gl.createProgram();
+  gl.attachShader(prog,sh(gl.VERTEX_SHADER,SKY_VERT));
+  gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,SKY_FRAG));
+  gl.bindAttribLocation(prog,0,"p");
+  gl.linkProgram(prog);
+  if(!gl.getProgramParameter(prog,gl.LINK_STATUS)) return false;
+  gl.useProgram(prog);
+  gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
+  var tex=gl.createTexture(), nz=new Uint8Array(256*256*4), c;
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D,tex);
+  for(c=0;c<256*256;c++){ var d=Math.random()*256|0; nz[c*4]=d; nz[c*4+1]=d; nz[c*4+2]=d; nz[c*4+3]=255; }
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,256,256,0,gl.RGBA,gl.UNSIGNED_BYTE,nz);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.REPEAT);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.REPEAT);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  gl.uniform1i(gl.getUniformLocation(prog,"u_noise"),0);
+  function U(x){ return gl.getUniformLocation(prog,x); }
+  skyU={res:U("u_res"),t:U("u_t"),main:U("u_main"),low:U("u_low"),mid:U("u_mid"),high:U("u_high"),wind:U("u_wind"),warp:U("u_warp"),nscale:U("u_nscale"),dirv:U("u_dirv")};
+  skySyncRamp();
+  return true;
+}
+skyOK=skyInit();
+if(!skyOK){ document.documentElement.classList.add('nosky'); }
+var skyT=SKY_T0, skyRaf=0, skyLast=0;
+function skySize(){
+  var sc=Math.min(window.devicePixelRatio||1,1.5)*(isEco()?.6:1);
+  var w=Math.max(2,Math.round(innerWidth*sc)), h=Math.max(2,Math.round(innerHeight*sc));
+  if(skyCv.width!==w||skyCv.height!==h){ skyCv.width=w; skyCv.height=h; }
+}
+function skyDraw(){
+  var gl=skyGL, f=skyU;
+  gl.viewport(0,0,skyCv.width,skyCv.height);
+  gl.uniform2f(f.res,skyCv.width,skyCv.height);
+  gl.uniform1f(f.t,skyT);
+  gl.drawArrays(gl.TRIANGLES,0,3);
+}
+function skyWants(){ return skyOK && (activeSky||currentTheme()==='light'||currentTheme()==='dark') && !document.hidden; }
+function skyFrame(now){
+  skyRaf=0;
+  if(!skyWants()||isEco()) return;
+  var dt=Math.min(.05,(now-(skyLast||now))/1000||.016); skyLast=now;
+  skyT+=skySpeed()*dt;
+  skySize(); skyDraw();
+  skyRaf=requestAnimationFrame(skyFrame);
+}
+function skyKick(){
+  if(!skyOK||skyRaf||!skyWants()) return;
+  if(REDUCED||isEco()){ skySize(); skyDraw(); return; }
+  skyLast=performance.now();
+  skyRaf=requestAnimationFrame(skyFrame);
+}
+addEventListener('resize',function(){ if(!skyOK) return; if(REDUCED||isEco()){ if(skyWants()){ skySize(); skyDraw(); } } else skySize(); });
+document.addEventListener('visibilitychange',function(){ skyLast=performance.now(); skyKick(); });
+new MutationObserver(function(){ skySyncRamp(); skyKick(); }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme','class']});
+/* restore a random sky chosen in a previous visit */
+(function(){
+  var id=null; try{ id=localStorage.getItem('rv.sky'); }catch(e){}
+  if(!id) return;
+  var sk=RANDOM_SKIES.filter(function(x){ return x.id===id; })[0];
+  if(!sk) return;
+  lastSkyId=sk.id; pendingSky=sk; applyPendingSky();
+  setAccent(skyAccent(sk)); showSkyChip(sk);
+})();
+if(skyOK){ skySize(); skyDraw(); skyKick(); }
+
+/* ---------- router ---------- */
+var VIEWS={home:'#pg-home',product:'#pg-product',pricing:'#pg-pricing'};
+function currentPage(){ var h=location.hash.replace(/^#\/?/,''); return VIEWS[h]?h:'home'; }
+function activate(name){
+  var page=$(VIEWS[name]); if(!page) return;
+  var pool=PALETTES.filter(function(p){return recent.indexOf(p)<0;});
+  if(!pool.length) pool=PALETTES.slice();
+  var pal=pick(pool); recent.push(pal); if(recent.length>3) recent.shift();
+  pageCount++; setAccent(pal);
+  $$('.page').forEach(function(p){p.classList.remove('is-on');});
+  page.classList.add('is-on');
+  page.classList.remove('pageIn'); void page.offsetWidth; page.classList.add('pageIn');
+  $$('[data-nav]').forEach(function(a){
+    var cur=a.dataset.nav===name;
+    a.classList.toggle('on', cur);
+    if(cur) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current');
+  });
+  document.title = PAGE_TITLES[name]||'Revessent';
+  scrollTo(0,0);
+  page.querySelectorAll('.rv').forEach(function(el){ el.classList.remove('in'); el.style.transitionDelay=''; io.observe(el); });
+  resetSim(false);
+}
+addEventListener('hashchange', function(){ activate(currentPage()); openSheet(false); });
+
+/* ---------- reveal — one calm choreography ----------
+   Every .rv rests a breath below, softly out of focus; on entering the
+   viewport it rises, sharpens and settles, once. data-d places it in
+   its row's sequence (left → right); pace below varies by family so
+   each section keeps its own character. Revealed means it stays. */
+var RV_BASE=30;                  /* ms before the row's first element moves */
+var io=new IntersectionObserver(function(es){
+  es.forEach(function(e){ if(e.isIntersecting) reveal(e.target); });
+},{threshold:.14,rootMargin:'0px 0px -4% 0px'});
+function rvPace(el){
+  var c=el.className||'';
+  if(c.indexOf('wf-step')>-1)  return 105; /* the five-move sequence      */
+  if(c.indexOf('panel')>-1)    return 120; /* large surfaces breathe       */
+  if(c.indexOf('band-cell')>-1||c.indexOf('kpi')>-1||c.indexOf('faq-item')>-1) return 60;
+  if(c.indexOf('feat')>-1||c.indexOf('plan')>-1) return 75;
+  return 95;                               /* hero + headings              */
+}
+function rvDelay(el){
+  var d=parseInt(el.getAttribute('data-d')||'',10);
+  if(isNaN(d)||d<1) return 0;
+  return Math.min(720, RV_BASE+d*rvPace(el));
+}
+function reveal(el){
+  if(el.classList.contains('in')) return;
+  io.unobserve(el);
+  var del=REDUCED?0:rvDelay(el);
+  if(del){
+    el.style.transitionDelay=del+'ms';
+    setTimeout(function(){ el.classList.add('in'); }, 20);
+    /* drop the inline delay once the journey is over, so hover & focus
+       transitions stay as snappy as ever afterwards */
+    setTimeout(function(){ if(el.classList.contains('in')) el.style.transitionDelay=''; }, del+1500);
+  } else {
+    el.classList.add('in');
+  }
+  el.querySelectorAll('.cnt').forEach(count);
+  if(el.classList.contains('cnt')) count(el);
+}
+function count(el){
+  if(el.dataset.done) return; el.dataset.done='1';
+  var target=parseFloat(el.dataset.count||'0'), dec=parseInt(el.dataset.dec||'0',10);
+  var pre=el.dataset.prefix||'', suf=el.dataset.suffix||'';
+  var fmt=function(v){ return pre+v.toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec})+suf; };
+  var t0=performance.now(), dur=1400;
+  (function tick(now){
+    var k=Math.min(1,(now-t0)/dur), e=1-Math.pow(2,-10*k);
+    el.textContent = fmt(target*(k<1?e:1));
+    if(k<1) requestAnimationFrame(tick);
+  })(t0);
+}
+
+/* ---------- depth — a whisper of parallax on the large surfaces ----------
+   The hero dashboard and the widest product panels sit a touch deeper:
+   a gentle ±4–9px drift tied to their place in the viewport, like pages
+   at different distances behind the glass. Fine pointers, wide screens,
+   no reduced motion, no effect on touch. */
+var depthOK = FINE && !REDUCED && !COARSE && (function(){ try{ return CSS.supports('translate','1px'); }catch(e){ return false; } })();
+var depthEls=[], depthRAF=null;
+function depthBind(){
+  depthEls = (depthOK && innerWidth>=981)
+    ? $$('.rv.hw, .rv.panel.wide, .rv.sim-stage')
+    : [];
+}
+function depthFrame(){
+  depthRAF=null;
+  if(!depthOK || document.documentElement.classList.contains('eco')) return;
+  var vh=innerHeight||1;
+  for(var i=0;i<depthEls.length;i++){
+    var el=depthEls[i], r=el.getBoundingClientRect();
+    if(!r.width){ el.style.translate=''; continue; }
+    var p=clamp((r.top+r.height/2-vh/2)/vh,-1,1);
+    var amp=el.classList.contains('hw')?5:3;
+    el.style.translate='0px '+(-p*amp).toFixed(2)+'px';
+  }
+}
+function depthTick(){ if(!depthRAF) depthRAF=requestAnimationFrame(depthFrame); }
+if(depthOK){
+  depthBind();
+  addEventListener('scroll', depthTick, {passive:true});
+  addEventListener('resize', function(){ depthBind(); depthTick(); });
+  depthTick();
+}
+
+/* ---------- cursor: refraction + light, only where it matters ---------- */
+if(FINE && !REDUCED){
+  addEventListener('pointermove', function(e){
+    parT.x = clamp((e.clientX/innerWidth-.5)*2,-1,1);
+    parT.y = clamp((e.clientY/innerHeight-.5)*2,-1,1);
+    $$('[data-spot]').forEach(function(card){
+      var r=card.getBoundingClientRect();
+      if(e.clientX<r.left-80||e.clientX>r.right+80||e.clientY<r.top-80||e.clientY>r.bottom+80) return;
+      card.style.setProperty('--mx',(e.clientX-r.left)+'px');
+      card.style.setProperty('--my',(e.clientY-r.top)+'px');
+    });
+  },{passive:true});
+} else if(COARSE){
+  $$('[data-spot]').forEach(function(c){ var hl=c.querySelector('.hl'); if(hl) hl.classList.add('hl-touch'); });
+}
+
+/* ---------- simulation ---------- */
+var simTimers=[];
+function cancelSim(){ simTimers.forEach(clearTimeout); simTimers=[]; resetSim(false); }
+function resetSim(){
+  var win=$('#simWin'),btn=$('#simBtn'); if(!win)return;
+  win.classList.remove('show');
+  if(btn){ btn.disabled=false; btn.innerHTML='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>Simulate a recovery'; }
+  $$('#simStage .sim-row').forEach(function(r){
+    r.classList.remove('doing','done');
+    var st=r.querySelector('.st'); if(st) st.textContent='queued';
+  });
+}
+function runSim(){
+  cancelSim();
+  var rows=$$('#simStage .sim-row'), btn=$('#simBtn');
+  btn.disabled=true;
+  btn.innerHTML='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>Recovery in progress…';
+  rows.forEach(function(r,i){
+    simTimers.push(setTimeout(function(){
+      if(i>0) rows[i-1].classList.remove('doing');
+      if(i>0){ var st=rows[i-1].querySelector('.st'); if(st) st.textContent=STAGE_LABEL[i-1]; }
+      rows[i].classList.add('done','doing');
+      var st=rows[i].querySelector('.st'); if(st) st.textContent='working…';
+    },400+i*1600));
+  });
+  simTimers.push(setTimeout(function(){
+    var last=rows[rows.length-1]; if(last){ last.classList.remove('doing'); var lst=last.querySelector('.st'); if(lst) lst.textContent='recovered'; }
+    $('#simWin').classList.add('show');
+    btn.disabled=false;
+    btn.innerHTML='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>Run it again';
+    toast('Recovery complete — $184 recovered · Zoe Park stays');
+  },400+rows.length*1600+300));
+}
+var STAGE_LABEL=['detected','decided','retried','recovered'];
+$$('[data-action="sim"]').forEach(function(b){ b.addEventListener('click', runSim); });
+
+/* ---------- intelligence decisions ---------- */
+$$('[data-action="intel-approve"]').forEach(function(b){
+  b.addEventListener('click', function(){
+    var box=b.closest('.rec');
+    box.querySelectorAll('button').forEach(function(x){ x.disabled=true; });
+    b.textContent='Approved · retry set';
+    b.style.background='var(--acc-wash)'; b.style.border='1px solid var(--acc-line)'; b.style.color='var(--acc-ink)'; b.style.boxShadow='none';
+    toast('Approved — retry scheduled for tomorrow at 9:40 AM local. Nothing has been sent to Maya.');
+  });
+});
+$$('[data-action="intel-review"]').forEach(function(b){
+  b.addEventListener('click', function(){
+    var box=b.closest('.rec');
+    box.querySelectorAll('button').forEach(function(x){ x.disabled=true; });
+    b.textContent='Opened for review';
+    b.style.background='rgb(var(--cc)/.6)'; b.style.border='1px solid var(--acc-line)'; b.style.color='var(--acc-ink)';
+    toast('Sent to review — nothing scheduled, nothing sent.');
+  });
+});
+/* ---------- the reasoning trail ---------- */
+$$('[data-rec-why]').forEach(function(b){
+  b.addEventListener('click', function(){
+    var t=document.getElementById(b.getAttribute('aria-controls'));
+    if(!t) return;
+    var opening=t.hidden;
+    t.hidden=false;
+    if(opening){ t.classList.remove('show'); void t.offsetWidth; t.classList.add('show'); }
+    else { t.hidden=true; }
+    b.setAttribute('aria-expanded', String(!t.hidden));
+  });
+});
+
+/* ---------- approve moments ---------- */
+$$('[data-action="approve"]').forEach(function(b){
+  b.addEventListener('click', function(){
+    var mom=b.closest('.moment'), who=b.dataset.who, amt=b.dataset.amt, arr=b.dataset.arr;
+    b.disabled=true; b.textContent='Sent \u2713';
+    b.style.background='var(--acc-wash)'; b.style.border='1px solid var(--acc-line)'; b.style.color='var(--acc-ink)'; b.style.boxShadow='none';
+    var pot=mom.querySelector('.pot');
+    if(pot) pot.innerHTML='<b>'+amt+' &middot; sent</b><small>annualized +$'+arr+'/yr</small>';
+    toast('Pitch approved — '+who+' will see a gentle upgrade card at next login ('+amt+')');
+  });
+});
+
+/* ---------- faq ---------- */
+$$('.faq-q').forEach(function(q){
+  q.addEventListener('click', function(){
+    var item=q.closest('.faq-item'), open=item.classList.contains('open');
+    $$('.faq-item.open').forEach(function(i){ i.classList.remove('open'); });
+    if(!open) item.classList.add('open');
+  });
+});
+
+/* ---------- annual toggle ---------- */
+var sw=$('#sw');
+function syncToggle(){
+  var an=sw.getAttribute('aria-checked')==='true';
+  $('#labMo').classList.toggle('act',!an); $('#labAn').classList.toggle('act',an);
+  $$('[data-price-a]').forEach(function(n){
+    var base=an?parseFloat(n.dataset.priceA):parseFloat(n.dataset.price);
+    n.textContent=base.toLocaleString('en-US');
+  });
+}
+sw.addEventListener('click', function(){
+  sw.setAttribute('aria-checked', sw.getAttribute('aria-checked')==='true'?'false':'true');
+  syncToggle();
+});
+
+/* ---------- forms ---------- */
+$$('form[data-form]').forEach(function(f){
+  f.addEventListener('submit', function(e){
+    e.preventDefault();
+    var mail=f.querySelector('input[type=email]'), v=(mail.value||'').trim();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){
+      mail.focus(); mail.style.borderColor='var(--err)';
+      setTimeout(function(){ mail.style.borderColor=''; },900);
+      return;
+    }
+    var chip=document.createElement('span'); chip.className='pill';
+    chip.style.cssText='background:rgb(var(--cc)/.6);border:1px solid var(--edge);padding:13px 22px;font-size:14px;justify-content:center';
+    var dot=document.createElement('span'); dot.className='pdot';
+    chip.appendChild(dot);
+    chip.appendChild(document.createTextNode("You're on the list — Revessent will write to you within a day."));
+    f.replaceChildren(chip);
+    toast('Pilot requested — check your inbox for a note from Revessent');
+  });
+});
+$$('[data-pilot]').forEach(function(a){
+  a.addEventListener('click', function(ev){
+    ev.preventDefault();
+    toast("Almost there — drop your email above and we'll set up your 14-day pilot");
+    var email=document.querySelector('.page.is-on .email');
+    if(email){ email.scrollIntoView({behavior:'smooth',block:'center'}); setTimeout(function(){ email.focus(); },700); }
+  });
+});
+/* hero secondary + in-page jumps */
+$$('a.jump').forEach(function(a){
+  a.addEventListener('click', function(e){ e.preventDefault();
+    var t=document.querySelector(a.getAttribute('href'));
+    if(t) t.scrollIntoView({behavior:'smooth'}); });
+});
+function toast(msg){
+  var wrap=$('#toasts');
+  var t=document.createElement('div'); t.className='toast';
+  t.innerHTML='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  t.appendChild(document.createTextNode(msg));
+  wrap.appendChild(t);
+  setTimeout(function(){ t.classList.add('out'); setTimeout(function(){ t.remove(); },500); },4600);
+}
+
+/* ---------- footer partial ---------- */
+function buildFooter(){
+  var mark='<svg class="bmark" viewBox="0 0 28 28"><rect x="1.2" y="1.2" width="25.6" height="25.6" rx="8" fill="url(#rmg)"/><rect x="1.2" y="1.2" width="25.6" height="25.6" rx="8" fill="none" stroke="#fff" stroke-opacity=".6"/><path d="M7 18.5h2.6l1.9-6 2.6 8 2.2-7 2 5H21" fill="none" stroke="#8a5f33" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var html =
+  '<footer><div class="wrap"><div class="f-grid">'+
+    '<div class="f-col"><a class="brand" href="#/" data-nav="home">'+mark+'revessent<span class="dot">.</span></a>'+
+    '<p>Revenue recovery intelligence for subscription businesses. The warm room — with a clear view of the fog.</p>'+
+    '<p class="pal-note" style="margin-top:16px">the light outside tonight is <b>ember</b></p></div>'+
+    '<div class="f-col"><h4>Product</h4><a href="#/product" data-nav="product">Product tour</a><a href="#/pricing" data-nav="pricing">Pricing</a><span class="fdead">Integrations</span><span class="fdead">Changelog</span></div>'+
+    '<div class="f-col"><h4>Company</h4><span class="fdead">About</span><span class="fdead">Careers</span><span class="fdead">Journal</span></div>'+
+    '<div class="f-col"><h4>Resources</h4><span class="fdead">Documentation</span><span class="fdead">Recovery benchmarks</span><span class="fdead">Help center</span><span class="fdead">Status</span></div>'+
+  '</div>'+
+  '<div class="f-bottom"><span>© 2026 Revessent · made slowly, on purpose</span>'+
+  '<span style="display:inline-flex;gap:18px;align-items:center">'+
+    '<span style="font-size:13.5px;color:var(--text-primary)">privacy &amp; terms · on request</span>'+
+    '<span class="sig">the weather outside: recovering.</span>'+
+  '</span></div>'+
+  '</div></footer>';
+  $$('.footer-partial').forEach(function(el){ el.innerHTML=html; });
+}
+
+/* ---------- boot ---------- */
+buildFooter();
+rebuild();
+if(REDUCED){
+  compositeScene();
+  ctx.setTransform(RS,0,0,RS,0,0); ctx.clearRect(0,0,W,H);
+  ctx.drawImage(fogCv,0,0,W,H);
+} else {
+  requestAnimationFrame(frame);
+}
+/* enableDisplacement() now runs after the adaptive probe proves the frame rate */
+activate(currentPage());
+syncToggle();
+addEventListener('resize', rebuild);
+document.addEventListener('visibilitychange', function(){ frame.last=performance.now(); });
+/* test hooks */
+var __rafId=0;
+frame = (function(orig){ return function(now){ __rafId=requestAnimationFrame(orig); }; })(frame);
+window.__rev = { applyEco:applyEco, setAccent:setAccent, theme:function(t){setTheme(t);}, themeNow:function(){return currentTheme();}, gust:function(){return gust;}, gustT:function(){return gustT;}, setGust:function(g){gust=g; gustT=g;}, setClock:function(h){clockHour=h; if(W) retuneSky();}, rs:function(){return RS;},
+  stop:function(){ cancelAnimationFrame(__rafId); window.__stopped=true; },
+  paused:function(){ return window.__stopped===true; } };
+})();
+</script>
+
+<script>
+// Safety net: force-reveal all elements after 1.5s if IntersectionObserver hasn't fired
+setTimeout(function() {
+  document.querySelectorAll('.rv').forEach(function(el) {
+    el.classList.add('in');
+  });
+}, 1500);
+</script>
+</body>
+</html>
