@@ -55,7 +55,14 @@ async function verifySupabaseToken(token) {
   }
 
   const supabaseUser = await response.json();
+  const supabaseUserId = (supabaseUser && supabaseUser.id ? String(supabaseUser.id) : '').trim();
   const email = (supabaseUser && supabaseUser.email ? String(supabaseUser.email) : '').trim().toLowerCase();
+
+  if (!supabaseUserId) {
+    const error = new Error('Supabase user id is missing.');
+    error.statusCode = 401;
+    throw error;
+  }
 
   if (!email) {
     const error = new Error('Supabase user has no email address.');
@@ -63,12 +70,24 @@ async function verifySupabaseToken(token) {
     throw error;
   }
 
-  return { email };
+  return { email, supabaseUserId };
+}
+
+async function findNeonUserBySupabaseId(client, supabaseUserId) {
+  const result = await client.query(
+    `select id, organization_id, email, role, supabase_user_id
+       from users
+      where supabase_user_id = $1
+      limit 1`,
+    [supabaseUserId]
+  );
+
+  return result.rows[0] || null;
 }
 
 async function findNeonUserByEmail(client, email) {
   const result = await client.query(
-    `select id, organization_id, email, role
+    `select id, organization_id, email, role, supabase_user_id
        from users
       where lower(email) = lower($1)
       limit 1`,
@@ -78,10 +97,45 @@ async function findNeonUserByEmail(client, email) {
   return result.rows[0] || null;
 }
 
+async function backfillSupabaseUserId(client, user, supabaseUserId) {
+  if (!user || !supabaseUserId || user.supabase_user_id) return user;
+
+  try {
+    const result = await client.query(
+      `update users
+          set supabase_user_id = $1
+        where id = $2
+          and supabase_user_id is null
+      returning id, organization_id, email, role, supabase_user_id`,
+      [supabaseUserId, user.id]
+    );
+
+    return result.rows[0] || user;
+  } catch (error) {
+    if (error && error.code === '23505') {
+      const boundUser = await findNeonUserBySupabaseId(client, supabaseUserId);
+      if (boundUser && String(boundUser.id) === String(user.id)) return boundUser;
+    }
+    throw error;
+  }
+}
+
 async function authenticateRequest(req, client) {
   const token = getBearerToken(req);
-  const { email } = await verifySupabaseToken(token);
-  const user = await findNeonUserByEmail(client, email);
+  const { email, supabaseUserId } = await verifySupabaseToken(token);
+  let user = await findNeonUserBySupabaseId(client, supabaseUserId);
+
+  if (!user) {
+    user = await findNeonUserByEmail(client, email);
+
+    if (user && user.supabase_user_id && user.supabase_user_id !== supabaseUserId) {
+      const error = new Error('Supabase account is already bound to a different Revessent user.');
+      error.statusCode = 401;
+      throw error;
+    }
+
+    if (user) user = await backfillSupabaseUserId(client, user, supabaseUserId);
+  }
 
   if (!user) {
     const error = new Error('No Revessent user found for this Supabase account.');
@@ -89,7 +143,7 @@ async function authenticateRequest(req, client) {
     throw error;
   }
 
-  return { token, email, user };
+  return { token, email, supabaseUserId, user };
 }
 
 async function readJsonBody(req) {
@@ -191,11 +245,12 @@ function memberContact(member) {
   return cleanString(metadata.contact || metadata.phone || metadata.mobile || member.phone || member.contact);
 }
 
-async function createRazorpayRetry(caseRow, member, connection, keySecret) {
+async function createRazorpayRetry(caseRow, member, connection, keySecret, reservation) {
   const keyId = cleanString(connection.stripe_account_id);
   const amountCents = toInt(caseRow.amount_cents, 0);
   const currency = cleanString(caseRow.currency || 'INR').toUpperCase();
-  const receipt = `rv_${String(caseRow.id).replace(/-/g, '').slice(0, 28)}`;
+  const retryAttempt = reservation && reservation.retryCount ? reservation.retryCount : toInt(caseRow.retry_count, 0) + 1;
+  const receipt = `rv_${String(caseRow.id).replace(/-/g, '').slice(0, 24)}_${retryAttempt}`;
   const notes = {
     source: 'revessent_retry',
     organization_id: String(caseRow.organization_id),
@@ -203,6 +258,8 @@ async function createRazorpayRetry(caseRow, member, connection, keySecret) {
     member_id: caseRow.member_id ? String(caseRow.member_id) : '',
     original_payment_id: cleanString(caseRow.stripe_invoice_id || caseRow.stripe_charge_id),
     razorpay_customer_id: cleanString(member && member.stripe_customer_id),
+    idempotency_key: reservation && reservation.idempotencyKey ? reservation.idempotencyKey : '',
+    retry_attempt: retryAttempt,
   };
 
   const order = await razorpayRequest('/orders', keyId, keySecret, {
@@ -278,30 +335,65 @@ async function insertActivity(client, values) {
   );
 }
 
-async function writeRetryResult(client, caseRow, razorpayResult, razorpayError) {
+async function findRecentPendingRetry(client, caseId) {
+  const result = await client.query(
+    `select id, idempotency_key, created_at
+       from recovery_attempts
+      where case_id = $1
+        and status = 'pending'
+        and created_at >= now() - interval '2 minutes'
+      order by created_at desc
+      limit 1`,
+    [caseId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function reserveRetryAttempt(client, caseRow) {
   const organizationId = caseRow.organization_id;
   const caseId = caseRow.id;
   const retryCount = toInt(caseRow.retry_count, 0) + 1;
   const maxRetries = Math.max(1, toInt(caseRow.max_retries, 3));
   const attemptId = crypto.randomUUID();
-  const idempotencyKey = `rv:${organizationId}:${caseId}:${Date.now()}`;
-
-  await client.query('BEGIN');
+  const idempotencyKey = `rv:${organizationId}:${caseId}:${retryCount}`;
 
   try {
     await client.query(
       `insert into recovery_attempts
-         (id, case_id, organization_id, type, status, idempotency_key, executed_at)
+         (id, case_id, organization_id, type, status, idempotency_key, executed_at, created_at)
        values
-         ($1, $2, $3, 'retry', 'pending', $4, now())`,
+         ($1, $2, $3, 'retry', 'pending', $4, now(), now())`,
       [attemptId, caseId, organizationId, idempotencyKey]
     );
+  } catch (error) {
+    if (error && error.code === '23505') {
+      const conflict = new Error('A retry is already in progress for this case.');
+      conflict.statusCode = 409;
+      throw conflict;
+    }
+    throw error;
+  }
 
+  return { attemptId, idempotencyKey, retryCount, maxRetries };
+}
+
+async function writeRetryResult(client, caseRow, reservation, razorpayResult, razorpayError) {
+  const organizationId = caseRow.organization_id;
+  const caseId = caseRow.id;
+  const attemptId = reservation.attemptId;
+  const retryCount = reservation.retryCount;
+  const maxRetries = reservation.maxRetries;
+
+  await client.query('BEGIN');
+
+  try {
     if (razorpayResult) {
       await client.query(
         `update recovery_attempts
             set status = 'success',
-                stripe_charge_id = $2
+                stripe_charge_id = $2,
+                executed_at = now()
           where id = $1`,
         [attemptId, razorpayResult.externalId]
       );
@@ -330,6 +422,7 @@ async function writeRetryResult(client, caseRow, razorpayResult, razorpayError) 
         metadata: {
           source: 'manual_retry',
           attempt_id: attemptId,
+          idempotency_key: reservation.idempotencyKey,
           razorpay_order_id: razorpayResult.order && razorpayResult.order.id,
           razorpay_payment_link_id: razorpayResult.paymentLink && razorpayResult.paymentLink.id,
           checkout_url: razorpayResult.checkoutUrl,
@@ -347,7 +440,8 @@ async function writeRetryResult(client, caseRow, razorpayResult, razorpayError) 
       `update recovery_attempts
           set status = 'failed',
               error_code = $2,
-              error_message = $3
+              error_message = $3,
+              executed_at = now()
         where id = $1`,
       [attemptId, failure.code, failure.message]
     );
@@ -372,7 +466,7 @@ async function writeRetryResult(client, caseRow, razorpayResult, razorpayError) 
         currency: caseRow.currency,
         memberId: caseRow.member_id,
         caseId,
-        metadata: { source: 'manual_retry', attempt_id: attemptId, error: failure.raw },
+        metadata: { source: 'manual_retry', attempt_id: attemptId, idempotency_key: reservation.idempotencyKey, error: failure.raw },
       });
     } else {
       await client.query(
@@ -437,6 +531,11 @@ module.exports = async (req, res) => {
       return sendJson(res, 400, { error: 'Case is not eligible for retry.' });
     }
 
+    const pendingAttempt = await findRecentPendingRetry(client, caseId);
+    if (pendingAttempt) {
+      return sendJson(res, 409, { error: 'A retry is already in progress for this case.' });
+    }
+
     const connectionResult = await client.query(
       `select id, organization_id, stripe_account_id, encrypted_restricted_key, key_iv, key_tag, is_active
          from stripe_connections
@@ -465,17 +564,18 @@ module.exports = async (req, res) => {
     if (!member) return sendJson(res, 404, { error: 'Customer record not found for this recovery case.' });
 
     const keySecret = decryptSecret(connection);
+    const reservation = await reserveRetryAttempt(client, caseRow);
 
     let razorpayResult = null;
     let razorpayError = null;
 
     try {
-      razorpayResult = await createRazorpayRetry(caseRow, member, connection, keySecret);
+      razorpayResult = await createRazorpayRetry(caseRow, member, connection, keySecret, reservation);
     } catch (error) {
       razorpayError = error;
     }
 
-    const written = await writeRetryResult(client, caseRow, razorpayResult, razorpayError);
+    const written = await writeRetryResult(client, caseRow, reservation, razorpayResult, razorpayError);
 
     if (!razorpayResult) {
       return sendJson(res, 502, {
@@ -495,7 +595,7 @@ module.exports = async (req, res) => {
       checkoutUrl: razorpayResult.checkoutUrl || null,
     });
   } catch (error) {
-    if (error.statusCode && [400, 401, 403, 404].includes(error.statusCode)) {
+    if (error.statusCode && [400, 401, 403, 404, 409].includes(error.statusCode)) {
       return sendJson(res, error.statusCode, { error: error.message });
     }
 
