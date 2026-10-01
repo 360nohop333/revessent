@@ -1,8 +1,9 @@
 // Revessent /api/cron/process-recovery-queue
-// Hourly Vercel Cron job that runs the multi-channel escalation ladder for
-// due recovery cases across ALL organizations — combining silent Razorpay
-// retries with outreach emails at the right moments instead of waiting for a
-// human to click "Retry now" / "Draft recovery email".
+// Daily Vercel Cron job (Hobby plan: one run per day) that runs the
+// multi-channel escalation ladder for due recovery cases across ALL
+// organizations — combining silent Razorpay retries with outreach emails at
+// the right moments instead of waiting for a human to click "Retry now" /
+// "Draft recovery email".
 //
 // Escalation ladder per due case (next_retry_at <= now()):
 //   retry_count 0 → 1  first silent retry
@@ -18,18 +19,20 @@
 // when the CRON_SECRET environment variable is set on the project, so this
 // endpoint verifies exactly that header and rejects anything else with 401.
 //
-// Scheduling (vercel.json):
+// Scheduling (vercel.json) — Hobby plan allows ONE cron job, max once per
+// day, so this runs daily at 09:00 IST (03:30 UTC):
 //   { "crons": [{ "path": "/api/cron/process-recovery-queue",
-//                 "schedule": "0 * * * *" }] }
+//                 "schedule": "30 3 * * *" }] }
+// (On a Pro plan this can be tightened to "0 * * * *" for hourly runs.)
 
 const { Pool } = require('pg');
 const crypto = require('crypto');
 const { performRetryAttempt, getRetrySchedule } = require('../recovery/retry');
 const { sendRecoveryEmail } = require('../recovery/send-note');
 
-// Process at most 50 due cases per hourly run so one cron invocation cannot
-// time out on a huge backlog — anything past the batch is picked up by the
-// next hourly run (the query is ordered by next_retry_at asc, oldest first).
+// Process at most 50 due cases per run so one cron invocation cannot time
+// out on a huge backlog — anything past the batch is picked up by the next
+// run (the query is ordered by next_retry_at asc, oldest first).
 const BATCH_SIZE = 50;
 
 const pool = new Pool({
