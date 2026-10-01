@@ -1,14 +1,14 @@
 // Revessent /api/recovery/send-note
 // Drafts and optionally sends a warm AI-written recovery email for a failed
-// payment case. Drafting uses Anthropic Claude; sending uses Resend.
+// payment case. Drafting uses Google Gemini; sending uses Resend.
 
 const { Pool } = require('pg');
 const crypto = require('crypto');
 
 const SUPABASE_URL = 'https://zujmouzzqiovgbnanrvv.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3';
+const GEMINI_MODEL = 'gemini-2.0-flash';
 const CLOSED_STATUSES = new Set(['recovered', 'lost', 'canceled']);
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -49,7 +49,14 @@ async function verifySupabaseToken(token) {
   }
 
   const supabaseUser = await response.json();
+  const supabaseUserId = (supabaseUser && supabaseUser.id ? String(supabaseUser.id) : '').trim();
   const email = (supabaseUser && supabaseUser.email ? String(supabaseUser.email) : '').trim().toLowerCase();
+
+  if (!supabaseUserId) {
+    const error = new Error('Supabase user id is missing.');
+    error.statusCode = 401;
+    throw error;
+  }
 
   if (!email) {
     const error = new Error('Supabase user has no email address.');
@@ -57,12 +64,24 @@ async function verifySupabaseToken(token) {
     throw error;
   }
 
-  return { email };
+  return { email, supabaseUserId };
+}
+
+async function findNeonUserBySupabaseId(client, supabaseUserId) {
+  const result = await client.query(
+    `select id, organization_id, email, role, supabase_user_id
+       from users
+      where supabase_user_id = $1
+      limit 1`,
+    [supabaseUserId]
+  );
+
+  return result.rows[0] || null;
 }
 
 async function findNeonUserByEmail(client, email) {
   const result = await client.query(
-    `select id, organization_id, email, role
+    `select id, organization_id, email, role, supabase_user_id
        from users
       where lower(email) = lower($1)
       limit 1`,
@@ -72,10 +91,45 @@ async function findNeonUserByEmail(client, email) {
   return result.rows[0] || null;
 }
 
+async function backfillSupabaseUserId(client, user, supabaseUserId) {
+  if (!user || !supabaseUserId || user.supabase_user_id) return user;
+
+  try {
+    const result = await client.query(
+      `update users
+          set supabase_user_id = $1
+        where id = $2
+          and supabase_user_id is null
+      returning id, organization_id, email, role, supabase_user_id`,
+      [supabaseUserId, user.id]
+    );
+
+    return result.rows[0] || user;
+  } catch (error) {
+    if (error && error.code === '23505') {
+      const boundUser = await findNeonUserBySupabaseId(client, supabaseUserId);
+      if (boundUser && String(boundUser.id) === String(user.id)) return boundUser;
+    }
+    throw error;
+  }
+}
+
 async function authenticateRequest(req, client) {
   const token = getBearerToken(req);
-  const { email } = await verifySupabaseToken(token);
-  const user = await findNeonUserByEmail(client, email);
+  const { email, supabaseUserId } = await verifySupabaseToken(token);
+  let user = await findNeonUserBySupabaseId(client, supabaseUserId);
+
+  if (!user) {
+    user = await findNeonUserByEmail(client, email);
+
+    if (user && user.supabase_user_id && user.supabase_user_id !== supabaseUserId) {
+      const error = new Error('Supabase account is already bound to a different Revessent user.');
+      error.statusCode = 401;
+      throw error;
+    }
+
+    if (user) user = await backfillSupabaseUserId(client, user, supabaseUserId);
+  }
 
   if (!user) {
     const error = new Error('No Revessent user found for this Supabase account.');
@@ -83,23 +137,16 @@ async function authenticateRequest(req, client) {
     throw error;
   }
 
-  return { token, email, user };
+  return { token, email, supabaseUserId, user };
 }
 
 async function readJsonBody(req) {
-  if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) {
-    return req.body;
-  }
-
-  if (typeof req.body === 'string') {
-    return req.body ? JSON.parse(req.body) : {};
-  }
-
+  if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) return req.body;
+  if (typeof req.body === 'string') return req.body ? JSON.parse(req.body) : {};
   if (Buffer.isBuffer(req.body)) {
     const raw = req.body.toString('utf8');
     return raw ? JSON.parse(raw) : {};
   }
-
   const chunks = [];
   for await (const chunk of req) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
   const raw = Buffer.concat(chunks).toString('utf8');
@@ -124,16 +171,9 @@ function escapeHtml(value) {
 }
 
 function bodyToHtml(body) {
-  const paragraphs = cleanString(body)
-    .split(/\n{2,}/)
-    .map((part) => part.trim())
-    .filter(Boolean);
-
+  const paragraphs = cleanString(body).split(/\n{2,}/).map((part) => part.trim()).filter(Boolean);
   if (!paragraphs.length) return '<p></p>';
-
-  return paragraphs
-    .map((paragraph) => `<p>${escapeHtml(paragraph).replace(/\n/g, '<br>')}</p>`)
-    .join('\n');
+  return paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph).replace(/\n/g, '<br>')}</p>`).join('\n');
 }
 
 function amountLabel(amountCents, currency) {
@@ -157,7 +197,6 @@ async function loadCaseContext(client, organizationId, caseId) {
        rc.*,
        sm.name as member_name,
        sm.email as member_email,
-       sm.stripe_customer_id as member_customer_id,
        org.name as organization_name
      from recovery_cases rc
      left join stripe_members sm on sm.id = rc.member_id
@@ -173,25 +212,21 @@ async function loadCaseContext(client, organizationId, caseId) {
     error.statusCode = 404;
     throw error;
   }
-
   if (String(row.organization_id) !== String(organizationId)) {
     const error = new Error('You do not have access to this recovery case.');
     error.statusCode = 403;
     throw error;
   }
-
   if (CLOSED_STATUSES.has(row.status)) {
     const error = new Error('Cannot draft or send a note for a closed recovery case.');
     error.statusCode = 400;
     throw error;
   }
-
   if (!cleanString(row.member_email)) {
     const error = new Error('Customer email is missing for this recovery case.');
     error.statusCode = 400;
     throw error;
   }
-
   return row;
 }
 
@@ -215,11 +250,10 @@ async function loadVoiceProfile(client, organizationId, organizationName) {
     cleanString(process.env.DEFAULT_SENDER_EMAIL) ||
     'hello@revessent.com';
   const toneDescription = cleanString(voice.tone_description) || 'Professional';
-
   return { brandName, senderName, senderEmail, toneDescription };
 }
 
-async function draftWithClaude(context, voice) {
+async function draftWithGemini(context, voice) {
   if (!process.env.GEMINI_API_KEY) {
     const error = new Error('AI drafting not configured.');
     error.statusCode = 500;
@@ -228,53 +262,44 @@ async function draftWithClaude(context, voice) {
 
   const customerFirstName = firstName(context.member_name || context.member_email);
   const amount = amountLabel(context.amount_cents, context.currency);
-
-  const promptText = [
-    'You write concise subscription-payment recovery emails. Return only the email body text. No subject line, no markdown, no commentary, no preamble.',
-    '',
+  const prompt = [
     'Write a short payment recovery email under 120 words.',
+    'Return ONLY the email body text. No subject line, no markdown, no commentary, no preamble.',
     `Tone: ${voice.toneDescription}.`,
     `Brand: ${voice.brandName}.`,
     `Sender: ${voice.senderName}.`,
     customerFirstName ? `Customer first name: ${customerFirstName}.` : 'No customer first name is available.',
     `Failed amount: ${amount}.`,
     context.decline_code ? `Decline reason code: ${context.decline_code}.` : '',
-    'Requirements: warm but not desperate, no guilt-tripping, mention the amount naturally, one clear call to action to update their payment method, sign from the sender at the brand.',
-    'Return ONLY the email body text.',
+    'Requirements: warm but not desperate, no guilt-tripping, mention the amount naturally, one clear call to action to update their payment method, signed from the sender at the brand.',
   ].filter(Boolean).join('\n');
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${process.env.GEMINI_API_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: promptText }] }],
-        generationConfig: { maxOutputTokens: 600, temperature: 0.7 },
-      }),
-    }
-  );
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: { maxOutputTokens: 600, temperature: 0.65 },
+    }),
+  });
 
-  const body = await response.json().catch(() => ({}));
-
+  const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const message = cleanString(body && body.error && body.error.message) || 'AI drafting failed.';
+    const message = cleanString(payload && payload.error && payload.error.message) || 'AI drafting failed.';
     const error = new Error(message);
     error.statusCode = 502;
     throw error;
   }
 
-  const candidate = Array.isArray(body.candidates) ? body.candidates[0] : null;
-  const parts = candidate && candidate.content && Array.isArray(candidate.content.parts) ? candidate.content.parts : [];
-  const text = parts.map((part) => (part && part.text ? part.text : '')).join('\n').trim();
-
-  if (!text) {
+  const text = (((payload.candidates || [])[0] || {}).content || {}).parts || [];
+  const body = text.map((part) => part.text || '').join('\n').trim();
+  if (!body) {
     const error = new Error('AI drafting returned an empty email.');
     error.statusCode = 502;
     throw error;
   }
 
-  return text;
+  return body;
 }
 
 async function insertRecoveryNote(client, values) {
@@ -303,32 +328,45 @@ async function loadExistingNote(client, organizationId, noteId) {
   );
 
   const note = result.rows[0] || null;
-
   if (!note) {
     const error = new Error('Recovery note not found.');
     error.statusCode = 404;
     throw error;
   }
-
   if (String(note.organization_id) !== String(organizationId)) {
     const error = new Error('You do not have access to this recovery note.');
     error.statusCode = 403;
     throw error;
   }
-
   if (CLOSED_STATUSES.has(note.case_status)) {
     const error = new Error('Cannot send a note for a closed recovery case.');
     error.statusCode = 400;
     throw error;
   }
-
   if (!cleanString(note.member_email)) {
     const error = new Error('Customer email is missing for this recovery note.');
     error.statusCode = 400;
     throw error;
   }
-
   return note;
+}
+
+async function applyNoteOverrides(client, note, subjectOverride, bodyOverride) {
+  const subject = cleanString(subjectOverride) || note.subject;
+  const body = cleanString(bodyOverride) || note.body;
+
+  if (subject !== note.subject || body !== note.body) {
+    await client.query(
+      `update recovery_notes
+          set subject = $2,
+              body = $3,
+              updated_at = now()
+        where id = $1`,
+      [note.id, subject, body]
+    );
+  }
+
+  return { ...note, subject, body };
 }
 
 async function sendWithResend({ fromName, fromEmail, toEmail, subject, body }) {
@@ -353,7 +391,6 @@ async function sendWithResend({ fromName, fromEmail, toEmail, subject, body }) {
   });
 
   const payload = await response.json().catch(() => ({}));
-
   if (!response.ok) {
     const message = cleanString(payload && payload.message) || cleanString(payload && payload.error) || 'Resend could not send this email.';
     const error = new Error(message);
@@ -361,13 +398,11 @@ async function sendWithResend({ fromName, fromEmail, toEmail, subject, body }) {
     error.resendPayload = payload;
     throw error;
   }
-
   return payload;
 }
 
 async function markNoteSent(client, values) {
   await client.query('BEGIN');
-
   try {
     await client.query(
       `update recovery_notes
@@ -405,11 +440,7 @@ async function markNoteSent(client, values) {
 
     await client.query('COMMIT');
   } catch (error) {
-    try {
-      await client.query('ROLLBACK');
-    } catch (rollbackError) {
-      console.error('Revessent send-note rollback failed:', rollbackError);
-    }
+    try { await client.query('ROLLBACK'); } catch (rollbackError) { console.error('Revessent send-note rollback failed:', rollbackError); }
     throw error;
   }
 }
@@ -422,7 +453,6 @@ module.exports = async (req, res) => {
 
   let body;
   let client;
-
   try {
     body = await readJsonBody(req);
   } catch (_) {
@@ -432,10 +462,10 @@ module.exports = async (req, res) => {
   const caseId = cleanString(body && body.caseId);
   const noteId = cleanString(body && body.noteId);
   const autoSend = Boolean(body && body.autoSend);
+  const subjectOverride = cleanString(body && body.subject);
+  const bodyOverride = cleanString(body && body.body);
 
-  if (!caseId && !noteId) {
-    return sendJson(res, 400, { error: 'caseId or noteId is required.' });
-  }
+  if (!caseId && !noteId) return sendJson(res, 400, { error: 'caseId or noteId is required.' });
 
   try {
     client = await pool.connect();
@@ -448,11 +478,12 @@ module.exports = async (req, res) => {
     if (noteId) {
       note = await loadExistingNote(client, organizationId, noteId);
       voice = await loadVoiceProfile(client, organizationId, note.organization_name);
+      note = await applyNoteOverrides(client, note, subjectOverride, bodyOverride);
     } else {
       const context = await loadCaseContext(client, organizationId, caseId);
       voice = await loadVoiceProfile(client, organizationId, context.organization_name);
-      const subject = `Quick update on your ${voice.brandName} subscription`;
-      const draftBody = await draftWithClaude(context, voice);
+      const subject = subjectOverride || `Quick update on your ${voice.brandName} subscription`;
+      const draftBody = bodyOverride || await draftWithGemini(context, voice);
       const insertedNoteId = await insertRecoveryNote(client, {
         caseId: context.id,
         organizationId,
@@ -460,7 +491,6 @@ module.exports = async (req, res) => {
         body: draftBody,
         requiresApproval: !autoSend,
       });
-
       note = {
         id: insertedNoteId,
         case_id: context.id,
@@ -523,15 +553,12 @@ module.exports = async (req, res) => {
     if (error.statusCode && [400, 401, 403, 404].includes(error.statusCode)) {
       return sendJson(res, error.statusCode, { error: error.message });
     }
-
     if (error.statusCode === 500 && error.message === 'AI drafting not configured.') {
       return sendJson(res, 500, { error: 'AI drafting not configured.' });
     }
-
     if (error.statusCode === 502) {
       return sendJson(res, 502, { error: error.message || 'AI drafting failed.' });
     }
-
     console.error('Revessent /api/recovery/send-note failed:', error);
     return sendJson(res, 500, { error: 'Could not draft or send this recovery note.' });
   } finally {
