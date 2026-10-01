@@ -1040,17 +1040,20 @@
           return { email, password };
         }
 
-        async function syncUser(supabaseUserId, email, refCode) {
+        async function syncUser(accessToken, refCode) {
           try {
-            // Only include the referral code for fresh signups (the caller
-            // passes it only on the signup path) — existing users signing in
-            // must never be attributed as referrals.
-            const payload = { supabaseUserId, email };
+            // SECURITY (audit #1): the API now derives identity from the
+            // verified Supabase session token — we never send email/user id
+            // in the body. Only the optional referral code travels in body.
+            const payload = {};
             if (refCode) payload.ref = refCode;
 
             const response = await fetch("/api/onboard", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${accessToken}`
+              },
               body: JSON.stringify(payload),
               keepalive: true
             });
@@ -1093,7 +1096,11 @@
             if (error) throw error;
             if (!data.user) throw new Error("No authenticated user was returned.");
 
-            void syncUser(data.user.id, data.user.email || values.email);
+            // Audit #57: await the sync so the dashboard never loads before
+            // the Neon user/org exists.
+            if (data.session && data.session.access_token) {
+              await syncUser(data.session.access_token);
+            }
             setMessage(signinMessage, "Signed in successfully. Taking you to your dashboard…", "success");
             redirectToDashboard();
           } catch (error) {
@@ -1117,12 +1124,26 @@
             if (error) throw error;
             if (!data.user) throw new Error("No user was returned. Please try again.");
 
+            // Audit #55: with Supabase "Confirm email" ON there is no session
+            // after signup — show a check-your-email state instead of
+            // pretending to redirect to a dashboard that would 401.
+            if (!data.session || !data.session.access_token) {
+              setLoading(signupForm, false, "Create account");
+              setMessage(
+                signupMessage,
+                "Account created — check your inbox and confirm your email to continue.",
+                "success"
+              );
+              return;
+            }
+
             // Fresh signup only — pass the stashed referral code (if any)
             // through to /api/onboard, then clear it so a later sign-in can
-            // never re-attribute the referral.
+            // never re-attribute the referral. Audit #57: awaited, not
+            // fire-and-forget, so the org exists before the dashboard loads.
             let stashedRef = "";
             try { stashedRef = sessionStorage.getItem("rv.ref") || ""; } catch (_) {}
-            void syncUser(data.user.id, data.user.email || values.email, stashedRef);
+            await syncUser(data.session.access_token, stashedRef);
             if (stashedRef) { try { sessionStorage.removeItem("rv.ref"); } catch (_) {} }
 
             setMessage(signupMessage, "Account created successfully. Taking you to your dashboard…", "success");

@@ -1694,11 +1694,11 @@ html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur
       <button class="avabtn" id="avabtn" aria-label="Account menu" aria-expanded="false" aria-haspopup="true"><span class="ava ava-32" aria-hidden="true">EM</span></button>
       <div class="drop" id="avadrop" role="menu" aria-label="Account">
         <h4>Workspace</h4>
-        <button class="di" role="menuitem"><svg class="ic" style="width:15px;height:15px;margin-top:1px" aria-hidden="true"><use href="#i-users"/></svg><span class="atx"><b>Profile</b><small><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f59a8586b5909897908799949786db969a">[email&#160;protected]</a></small></span></button>
+        <button class="di" role="menuitem"><svg class="ic" style="width:15px;height:15px;margin-top:1px" aria-hidden="true"><use href="#i-users"/></svg><span class="atx"><b>Profile</b><small id="profileEmail">Signed in account</small></span></button>
         <button class="di" role="menuitem"><svg class="ic" style="width:15px;height:15px;margin-top:1px" aria-hidden="true"><use href="#i-gear"/></svg><span class="atx"><b>Workspace settings</b></span></button>
         <button class="di" role="menuitem" data-upgrade><svg class="ic" style="width:15px;height:15px;margin-top:1px" aria-hidden="true"><use href="#i-up"/></svg><span class="atx"><b>Upgrade plan</b><small>Plan details</small></span></button>
         <hr class="dsep">
-        <button class="di" role="menuitem"><svg class="ic" style="width:15px;height:15px;margin-top:1px" aria-hidden="true"><use href="#i-logout"/></svg><span class="atx"><b>Sign out</b></span></button>
+        <button class="di" id="signOutBtn" role="menuitem"><svg class="ic" style="width:15px;height:15px;margin-top:1px" aria-hidden="true"><use href="#i-logout"/></svg><span class="atx"><b>Sign out</b></span></button>
       </div>
     </div>
   </div>
@@ -1923,7 +1923,7 @@ html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur
 </nav>
 
 <div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
 (function(){
 "use strict";
 /* ════════════════════════════════════════════════════════════
@@ -2823,17 +2823,24 @@ function statusHtml(status){
   var s=STATUS[status]||STATUS.detected;
   return '<span class="st" style="color:var('+s.v+'-ink)"><i style="background:var('+s.v+')" aria-hidden="true"></i>'+s.t+'</span>';
 }
+/** Escape untrusted text for safe interpolation into HTML attributes. */
+function esc(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
 function rowFor(c){
   var tr=document.createElement('tr');
   tr.dataset.id=c.id; tr.dataset.status=c.status;
   var d=DECLINE[c.decline]||DECLINE.unknown;
+  // Audit #3: payer names are attacker-controllable (they come from Razorpay
+  // customer records) — escape before they land in aria-label attributes.
+  var safeName=esc(c.name);
   var canApprove=c.status==='awaiting_approval';
   var approveBtn=canApprove
-    ? '<button class="btn btn-pri btn-sm shimmer-hover magnet" data-approve data-case-id="'+c.id+'" aria-label="Approve recovery for '+c.name+'">Approve</button>'
+    ? '<button class="btn btn-pri btn-sm shimmer-hover magnet" data-approve data-case-id="'+esc(c.id)+'" aria-label="Approve recovery for '+safeName+'">Approve</button>'
     : '';
   var act='<div class="acts">'+approveBtn+
-    '<button class="btn btn-ghost btn-sm magnet" data-send-note data-case-id="'+c.id+'" aria-label="Send recovery note to '+c.name+'">Send note</button>'+ 
-    '<a class="btn btn-ghost btn-sm magnet" href="/case-detail.html?case='+encodeURIComponent(c.id)+'" aria-label="Open recovery case for '+c.name+'">View</a></div>';
+    '<button class="btn btn-ghost btn-sm magnet" data-send-note data-case-id="'+esc(c.id)+'" aria-label="Send recovery note to '+safeName+'">Send note</button>'+ 
+    '<a class="btn btn-ghost btn-sm magnet" href="/case-detail.html?case='+encodeURIComponent(c.id)+'" aria-label="Open recovery case for '+safeName+'">View</a></div>';
   tr.innerHTML=
     '<td><div class="mcell"><span class="ava ava-32" aria-hidden="true" style="background:linear-gradient(135deg,'+c.g[0]+','+c.g[1]+')">'+initials(c.name)+'</span>'+ 
     '<span class="who"><b><a class="case-link" href="/case-detail.html?case='+encodeURIComponent(c.id)+'"></a></b><small></small></span></div></td>'+ 
@@ -3201,6 +3208,7 @@ async function fetchDashboardData(range){
   try{
     var res=await fetch('/api/dashboard-data?range='+encodeURIComponent(range||'30d'),{headers:{Authorization:'Bearer '+DASH_TOKEN}});
     var body=await res.json().catch(function(){ return {}; });
+    if(res.status===401){ window.location.assign('/login.html'); return; }
     if(!res.ok) throw new Error(body.error||'Could not load dashboard data');
     applyDashboardData(body);
   }catch(err){
@@ -3247,11 +3255,27 @@ function startDashboardData(){
       return;
     }
     DASH_TOKEN=session.access_token;
+    /* Audit #52: real account email + initials from the session. */
+    try{
+      var email=(session.user&&session.user.email)||'';
+      var pe=$('#profileEmail'); if(pe&&email) pe.textContent=email;
+      var initials=(email.split('@')[0]||'EM').slice(0,2).toUpperCase();
+      $$('.avabtn .ava, .sb-foot .acct .ava').forEach(function(a){ a.textContent=initials; });
+    }catch(_){}
+    /* Audit #52: sign out actually signs out. */
+    var so=$('#signOutBtn');
+    if(so&&!so.dataset.wired){
+      so.dataset.wired='1';
+      so.addEventListener('click',async function(){
+        try{ await supabaseClient.auth.signOut(); }catch(_){}
+        window.location.assign('/login.html');
+      });
+    }
     fetchDashboardData(DASH_RANGE);
   }).catch(function(err){ console.error('Dashboard session unavailable',err); applyDashboardData(emptyDashboardData()); });
 }
 startDashboardData();
 })();
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a41c7ece4a467766',t:'MTc5MDUzMjk0Mw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>

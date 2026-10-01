@@ -4,5 +4,11 @@
   "private": true,
   "dependencies": {
     "pg": "^8.11.3"
+  },
+  "scripts": {
+    "test": "node tests/suite.test.js"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

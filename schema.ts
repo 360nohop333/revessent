@@ -1,4 +1,5 @@
 import {
+  sql,
   pgTable,
   text,
   timestamp,
@@ -67,7 +68,7 @@ export const declineCodeEnum = pgEnum("decline_code", [
 export const organizations = pgTable("organizations", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
-  slug: text("slug").notNull(),
+  slug: text("slug"), // audit #40: nullable — signup never sets one
   plan: planEnum("plan").notNull().default("ember"),
   trustLevel: trustLevelEnum("trust_level").notNull().default("approval_required"),
   pilotStartedAt: timestamp("pilot_started_at"),
@@ -101,11 +102,16 @@ export const users = pgTable("users", {
   emailVerified: boolean("email_verified").notNull().default(false),
   emailVerifiedAt: timestamp("email_verified_at"),
   role: text("role").notNull().default("member"), // owner | admin | member
+  // Audit #40: this column is what every API's auth looks users up by —
+  // it was missing from the schema while existing in the live DB.
+  supabaseUserId: text("supabase_user_id"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (t) => ({
   emailIdx: uniqueIndex("users_email_idx").on(t.email),
+  supabaseUserIdIdx: uniqueIndex("users_supabase_user_id_idx").on(t.supabaseUserId),
   orgIdx: index("users_org_idx").on(t.organizationId),
+  emailLowerIdx: index("users_email_lower_idx").on(sql`lower(${t.email})`),
 }));
 
 export const sessions = pgTable("sessions", {
@@ -231,6 +237,7 @@ export const recoveryCases = pgTable("recovery_cases", {
 }, (t) => ({
   orgIdx: index("recovery_cases_org_idx").on(t.organizationId),
   statusIdx: index("recovery_cases_status_idx").on(t.status),
+  orgStatusIdx: index("recovery_cases_org_status_idx").on(t.organizationId, t.status),
   invoiceIdx: uniqueIndex("recovery_cases_invoice_idx").on(t.stripeInvoiceId),
   checkoutTokenIdx: uniqueIndex("recovery_cases_checkout_token_idx").on(t.checkoutToken),
 }));
@@ -251,7 +258,11 @@ export const recoveryAttempts = pgTable("recovery_attempts", {
   approvedByUserId: uuid("approved_by_user_id").references(() => users.id),
   executedAt: timestamp("executed_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (t) => ({
+  // Audit #42: without a unique index the 409-on-race protection is fiction.
+  idempotencyKeyIdx: uniqueIndex("recovery_attempts_idempotency_key_idx").on(t.idempotencyKey),
+  orgCaseIdx: index("recovery_attempts_org_case_idx").on(t.organizationId, t.caseId),
+}));
 
 // ─── Recovery Attributions (per-dollar attribution ledger) ────────────────────
 
@@ -290,6 +301,7 @@ export const recoveryNotes = pgTable("recovery_notes", {
   openedAt: timestamp("opened_at"),
   clickedAt: timestamp("clicked_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(), // audit #40
 });
 
 // ─── Voice Profiles (org writing style for AI emails) ─────────────────────────
@@ -352,6 +364,7 @@ export const activityFeed = pgTable("activity_feed", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (t) => ({
   orgIdx: index("activity_feed_org_idx").on(t.organizationId),
+  orgCreatedIdx: index("activity_feed_org_created_idx").on(t.organizationId, t.createdAt),
 }));
 
 // ─── Decline Forensics Digests ────────────────────────────────────────────────
