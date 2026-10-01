@@ -1,6 +1,6 @@
 // Revessent /api/dashboard-data
 // Verifies the caller's Supabase access token, resolves the user's Neon
-// organization by email, and returns real dashboard metrics for that org.
+// organization by Supabase user id, and returns real dashboard metrics for that org.
 
 const { Pool } = require('pg');
 
@@ -67,7 +67,14 @@ async function verifySupabaseToken(token) {
   }
 
   const supabaseUser = await response.json();
+  const supabaseUserId = (supabaseUser && supabaseUser.id ? String(supabaseUser.id) : '').trim();
   const email = (supabaseUser && supabaseUser.email ? String(supabaseUser.email) : '').trim().toLowerCase();
+
+  if (!supabaseUserId) {
+    const error = new Error('Supabase user id is missing.');
+    error.statusCode = 401;
+    throw error;
+  }
 
   if (!email) {
     const error = new Error('Supabase user has no email address.');
@@ -75,12 +82,24 @@ async function verifySupabaseToken(token) {
     throw error;
   }
 
-  return { email };
+  return { email, supabaseUserId };
+}
+
+async function findNeonUserBySupabaseId(client, supabaseUserId) {
+  const result = await client.query(
+    `select id, organization_id, email, role, supabase_user_id
+       from users
+      where supabase_user_id = $1
+      limit 1`,
+    [supabaseUserId]
+  );
+
+  return result.rows[0] || null;
 }
 
 async function findNeonUserByEmail(client, email) {
   const result = await client.query(
-    `select id, organization_id, email, role
+    `select id, organization_id, email, role, supabase_user_id
        from users
       where lower(email) = lower($1)
       limit 1`,
@@ -90,10 +109,45 @@ async function findNeonUserByEmail(client, email) {
   return result.rows[0] || null;
 }
 
+async function backfillSupabaseUserId(client, user, supabaseUserId) {
+  if (!user || !supabaseUserId || user.supabase_user_id) return user;
+
+  try {
+    const result = await client.query(
+      `update users
+          set supabase_user_id = $1
+        where id = $2
+          and supabase_user_id is null
+      returning id, organization_id, email, role, supabase_user_id`,
+      [supabaseUserId, user.id]
+    );
+
+    return result.rows[0] || user;
+  } catch (error) {
+    if (error && error.code === '23505') {
+      const boundUser = await findNeonUserBySupabaseId(client, supabaseUserId);
+      if (boundUser && String(boundUser.id) === String(user.id)) return boundUser;
+    }
+    throw error;
+  }
+}
+
 async function authenticateRequest(req, client) {
   const token = getBearerToken(req);
-  const { email } = await verifySupabaseToken(token);
-  const user = await findNeonUserByEmail(client, email);
+  const { email, supabaseUserId } = await verifySupabaseToken(token);
+  let user = await findNeonUserBySupabaseId(client, supabaseUserId);
+
+  if (!user) {
+    user = await findNeonUserByEmail(client, email);
+
+    if (user && user.supabase_user_id && user.supabase_user_id !== supabaseUserId) {
+      const error = new Error('Supabase account is already bound to a different Revessent user.');
+      error.statusCode = 401;
+      throw error;
+    }
+
+    if (user) user = await backfillSupabaseUserId(client, user, supabaseUserId);
+  }
 
   if (!user) {
     const error = new Error('No Revessent user found for this Supabase account.');
@@ -101,13 +155,7 @@ async function authenticateRequest(req, client) {
     throw error;
   }
 
-  if (!user.organization_id) {
-    const error = new Error('User has no organization.');
-    error.statusCode = 401;
-    throw error;
-  }
-
-  return { token, email, user };
+  return { token, email, supabaseUserId, user };
 }
 
 function toNumber(value) {
@@ -280,6 +328,7 @@ async function getWeeklyChart(client, organizationId) {
 async function getRecoveryQueue(client, organizationId) {
   const result = await client.query(
     `select
+       rc.id,
        sm.name as member_name,
        sm.email as member_email,
        rc.amount_cents,
@@ -297,6 +346,7 @@ async function getRecoveryQueue(client, organizationId) {
   );
 
   return result.rows.map((row) => ({
+    id: row.id,
     memberName: row.member_name || '',
     memberEmail: row.member_email || '',
     amountCents: toInt(row.amount_cents),
