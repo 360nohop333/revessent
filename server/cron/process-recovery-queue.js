@@ -246,6 +246,71 @@ async function processCase(client, caseRow) {
   };
 }
 
+// Audit #54: one forensics_digests row per org per ISO week, built from
+// recovery_cases + recovery_attributions. Plain deterministic narrative — no
+// Gemini call from the cron (cost + trust: the numbers speak for themselves).
+async function generateWeeklyDigests(client) {
+  const weekStart = new Date();
+  weekStart.setUTCHours(0, 0, 0, 0);
+  weekStart.setUTCDate(weekStart.getUTCDate() - ((weekStart.getUTCDay() + 6) % 7)); // Monday
+  const weekEnd = new Date(weekStart.getTime() + 7 * 864e5);
+
+  const result = await client.query(
+    `insert into forensics_digests
+       (id, organization_id, week_start_date, week_end_date,
+        total_failed, total_recovered, total_lost,
+        recovered_amount_cents, lost_amount_cents, top_decline_reasons,
+        ai_narrative_paragraph, created_at)
+     select
+       gen_random_uuid(),
+       rc.organization_id,
+       $1::timestamptz,
+       $2::timestamptz,
+       count(*) filter (where rc.failed_at >= $1::timestamptz),
+       count(*) filter (where rc.recovered_at >= $1::timestamptz),
+       count(*) filter (where rc.lost_at >= $1::timestamptz),
+       coalesce((select sum(ra.amount_cents) from recovery_attributions ra
+                  where ra.organization_id = rc.organization_id
+                    and ra.recovered_at >= $1::timestamptz), 0),
+       coalesce(sum(rc.amount_cents) filter (where rc.lost_at >= $1::timestamptz), 0),
+       coalesce((
+         select jsonb_agg(jsonb_build_object('code', d.decline_code, 'count', d.count))
+         from (
+           select rc2.decline_code, count(*)::int as count
+             from recovery_cases rc2
+            where rc2.organization_id = rc.organization_id
+              and rc2.failed_at >= $1::timestamptz
+            group by rc2.decline_code
+            order by count desc
+            limit 3
+         ) d
+       ), '[]'::jsonb),
+       'This week: ' ||
+         count(*) filter (where rc.failed_at >= $1::timestamptz) || ' payments failed, ' ||
+         count(*) filter (where rc.recovered_at >= $1::timestamptz) || ' were recovered, ' ||
+         count(*) filter (where rc.lost_at >= $1::timestamptz) || ' were lost.',
+       now()
+     from recovery_cases rc
+    where rc.organization_id in (
+      select distinct organization_id from recovery_cases
+       where failed_at >= $1::timestamptz or recovered_at >= $1::timestamptz or lost_at >= $1::timestamptz
+    )
+    group by rc.organization_id
+    on conflict (organization_id, week_start_date) do update
+      set week_end_date = excluded.week_end_date,
+          total_failed = excluded.total_failed,
+          total_recovered = excluded.total_recovered,
+          total_lost = excluded.total_lost,
+          recovered_amount_cents = excluded.recovered_amount_cents,
+          lost_amount_cents = excluded.lost_amount_cents,
+          top_decline_reasons = excluded.top_decline_reasons,
+          ai_narrative_paragraph = excluded.ai_narrative_paragraph`,
+    [weekStart.toISOString(), weekEnd.toISOString()]
+  );
+
+  return result.rowCount || 0;
+}
+
 module.exports = async (req, res) => {
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
@@ -283,6 +348,29 @@ module.exports = async (req, res) => {
       );
     } catch (sweepError) {
       console.error('Revessent cron: stale-attempt sweep failed:', sweepError);
+    }
+
+    // Audit #14: raw webhook payloads don't live in the DB forever — default
+    // 30 days (WEBHOOK_RETENTION_DAYS), then the rows go. The privacy policy
+    // states the same window.
+    try {
+      await client.query(
+        `delete from webhook_events
+          where created_at < now() - make_interval(days => $1::int)`,
+        [toInt(process.env.WEBHOOK_RETENTION_DAYS, 30) || 30]
+      );
+    } catch (retentionError) {
+      console.error('Revessent cron: webhook retention sweep failed:', retentionError);
+    }
+
+    // Audit #54: generate the weekly forensics digest for every org that had
+    // activity this week. Best-effort — a failure here must never mark the
+    // cron run failed.
+    try {
+      const digestCount = await generateWeeklyDigests(client);
+      console.log('Revessent cron: weekly digests upserted:', digestCount);
+    } catch (digestError) {
+      console.error('Revessent cron: weekly digest generation failed:', digestError);
     }
 
     const dueCases = await loadDueCases(client);

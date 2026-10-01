@@ -63,7 +63,7 @@ h1{font-size:clamp(34px,5vw,46px);letter-spacing:-.02em;line-height:1.1;margin:1
   </div>
   <div class="card">
     <h2>Retention</h2>
-    <p>Account and operational data are kept while your workspace is active. Raw webhook payloads may contain customer contact details and are retained for audit and replay; we are moving to time-boxed retention for these payloads.</p>
+    <p>Account and operational data are kept while your workspace is active. Raw webhook payloads may contain customer contact details; they are retained for deduplication and replay for <strong>30 days</strong> and then deleted automatically by the nightly scheduler (configurable per deployment). Deleting your workspace removes its data immediately.</p>
   </div>
   <div class="card">
     <h2>Your rights</h2>

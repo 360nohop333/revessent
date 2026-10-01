@@ -579,6 +579,22 @@ function testSources() {
   check('dashboard: connect card routes to Settings, no fake success (audit #48)', /settings\.html/.test(read('dashboard.html')) && !read('dashboard.html').includes('Razorpay connected — Revessent is ready'));
   check('.env.example matches the real stack (audit #65)', !read('.env.example').includes('BETTER_AUTH') && !read('.env.example').includes('STRIPE_SECRET_KEY') && read('.env.example').includes('CRON_SECRET'));
   check('schema.ts: batch-2 tables (leads, suppression_list, audit_log)', /export const leads = pgTable\("leads"/.test(schema) && /pgTable\("suppression_list"/.test(schema) && /pgTable\("audit_log"/.test(schema));
+
+  // batch-3 parity
+  check('robots.txt + sitemap.xml exist (audit #63)', fs.existsSync(path + '/robots.txt') && fs.existsSync(path + '/sitemap.xml'));
+  check('CI workflow runs the suite (audit #67)', fs.existsSync(path + '/.github/workflows/ci.yml') && read('.github/workflows/ci.yml').includes('suite.test.js'));
+  check('onboarding.html orphan deleted (audit #58)', !fs.existsSync(path + '/onboarding.html'));
+  check('migrations tooling: 3 SQL files + runner + npm script (audit #41)', fs.existsSync(path + '/scripts/migrate.js') && fs.readdirSync(path + '/migrations').filter((f) => f.endsWith('.sql')).length === 3 && read('package.json').includes('\"migrate\"'));
+  check('index: no read-only key claims, no refund guarantee, ₹ pricing (audit #6/#49/#50/#51)', !/read-only/i.test(read('index.html')) && !/we refund you/i.test(read('index.html')) && !/refund the full term/i.test(read('index.html')) && /class="cur">₹</.test(read('index.html')));
+  check('connect: full Razorpay event set registered (audit #24)', /subscription\.cancelled/.test(read('server/razorpay/connect.js')) && /refund\.processed/.test(read('server/razorpay/connect.js')));
+  check('send-note: Resend emails tagged with org (audit #37)', /tags: \['org:' \+ organizationId/.test(read('server/recovery/send-note.js')));
+  check('settings: audit log + account sections wired (audit #16/#60)', /id="auditList"/.test(read('settings.html')) && /id="accountCard"/.test(read('settings.html')) && /changePasswordBtn/.test(read('settings.html')) && /deleteWorkspaceBtn/.test(read('settings.html')));
+  check('privacy: 30-day webhook payload retention stated (audit #14)', /30 days/.test(read('privacy.html')));
+  const authFiles = ['settings', 'keys', 'members', 'dashboard-data', 'digests', 'organization', 'referrals', 'recovery/case', 'recovery/retry', 'recovery/send-note', 'recovery/send-sms', 'razorpay/connect', 'razorpay/backfill', 'alerts/send', 'alerts/test', 'export/cases', 'export/members', 'audit'].map((n) => 'server/' + n + '.js');
+  check('shared auth: 18 handlers import _lib/supabase-auth (audit #66)', authFiles.every((f) => read(f).includes("_lib/supabase-auth")), authFiles.filter((f) => !read(f).includes('_lib/supabase-auth')).join(','));
+  check('members: pagination params in the endpoint (audit #64)', /limit \\\$2 offset \\\$3/.test(read('server/members.js')) || /offset/.test(read('server/members.js')));
+  check('pages load /api/config.js with fallback intact (audit #66)', ['login.html', 'dashboard.html', 'members.html', 'settings.html', 'weekly-digest.html', 'case-detail.html', 'reset-password.html'].every((f) => read(f).includes('/api/config.js')));
+  check('dashboard: 401 → one refresh + retry before redirect (audit #59)', /refreshSession/.test(read('dashboard.html')) && /_retried/.test(read('dashboard.html')));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -804,6 +820,288 @@ async function testBatch2() {
   }
 }
 
+
+// ═══════════════════════════════════════════════════════════════════════════════
+async function testBatch3() {
+  console.log('\n── batch-3: audit viewer, resend webhooks, org delete, pagination, events, crypto, JWT, upstash ──');
+
+  const savedEnv = {};
+  for (const key of ['ENCRYPTION_KEY', 'ENCRYPTION_KEY_OLD', 'RESEND_WEBHOOK_SECRET', 'SUPABASE_JWT_SECRET', 'UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN', 'GEMINI_API_KEY', 'RESEND_API_KEY', 'CRON_SECRET']) {
+    savedEnv[key] = process.env[key];
+  }
+  process.env.ENCRYPTION_KEY = 'aa'.repeat(32);
+  process.env.GEMINI_API_KEY = 'gem-test';
+  process.env.RESEND_API_KEY = 're-test';
+
+  let RESEND_CALLS = [];
+  let UPSTASH_CALLS = [];
+  let USERINFO_CALLS = 0;
+  const prevFetch = global.fetch;
+  global.fetch = async (url, options) => {
+    const u = String(url);
+    if (u.includes('/auth/v1/user')) { USERINFO_CALLS += 1; return prevFetch(url, options); }
+    if (u.includes('api.resend.com/emails')) { RESEND_CALLS.push(JSON.parse(options.body)); return { ok: true, status: 200, json: async () => ({ id: 're-1' }) }; }
+    if (u.includes('upstash')) { UPSTASH_CALLS.push({ url: u, body: options && options.body }); return { ok: true, status: 200, json: async () => UPSTASH_RESPONSE() }; }
+    return prevFetch(url, options);
+  };
+  let UPSTASH_RESPONSE = () => [{ result: 1 }, { result: 1 }];
+  process.env.CRON_SECRET = 'cron-secret-test'; // batch-3 cron tests re-auth
+
+  function apiReq(method, route, { headers = {}, query = '', body } = {}) {
+    const parsed = {};
+    new URLSearchParams(query.replace(/^\?/, '')).forEach((v, k) => { parsed[k] = v; });
+    return { method, url: '/api/' + route + query, query: parsed, headers, [Symbol.asyncIterator]: async function* () { if (body != null) yield Buffer.from(body); } };
+  }
+
+  try {
+    // ── secret box (audit #7): rotation + legacy plaintext ──
+    const box = require(path + '/server/_lib/secret-box.js');
+    const enc = box.encryptToString('whsec_abc');
+    check('secret-box: enc:v1 roundtrip + legacy passthrough', enc.startsWith('enc:v1:') && box.decryptFromString(enc) === 'whsec_abc' && box.decryptFromString('whsec_plain') === 'whsec_plain');
+    process.env.ENCRYPTION_KEY = 'bb'.repeat(32);
+    process.env.ENCRYPTION_KEY_OLD = 'aa'.repeat(32);
+    check('secret-box: ENCRYPTION_KEY_OLD fallback works', box.decryptFromString(enc) === 'whsec_abc');
+    process.env.ENCRYPTION_KEY_OLD = '';
+    let rotationThrew = false;
+    try { box.decryptFromString(enc); } catch (_) { rotationThrew = true; }
+    check('secret-box: without old key rotation fails loudly (400)', rotationThrew);
+    process.env.ENCRYPTION_KEY = 'aa'.repeat(32);
+    const encCols = box.encryptColumns('rzp_secret');
+    const roundtrip = (() => { try { return box.decryptColumns(encCols.encrypted, encCols.iv, encCols.tag) === 'rzp_secret'; } catch (_) { return false; } })();
+    check('secret-box: column-triplet encrypt/decrypt', roundtrip);
+
+    // ── /api/audit (audit #16): owner sees rows, member 403 ──
+    const auditMod = require(path + '/server/audit.js');
+    let auditSelects = [];
+    CURRENT_CLIENT = fakeClient([
+      AUTH_BY_SBUID,
+      [/from audit_log[\s\S]*left join users/, ({ sql }) => { auditSelects.push(sql); return { rows: [{ id: 'a1', action: 'api_key.created', detail: { keyPrefix: 'rvsk_x' }, created_at: '2026-10-01T10:00:00Z', user_email: 'owner@test.com' }] }; }],
+    ]);
+    let res = await call(auditMod, makeReq('GET', { headers: AUTH, query: '?limit=50' }));
+    check('audit: owner → 200 with rows', res.statusCode === 200 && res.body.audit.length === 1 && res.body.audit[0].action === 'api_key.created', JSON.stringify(res.body));
+    const memberRow = { ...USERS_ROW, role: 'member' };
+    CURRENT_CLIENT = fakeClient([[/from users\s+where supabase_user_id/, () => ({ rows: [memberRow] })]]);
+    res = await call(auditMod, makeReq('GET', { headers: AUTH }));
+    check('audit: member → 403', res.statusCode === 403, String(res.statusCode));
+
+    // ── /api/config.js (audit #66): env-sourced JS snippet ──
+    const configMod = require(path + '/server/config.js');
+    process.env.SUPABASE_URL = 'https://config-test.supabase.co';
+    res = await call(configMod, makeReq('GET', {}));
+    check('config.js: JS body with env URL + JS content type', res.statusCode === 200 && /window.REVESSENT_SUPABASE_CONFIG/.test(String(res.raw)) && /config-test\.supabase\.co/.test(String(res.raw)) && String(res.headers['Content-Type']).includes('javascript'), String(res.raw));
+    delete process.env.SUPABASE_URL;
+
+    // ── DELETE /api/organization (audit #60) ──
+    const orgMod = require(path + '/server/organization.js');
+    let orgDeletes = [];
+    let orgAudits = [];
+    CURRENT_CLIENT = fakeClient([
+      TXN, AUTH_BY_SBUID,
+      [/insert into audit_log/, ({ params }) => { orgAudits.push(params); return { rows: [] }; }],
+      [/delete from organizations/, ({ params }) => { orgDeletes.push(params); return { rows: [{ id: params[0] }] }; }],
+    ]);
+    res = await call(orgMod, makeReq('DELETE', { headers: AUTH, body: JSON.stringify({ confirm: 'nope' }) }));
+    check('org delete: wrong confirm → 400, nothing deleted', res.statusCode === 400 && orgDeletes.length === 0, JSON.stringify(res.body));
+    res = await call(orgMod, makeReq('DELETE', { headers: AUTH, body: JSON.stringify({ confirm: 'DELETE' }) }));
+    check('org delete: owner + DELETE → cascade delete + audit row', res.statusCode === 200 && res.body.deleted === true && orgDeletes.length === 1 && orgDeletes[0][0] === 'org-1' && orgAudits.length === 1 && orgAudits[0][3] === 'organization.deleted', JSON.stringify(res.body));
+    CURRENT_CLIENT = fakeClient([[/from users\s+where supabase_user_id/, () => ({ rows: [memberRow] })]]);
+    res = await call(orgMod, makeReq('DELETE', { headers: AUTH, body: JSON.stringify({ confirm: 'DELETE' }) }));
+    check('org delete: member → 403', res.statusCode === 403, String(res.statusCode));
+
+    // ── members pagination (audit #64) ──
+    const membersMod = require(path + '/server/members.js');
+    let memberQueries = [];
+    CURRENT_CLIENT = fakeClient([
+      AUTH_BY_SBUID,
+      [/limit \$2 offset \$3/, ({ sql, params }) => { memberQueries.push({ sql, params }); return { rows: [{ id: 'm1', name: 'A', email: 'a@b.com' }] }; }],
+      [/select count\(\*\)::int as total from stripe_members/, ({ sql }) => { memberQueries.push({ sql }); return { rows: [{ total: 250 }] }; }],
+      [/select member_id, id as case_id/, () => ({ rows: [] })],
+    ]);
+    res = await call(membersMod, makeReq('GET', { headers: AUTH, query: '?limit=100&offset=100' }));
+    check('members: limit/offset forwarded + total + hasMore', res.statusCode === 200 && res.body.total === 250 && res.body.hasMore === true
+      && memberQueries.some((q) => q.params && q.params[1] === 100 && q.params[2] === 100), JSON.stringify({ body: res.body, q: memberQueries.map((q) => q.params) }));
+
+    // ── Resend delivery webhooks (audit #37) ──
+    const resendHook = require(path + '/server/webhooks/resend.js');
+    const WHSEC = 'whsec_' + Buffer.from('resend-test-secret').toString('base64');
+    process.env.RESEND_WEBHOOK_SECRET = WHSEC;
+
+    let suppressions = [];
+    function resendClient() {
+      return fakeClient([
+        [/insert into suppression_list/, ({ params }) => { suppressions.push(params); return { rows: [] }; }],
+        [/insert into activity_feed/, () => ({ rows: [] })],
+      ]);
+    }
+
+    const bounceEvent = JSON.stringify({ type: 'email.bounced', data: { to: 'gone@x.com', tags: ['org:org-1', 'member:member-1'] } });
+    const ts = Math.floor(Date.now() / 1000);
+    const signed = (body, id) => {
+      const sig = crypto.createHmac('sha256', Buffer.from(WHSEC.slice(6), 'base64')).update(`${id}.${ts}.${body}`).digest('base64');
+      return { 'svix-id': id, 'svix-timestamp': String(ts), 'svix-signature': 'v1,' + sig };
+    };
+
+    res = await call(resendHook, makeReq('POST', { headers: { 'x-nothing': '1' }, body: bounceEvent }));
+    check('resend: missing svix headers → 400', res.statusCode === 400, String(res.statusCode));
+    res = await call(resendHook, makeReq('POST', { headers: { 'svix-id': 'msg_1', 'svix-timestamp': String(ts - 99999), 'svix-signature': 'v1,AAAA' }, body: bounceEvent }));
+    check('resend: stale timestamp → 400', res.statusCode === 400, String(res.statusCode));
+
+    suppressions = [];
+    CURRENT_CLIENT = resendClient();
+    res = await call(resendHook, makeReq('POST', { headers: signed(bounceEvent, 'msg_2'), body: bounceEvent }));
+    check('resend: bounce → suppressed for the right org/email', res.statusCode === 200 && res.body.action === 'suppressed' && suppressions.length === 1 && suppressions[0][1] === 'org-1' && suppressions[0][3] === 'gone@x.com' && suppressions[0][2] === 'member-1', JSON.stringify(suppressions));
+
+    const complaint = JSON.stringify({ type: 'email.complained', data: { to: 'angry@x.com', tags: ['org:org-1'] } });
+    suppressions = [];
+    CURRENT_CLIENT = resendClient();
+    res = await call(resendHook, makeReq('POST', { headers: signed(complaint, 'msg_3'), body: complaint }));
+    check('resend: complaint → suppressed', res.statusCode === 200 && suppressions.length === 1 && suppressions[0][3] === 'angry@x.com', JSON.stringify(suppressions));
+
+    const untagged = JSON.stringify({ type: 'email.bounced', data: { to: 'x@y.com' } });
+    CURRENT_CLIENT = resendClient();
+    res = await call(resendHook, makeReq('POST', { headers: signed(untagged, 'msg_4'), body: untagged }));
+    check('resend: untagged email → 200 unmapped (no crash)', res.statusCode === 200 && res.body.action === 'unmapped', JSON.stringify(res.body));
+
+    const delivered = JSON.stringify({ type: 'email.delivered', data: { to: 'ok@x.com', tags: ['org:org-1'] } });
+    suppressions = [];
+    CURRENT_CLIENT = resendClient();
+    res = await call(resendHook, makeReq('POST', { headers: signed(delivered, 'msg_5'), body: delivered }));
+    check('resend: delivered → ignored, nothing suppressed', res.statusCode === 200 && res.body.action === 'ignored' && suppressions.length === 0, JSON.stringify(res.body));
+
+    delete process.env.RESEND_WEBHOOK_SECRET;
+    res = await call(resendHook, makeReq('POST', { body: bounceEvent }));
+    check('resend: no secret configured → 503', res.statusCode === 503, String(res.statusCode));
+
+    // ── local JWT verification (audit #66) ──
+    process.env.SUPABASE_JWT_SECRET = 'jwt-secret-for-tests';
+    const SUPA_URL = 'https://zujmouzzqiovgbnanrvv.supabase.co';
+    const b64u = (obj) => Buffer.from(JSON.stringify(obj)).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const jwtSign = (payload) => {
+      const head = b64u({ alg: 'HS256', typ: 'JWT' });
+      const body = b64u(payload);
+      const sig = crypto.createHmac('sha256', 'jwt-secret-for-tests').update(head + '.' + body).digest('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      return head + '.' + body + '.' + sig;
+    };
+    const goodJwt = jwtSign({ sub: 'sbu-1', email: 'owner@test.com', exp: Math.floor(Date.now() / 1000) + 3600, iss: SUPA_URL + '/auth/v1', aud: 'authenticated' });
+    // reuse the dashboard-data fake client shape from batch-2
+    CURRENT_CLIENT = fakeClient([
+      AUTH_BY_SBUID,
+      [/with weeks as/, () => ({ rows: [] })],
+      [/from recovery_attributions/, () => ({ rows: [{ current_cents: 0, prior_cents: 0 }] })],
+      [/as open_case_count/, () => ({ rows: [{ amount_cents: 0, open_case_count: 0 }] })],
+      [/filter \(where status = 'recovered'\)/, () => ({ rows: [{ recovered_count: 0, closed_count: 0 }] })],
+      [/select status, count\(\*\)::int as count/, () => ({ rows: [] })],
+      [/select decline_code,/, () => ({ rows: [] })],
+      [/from recovery_cases rc\s+join stripe_members/, () => ({ rows: [] })],
+      [/from activity_feed/, () => ({ rows: [] })],
+      [/select pilot_started_at, pilot_ends_at from organizations/, () => ({ rows: [] })],
+      [/select currency from recovery_cases/, () => ({ rows: [] })],
+    ]);
+    USERINFO_CALLS = 0;
+    const dashMod = require(path + '/server/dashboard-data.js');
+    res = await call(dashMod, makeReq('GET', { headers: { authorization: 'Bearer ' + goodJwt }, query: '?range=30d' }));
+    check('JWT auth: local verify works (200) with ZERO userinfo calls', res.statusCode === 200 && USERINFO_CALLS === 0, 'status=' + res.statusCode + ' userinfo=' + USERINFO_CALLS);
+    const badSigJwt = goodJwt.slice(0, -3) + 'aaa';
+    res = await call(dashMod, makeReq('GET', { headers: { authorization: 'Bearer ' + badSigJwt }, query: '?range=30d' }));
+    check('JWT auth: bad signature → 401', res.statusCode === 401, String(res.statusCode));
+    const expiredJwt = jwtSign({ sub: 'sbu-1', exp: Math.floor(Date.now() / 1000) - 10, iss: SUPA_URL + '/auth/v1', aud: 'authenticated' });
+    res = await call(dashMod, makeReq('GET', { headers: { authorization: 'Bearer ' + expiredJwt }, query: '?range=30d' }));
+    check('JWT auth: expired token → 401', res.statusCode === 401, String(res.statusCode));
+    delete process.env.SUPABASE_JWT_SECRET;
+    USERINFO_CALLS = 0;
+    res = await call(dashMod, makeReq('GET', { headers: AUTH, query: '?range=30d' }));
+    check('JWT auth: without secret falls back to userinfo call', res.statusCode === 200 && USERINFO_CALLS >= 1, 'userinfo=' + USERINFO_CALLS);
+
+    // ── Upstash-backed durable rate limit (audit #10) ──
+    const router = require(path + '/api/[...route].js');
+    process.env.UPSTASH_REDIS_REST_URL = 'https://example-cache.upstash.io';
+    process.env.UPSTASH_REDIS_REST_TOKEN = 'upstash-token';
+    UPSTASH_RESPONSE = () => [{ result: 31 }, { result: 60 }]; // already over the limit
+    UPSTASH_CALLS = [];
+    res = await call(router, apiReq('POST', 'leads', { headers: { 'x-forwarded-for': '198.51.100.7' }, body: JSON.stringify({ email: 'a@b.com' }) }));
+    check('rate limit (Upstash): over-limit count → 429 without touching the handler', res.statusCode === 429 && UPSTASH_CALLS.length === 1 && /rl:/.test(String(UPSTASH_CALLS[0].body)), JSON.stringify({ status: res.statusCode, body: UPSTASH_CALLS[0] && UPSTASH_CALLS[0].body }));
+    UPSTASH_RESPONSE = () => [{ result: 1 }, { result: 60 }];
+    UPSTASH_CALLS = [];
+    res = await call(router, apiReq('POST', 'leads', { headers: { 'x-forwarded-for': '198.51.100.8' }, body: JSON.stringify({ email: 'bad' }) }));
+    check('rate limit (Upstash): under limit reaches the handler (400 invalid email)', res.statusCode === 400 && UPSTASH_CALLS.length === 1, 'status=' + res.statusCode);
+    // Redis down → in-memory fallback, request still served
+    global.fetch = async (url, options) => {
+      const u = String(url);
+      if (u.includes('/auth/v1/user')) { USERINFO_CALLS += 1; return prevFetch(url, options); }
+      if (u.includes('upstash')) throw new Error('redis unreachable');
+      return prevFetch(url, options);
+    };
+    res = await call(router, apiReq('POST', 'leads', { headers: { 'x-forwarded-for': '198.51.100.9' }, body: JSON.stringify({ email: 'bad' }) }));
+    check('rate limit: Redis unreachable → falls back to in-memory, request served', res.statusCode === 400, String(res.statusCode));
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+
+    // ── cron: retention sweep + digest generation (audit #14/#54) ──
+    const cronMod = require(path + '/server/cron/process-recovery-queue.js');
+    let cronQueries = [];
+    CURRENT_CLIENT = fakeClient([
+      TXN, SAVEPOINT,
+      [/set status = 'failed',[\s\S]*'stale'/, () => ({ rows: [] })],
+      [/delete from webhook_events/, ({ sql, params }) => { cronQueries.push({ kind: 'retention', sql, params }); return { rows: [] }; }],
+      [/insert into forensics_digests/, ({ sql }) => { cronQueries.push({ kind: 'digest', sql }); return { rows: [], rowCount: 2 }; }],
+      [/from recovery_cases rc\s+join organizations/, () => ({ rows: [] })],
+    ]);
+    res = await call(cronMod, makeReq('GET', { headers: { authorization: 'Bearer cron-secret-test' } }));
+    check('cron: retention sweep runs with 30-day default', res.statusCode === 200 && cronQueries.some((q) => q.kind === 'retention' && /30 days|make_interval/.test(q.sql) && Number(q.params[0]) === 30), JSON.stringify(cronQueries.find((q) => q.kind === 'retention') && cronQueries.find((q) => q.kind === 'retention').params));
+    check('cron: weekly digest upserted (on conflict org+week)', cronQueries.some((q) => q.kind === 'digest' && /on conflict \(organization_id, week_start_date\)/.test(q.sql)), 'digest queries: ' + cronQueries.filter((q) => q.kind === 'digest').length);
+
+    // ── webhook: subscription + refund events (audit #24) ──
+    const webhook = require(path + '/server/webhooks/razorpay.js');
+    const WSECRET = 'whsec_test';
+    const whClient = (extra) => fakeClient([
+      TXN, SAVEPOINT,
+      [/from stripe_connections/, () => ({ rows: [{ organization_id: 'org-1', webhook_secret: WSECRET }] })],
+      [/insert into webhook_events/, () => ({ rows: [{ id: 'we-' + Math.random().toString(36).slice(2) }] })],
+      [/from webhook_events[\s\S]*stripe_event_id = \$1/, () => ({ rows: [] })],
+      [/update webhook_events/, () => ({ rows: [] })],
+      [/from stripe_members/, () => ({ rows: [MEMBER_ROW] })],
+      [/update stripe_members/, () => ({ rows: [MEMBER_ROW] })],
+      [/from stripe_subscriptions/, () => ({ rows: [] })],
+      [/insert into stripe_subscriptions/, ({ params }) => { (extra && extra.subs ? extra.subs : []).push(params); return { rows: [] }; }],
+      [/from recovery_cases/, ({ l }) => ({ rows: l.startsWith('select') ? (extra && extra.openCase ? [extra.openCase] : []) : [] })],
+      [/update recovery_cases/, () => ({ rows: [{ id: 'case-open' }] })],
+      [/insert into recovery_cases/, () => ({ rows: [{ id: 'case-new' }] })],
+      [/insert into recovery_attributions/, ({ params }) => { (extra && extra.attrs ? extra.attrs : []).push(params); return { rows: [] }; }],
+      [/insert into activity_feed/, ({ params }) => { (extra && extra.acts ? extra.acts : []).push(params); return { rows: [] }; }],
+      [/select alert_webhook_url/, () => ({ rows: [{ alert_webhook_url: null, alert_min_amount_cents: 0 }] })],
+    ]);
+    async function whPost(event, payload, extra) {
+      CURRENT_CLIENT = whClient(extra);
+      FETCH_LOG = [];
+      const raw = JSON.stringify({ event, payload });
+      const sig = crypto.createHmac('sha256', WSECRET).update(raw).digest('hex');
+      return call(webhook, makeReq('POST', { headers: { 'x-razorpay-signature': sig, 'x-razorpay-event-id': 'evt-' + event + '-' + Math.random().toString(36).slice(2, 7) }, query: '?org=org-1', body: raw }));
+    }
+
+    let subs = [], acts = [];
+    res = await whPost('subscription.halted', { subscription: { entity: { id: 'sub_h1', status: 'halted', customer_id: 'cust_1', currency: 'INR' } } }, { subs, acts });
+    check('webhook: subscription.halted → upsert halted + activity', res.statusCode === 200 && res.body.action === 'subscription_halted' && subs.length === 1 && subs[0][4] === 'halted' && acts.some((a) => a[2] === 'subscription_halted'), JSON.stringify({ body: res.body, subs: subs.length, acts: acts.map((a) => a[2]) }));
+
+    subs = []; acts = [];
+    res = await whPost('subscription.cancelled', { subscription: { entity: { id: 'sub_c1', status: 'cancelled', customer_id: 'cust_1' } } }, { subs, acts });
+    check('webhook: subscription.cancelled → upsert cancelled + activity', res.statusCode === 200 && subs.length === 1 && subs[0][4] === 'cancelled' && acts.some((a) => a[2] === 'subscription_cancelled'), JSON.stringify(res.body));
+
+    acts = [];
+    res = await whPost('refund.processed', { refund: { entity: { id: 'rfnd_1', payment_id: 'pay_big', amount: 20000, currency: 'INR' } } }, { acts });
+    check('webhook: refund.processed → refund activity row', res.statusCode === 200 && res.body.action === 'refund_processed' && acts.some((a) => a[2] === 'refund_processed'), JSON.stringify({ body: res.body, acts: acts.map((a) => a[2]) }));
+
+    let attrs = [];
+    res = await whPost('subscription.charged', { payment: { entity: { id: 'pay_subch', amount: 25000, currency: 'INR', status: 'captured', email: 'a@b.com' } }, subscription: { entity: { id: 'sub_ch1', status: 'active', customer_id: 'cust_1' } } }, { attrs, openCase: { id: 'case-open', member_id: 'member-1', amount_cents: 25000, currency: 'INR' }, subs: [] });
+    check('webhook: subscription.charged → capture path (recovered + attribution)', res.statusCode === 200 && res.body.action === 'case_recovered' && attrs.length === 1, JSON.stringify({ body: res.body, attrs: attrs.length }));
+  } finally {
+    global.fetch = prevFetch;
+    for (const [key, value] of Object.entries(savedEnv)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 (async () => {
   try {
@@ -816,6 +1114,7 @@ async function testBatch2() {
     await testKeysAndPublic();
     await testExports();
     await testBatch2();
+    await testBatch3();
     testSources();
   } catch (e) {
     failures++;

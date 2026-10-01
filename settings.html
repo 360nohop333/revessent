@@ -732,6 +732,46 @@
 <p class="help" id="referralStats" style="margin-top:10px">Loading…</p>
 </fieldset>
 </section>
+
+<section aria-labelledby="auditHeading" class="settings-card glass-card" id="auditCard" style="margin-top:26px">
+<fieldset>
+<div class="section-head">
+<div>
+<h2 id="auditHeading">Audit log</h2>
+<p class="section-note">Every privileged action in this workspace — keys created and revoked, Razorpay connected, settings changed, retries triggered, notes sent — with who did it and when.</p>
+</div>
+</div>
+<ul class="key-list" id="auditList" style="margin-top:12px"><li class="help">Loading…</li></ul>
+</fieldset>
+</section>
+
+<section aria-labelledby="accountHeading" class="settings-card glass-card" id="accountCard" style="margin-top:26px">
+<fieldset>
+<div class="section-head">
+<div>
+<h2 id="accountHeading">Account</h2>
+<p class="section-note">Password, sessions and workspace deletion. Business data (cases, members) exports from the dashboard's CSV buttons.</p>
+</div>
+</div>
+
+<div class="copy-row" style="margin-top:12px">
+<input aria-label="New password" autocomplete="new-password" id="newPassword" placeholder="New password (8+ characters)" type="password"/>
+<button class="inline-btn" id="changePasswordBtn" type="button">Update password</button>
+</div>
+
+<div class="copy-row" style="margin-top:10px">
+<button class="inline-btn" id="signOutEverywhereBtn" type="button">Sign out everywhere</button>
+</div>
+
+<div style="margin-top:22px;border-top:1px solid rgba(64,48,26,.14);padding-top:18px">
+<p class="section-note"><strong style="color:#A03A2B">Danger zone.</strong> Deleting the workspace removes every case, note, member, subscription, key and setting — permanently. Your sign-in login remains (email hello@revessent.com to remove it entirely).</p>
+<div class="copy-row" style="margin-top:10px">
+<input aria-label="Type DELETE to confirm" autocomplete="off" id="deleteConfirmInput" placeholder="Type DELETE to confirm" type="text"/>
+<button class="inline-btn" id="deleteWorkspaceBtn" style="color:#A03A2B;border-color:rgba(160,58,43,.4)" type="button">Delete workspace</button>
+</div>
+</div>
+</fieldset>
+</section>
 </main>
 <!-- Tooltip popovers retained for the action-bar navigation inspiration. -->
 
@@ -742,11 +782,14 @@
 
 <!-- SVG filter from the referenced glass navigation component. -->
 
+<script src="/api/config.js"></script> <!-- audit #66: Supabase project from env -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
     /* Supabase config — exact values requested. */
-    const SUPABASE_URL = "https://zujmouzzqiovgbnanrvv.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3";
+    /* audit #66: env-sourced config with hardcoded fallback. */
+    const __rvCfg = window.REVESSENT_SUPABASE_CONFIG || { url: "https://zujmouzzqiovgbnanrvv.supabase.co", anonKey: "sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3" };
+    const SUPABASE_URL = __rvCfg.url;
+    const SUPABASE_ANON_KEY = __rvCfg.anonKey;
 
     let supabaseClient = null;
     let accessToken = "";
@@ -1276,6 +1319,104 @@
       }
     }
 
+    /* Audit #16: audit log viewer. */
+    async function loadAuditLog(){
+      const list = document.getElementById('auditList');
+      try {
+        const response = await fetch('/api/audit?limit=50', {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        if(!response.ok) throw new Error(await parseResponseDetail(response));
+        const data = await response.json();
+        const rows = Array.isArray(data.audit) ? data.audit : [];
+        list.textContent = '';
+        if(!rows.length){
+          const li = document.createElement('li');
+          li.className = 'help';
+          li.textContent = 'No privileged actions recorded yet.';
+          list.appendChild(li);
+          return;
+        }
+        rows.forEach(row => {
+          const li = document.createElement('li');
+          li.style.cssText = 'display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap';
+          const left = document.createElement('span');
+          const action = document.createElement('strong');
+          action.textContent = row.action || 'unknown';
+          const who = document.createElement('span');
+          who.className = 'help';
+          who.textContent = (row.userEmail || 'system') + ' · ' + (row.createdAt ? new Date(row.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '');
+          left.appendChild(action);
+          left.appendChild(who);
+          li.appendChild(left);
+          list.appendChild(li);
+        });
+      } catch (error) {
+        console.warn('Revessent audit log load failed.', error);
+        list.textContent = '';
+        const li = document.createElement('li');
+        li.className = 'help';
+        li.textContent = 'Audit log could not be loaded (is the migration SQL run?). Refresh to retry.';
+        list.appendChild(li);
+      }
+    }
+
+    /* Audit #60: password change, global sign-out, workspace deletion. */
+    function wireAccountSection(){
+      const changeBtn = document.getElementById('changePasswordBtn');
+      const signOutBtn = document.getElementById('signOutEverywhereBtn');
+      const deleteBtn = document.getElementById('deleteWorkspaceBtn');
+      const deleteInput = document.getElementById('deleteConfirmInput');
+      const newPassInput = document.getElementById('newPassword');
+
+      changeBtn.addEventListener('click', async () => {
+        const password = newPassInput.value;
+        if(password.length < 8){ newPassInput.focus(); alert('Passwords need at least 8 characters.'); return; }
+        changeBtn.disabled = true; changeBtn.textContent = 'Updating…';
+        try {
+          const { error } = await supabaseClient.auth.updateUser({ password });
+          if(error) throw error;
+          newPassInput.value = '';
+          alert('Password updated.');
+        } catch (error) {
+          alert(error && error.message ? error.message : 'Could not update the password.');
+        } finally {
+          changeBtn.disabled = false; changeBtn.textContent = 'Update password';
+        }
+      });
+
+      signOutBtn.addEventListener('click', async () => {
+        if(!confirm('Sign out of ALL devices? You will need to sign in again everywhere.')) return;
+        signOutBtn.disabled = true; signOutBtn.textContent = 'Signing out…';
+        try { await supabaseClient.auth.signOut({ scope: 'global' }); } catch (_) {}
+        window.location.replace('/login.html');
+      });
+
+      deleteBtn.addEventListener('click', async () => {
+        if((deleteInput.value || '').trim().toUpperCase() !== 'DELETE'){
+          deleteInput.focus();
+          alert('Type DELETE in the box to confirm workspace removal.');
+          return;
+        }
+        if(!confirm('This permanently deletes this workspace and every case, member and key in it. There is no undo. Continue?')) return;
+        deleteBtn.disabled = true; deleteBtn.textContent = 'Deleting…';
+        try {
+          const response = await fetch('/api/organization', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+            body: JSON.stringify({ organizationId, confirm: 'DELETE' })
+          });
+          if(!response.ok) throw new Error(await parseResponseDetail(response));
+          try { await supabaseClient.auth.signOut(); } catch (_) {}
+          window.location.replace('/');
+        } catch (error) {
+          alert(error && error.message ? error.message : 'Could not delete the workspace.');
+          deleteBtn.disabled = false; deleteBtn.textContent = 'Delete workspace';
+        }
+      });
+    }
+
     async function boot(){
       applyStoredTheme();
 
@@ -1319,6 +1460,8 @@
            run yet the endpoints report it and we degrade gracefully. */
         loadKeys();
         loadReferrals();
+        loadAuditLog();
+        wireAccountSection();
 
         finishAppLoading();
       } catch (error) {

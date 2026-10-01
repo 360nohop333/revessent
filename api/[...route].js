@@ -14,6 +14,7 @@ const ROUTES = {
   'health': require('../server/health.js'),
   'leads': require('../server/leads.js'),
   'unsubscribe': require('../server/unsubscribe.js'),
+  'config.js': require('../server/config.js'),
   'me': require('../server/me.js'),
   'settings': require('../server/settings.js'),
   'members': require('../server/members.js'),
@@ -24,6 +25,7 @@ const ROUTES = {
   'keys': require('../server/keys.js'),
   'changelog': require('../server/changelog.js'),
   'referrals': require('../server/referrals.js'),
+  'audit': require('../server/audit.js'),
   'recovery/case': require('../server/recovery/case.js'),
   'recovery/retry': require('../server/recovery/retry.js'),
   'recovery/send-note': require('../server/recovery/send-note.js'),
@@ -31,6 +33,7 @@ const ROUTES = {
   'razorpay/connect': require('../server/razorpay/connect.js'),
   'razorpay/backfill': require('../server/razorpay/backfill.js'),
   'webhooks/razorpay': require('../server/webhooks/razorpay.js'),
+  'webhooks/resend': require('../server/webhooks/resend.js'),
   'cron/process-recovery-queue': require('../server/cron/process-recovery-queue.js'),
   'alerts/send': require('../server/alerts/send.js'),
   'alerts/test': require('../server/alerts/test.js'),
@@ -39,35 +42,74 @@ const ROUTES = {
   'v1/dashboard-summary': require('../server/v1/dashboard-summary.js'),
 };
 
-// ── Rate limiting (audit #10, partial) ─────────────────────────────────────
-// In-memory sliding window per warm instance. NOT a durable limit — Vercel
-// may run many instances — but it meaningfully throttles abuse hitting a hot
-// instance and costs zero dependencies. A durable limit (Upstash/Vercel KV)
-// stays on the roadmap; the router is the single place to swap it in.
-const RATE_LIMIT_WINDOW_MS = 60_000;
+// ── Rate limiting (audit #10) ─────────────────────────────────────────────
+// Two tiers:
+//  - DURABLE (preferred): with UPSTASH_REDIS_REST_URL + _TOKEN set, a fixed
+//    window counter in Upstash Redis — enforced across ALL instances.
+//  - IN-MEMORY (fallback): sliding window per warm instance. Better than
+//    nothing when no Redis is configured, or if Redis is unreachable
+//    (availability wins over strictness — a limiter outage must not 500 the
+//    app).
+// Webhooks (Razorpay, Resend) and the cron authenticate with their own
+// secrets and are exempt.
+const RATE_LIMIT_WINDOW_SECONDS = 60;
 const RATE_LIMIT_MAX = 30; // requests per window per IP per route
-const rateBuckets = new Map();
+const rateBuckets = new Map(); // in-memory fallback store
 
 function clientIp(req) {
   const fwd = req.headers && (req.headers['x-forwarded-for'] || req.headers['X-Forwarded-For']) || '';
   const first = String(fwd).split(',')[0].trim();
   if (first) return first;
-  return String((req.headers && (req.headers['x-real-ip'] || req.headers['x-real-ip'])) || 'unknown');
+  return String((req.headers && (req.headers['x-real-ip'] || req.headers['X-Real-Ip'])) || 'unknown');
 }
 
-function rateLimited(key) {
+function inMemoryLimited(key) {
   const now = Date.now();
   let bucket = rateBuckets.get(key);
   if (!bucket) {
     bucket = [];
     rateBuckets.set(key, bucket);
   }
-  while (bucket.length && now - bucket[0] > RATE_LIMIT_WINDOW_MS) bucket.shift();
+  while (bucket.length && now - bucket[0] > RATE_LIMIT_WINDOW_SECONDS * 1000) bucket.shift();
   if (bucket.length >= RATE_LIMIT_MAX) return true;
   bucket.push(now);
   // crude memory cap so a flood of unique IPs can't grow the map forever
   if (rateBuckets.size > 5000) rateBuckets.clear();
   return false;
+}
+
+// Audit #10: Upstash REST pipeline — INCR + EXPIRE in one round trip.
+async function upstashLimited(key) {
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) return null; // not configured → caller uses in-memory
+
+  const windowId = Math.floor(Date.now() / 1000 / RATE_LIMIT_WINDOW_SECONDS);
+  const redisKey = `rl:${key}:${windowId}`;
+
+  try {
+    const response = await fetch(String(url).replace(/\/+$/, '') + '/pipeline', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify([
+        ['INCR', redisKey],
+        ['EXPIRE', redisKey, String(RATE_LIMIT_WINDOW_SECONDS * 2)],
+      ]),
+    });
+    if (!response.ok) return null; // fall back — never block on Redis trouble
+    const body = await response.json();
+    const count = Number(body && body[0] && body[0].result);
+    if (!Number.isFinite(count)) return null;
+    return count > RATE_LIMIT_MAX;
+  } catch (_) {
+    return null; // network error → fall back to in-memory
+  }
+}
+
+async function rateLimited(key) {
+  const durable = await upstashLimited(key);
+  if (durable !== null) return durable;
+  return inMemoryLimited(key);
 }
 
 function sendJson(res, status, body) {
@@ -90,12 +132,15 @@ module.exports = async (req, res) => {
     return sendJson(res, 404, { error: 'Not found.' });
   }
 
-  // Rate-limit writes + the public token endpoint. Webhooks (Razorpay) and
-  // the cron authenticate with their own secrets and are exempt.
+  // Rate-limit writes + the public token endpoint. Webhooks (Razorpay,
+  // Resend) and the cron authenticate with their own secrets and are exempt.
   const isWrite = req.method === 'POST' || req.method === 'DELETE' || req.method === 'PUT';
-  const exempt = pathname === 'webhooks/razorpay' || pathname === 'cron/process-recovery-queue';
+  const exempt =
+    pathname === 'webhooks/razorpay' ||
+    pathname === 'webhooks/resend' ||
+    pathname === 'cron/process-recovery-queue';
   if (isWrite && !exempt) {
-    if (rateLimited(`${clientIp(req)}|${pathname}|write`)) {
+    if (await rateLimited(`${clientIp(req)}|${pathname}|write`)) {
       return sendJson(res, 429, { error: 'Too many requests — please slow down.' });
     }
   }

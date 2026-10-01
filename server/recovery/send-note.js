@@ -12,6 +12,7 @@ const { Pool } = require('pg');
 const { createUnsubscribeToken, appBaseUrl } = require('../_lib/unsubscribe-token');
 const { logAudit } = require('../_lib/audit');
 const crypto = require('crypto');
+const { authenticateRequest } = require('../_lib/supabase-auth'); // audit #66: shared auth (local JWT verify when SUPABASE_JWT_SECRET is set)
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://zujmouzzqiovgbnanrvv.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3';
@@ -30,125 +31,6 @@ function sendJson(res, status, body) {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json');
   res.end(JSON.stringify(body));
-}
-
-function getBearerToken(req) {
-  const header = req.headers.authorization || req.headers.Authorization || '';
-  const match = String(header).match(/^Bearer\s+(.+)$/i);
-  return match ? match[1].trim() : '';
-}
-
-async function verifySupabaseToken(token) {
-  if (!token) {
-    const error = new Error('Missing authorization token.');
-    error.statusCode = 401;
-    throw error;
-  }
-
-  const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      apikey: SUPABASE_ANON_KEY,
-    },
-  });
-
-  if (!response.ok) {
-    const error = new Error('Invalid or expired authorization token.');
-    error.statusCode = 401;
-    throw error;
-  }
-
-  const supabaseUser = await response.json();
-  const supabaseUserId = (supabaseUser && supabaseUser.id ? String(supabaseUser.id) : '').trim();
-  const email = (supabaseUser && supabaseUser.email ? String(supabaseUser.email) : '').trim().toLowerCase();
-
-  if (!supabaseUserId) {
-    const error = new Error('Supabase user id is missing.');
-    error.statusCode = 401;
-    throw error;
-  }
-
-  if (!email) {
-    const error = new Error('Supabase user has no email address.');
-    error.statusCode = 401;
-    throw error;
-  }
-
-  return { email, supabaseUserId };
-}
-
-async function findNeonUserBySupabaseId(client, supabaseUserId) {
-  const result = await client.query(
-    `select id, organization_id, email, role, supabase_user_id
-       from users
-      where supabase_user_id = $1
-      limit 1`,
-    [supabaseUserId]
-  );
-
-  return result.rows[0] || null;
-}
-
-async function findNeonUserByEmail(client, email) {
-  const result = await client.query(
-    `select id, organization_id, email, role, supabase_user_id
-       from users
-      where lower(email) = lower($1)
-      limit 1`,
-    [email]
-  );
-
-  return result.rows[0] || null;
-}
-
-async function backfillSupabaseUserId(client, user, supabaseUserId) {
-  if (!user || !supabaseUserId || user.supabase_user_id) return user;
-
-  try {
-    const result = await client.query(
-      `update users
-          set supabase_user_id = $1
-        where id = $2
-          and supabase_user_id is null
-      returning id, organization_id, email, role, supabase_user_id`,
-      [supabaseUserId, user.id]
-    );
-
-    return result.rows[0] || user;
-  } catch (error) {
-    if (error && error.code === '23505') {
-      const boundUser = await findNeonUserBySupabaseId(client, supabaseUserId);
-      if (boundUser && String(boundUser.id) === String(user.id)) return boundUser;
-    }
-    throw error;
-  }
-}
-
-async function authenticateRequest(req, client) {
-  const token = getBearerToken(req);
-  const { email, supabaseUserId } = await verifySupabaseToken(token);
-  let user = await findNeonUserBySupabaseId(client, supabaseUserId);
-
-  if (!user) {
-    user = await findNeonUserByEmail(client, email);
-
-    if (user && user.supabase_user_id && user.supabase_user_id !== supabaseUserId) {
-      const error = new Error('Supabase account is already bound to a different Revessent user.');
-      error.statusCode = 401;
-      throw error;
-    }
-
-    if (user) user = await backfillSupabaseUserId(client, user, supabaseUserId);
-  }
-
-  if (!user) {
-    const error = new Error('No Revessent user found for this Supabase account.');
-    error.statusCode = 401;
-    throw error;
-  }
-
-  return { token, email, supabaseUserId, user };
 }
 
 async function readJsonBody(req) {
@@ -187,12 +69,19 @@ function bodyToHtml(body) {
   return paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph).replace(/\n/g, '<br>')}</p>`).join('\n');
 }
 
+// Audit #39: zero-decimal currencies (JPY, KRW, VND, …) are stored as whole
+// units — dividing by 100 invents money. Razorpay itself is 2-decimal, but
+// the ledger must stay correct if another processor ever lands.
+const ZERO_DECIMAL_CURRENCIES = new Set(['JPY', 'KRW', 'VND', 'CLP', 'ISK', 'HUF', 'TWD', 'BHD', 'KWD', 'OMR']);
+
 function amountLabel(amountCents, currency) {
-  const amount = (Number(amountCents || 0) / 100).toLocaleString('en-IN', {
+  const code = cleanString(currency || 'INR').toUpperCase();
+  const divisor = ZERO_DECIMAL_CURRENCIES.has(code) ? 1 : 100;
+  const amount = (Number(amountCents || 0) / divisor).toLocaleString('en-IN', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   });
-  return `${cleanString(currency || 'INR').toUpperCase()} ${amount}`;
+  return `${code} ${amount}`;
 }
 
 function firstName(nameOrEmail) {
@@ -435,6 +324,9 @@ async function sendWithResend({ client, organizationId, memberId, fromName, from
       html: bodyToHtml(body) + footerHtml,
       text: textPart,
       reply_to: fromEmail,
+      // Audit #37: the Resend delivery webhook reads these back to map a
+      // bounce/complaint to the workspace + member and auto-suppress.
+      tags: ['org:' + organizationId, memberId ? 'member:' + memberId : null].filter(Boolean),
     }),
   });
 

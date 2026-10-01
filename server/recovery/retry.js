@@ -16,8 +16,10 @@
 
 const { Pool } = require('pg');
 const crypto = require('crypto');
+const { decryptColumns } = require('../_lib/secret-box'); // audit #7
 const { sendAlertIfConfigured } = require('../alerts/send');
 const { logAudit } = require('../_lib/audit');
+const { authenticateRequest } = require('../_lib/supabase-auth'); // audit #66: shared auth (local JWT verify when SUPABASE_JWT_SECRET is set)
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://zujmouzzqiovgbnanrvv.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3';
@@ -92,125 +94,6 @@ function sendJson(res, status, body) {
   res.end(JSON.stringify(body));
 }
 
-function getBearerToken(req) {
-  const header = req.headers.authorization || req.headers.Authorization || '';
-  const match = String(header).match(/^Bearer\s+(.+)$/i);
-  return match ? match[1].trim() : '';
-}
-
-async function verifySupabaseToken(token) {
-  if (!token) {
-    const error = new Error('Missing authorization token.');
-    error.statusCode = 401;
-    throw error;
-  }
-
-  const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      apikey: SUPABASE_ANON_KEY,
-    },
-  });
-
-  if (!response.ok) {
-    const error = new Error('Invalid or expired authorization token.');
-    error.statusCode = 401;
-    throw error;
-  }
-
-  const supabaseUser = await response.json();
-  const supabaseUserId = (supabaseUser && supabaseUser.id ? String(supabaseUser.id) : '').trim();
-  const email = (supabaseUser && supabaseUser.email ? String(supabaseUser.email) : '').trim().toLowerCase();
-
-  if (!supabaseUserId) {
-    const error = new Error('Supabase user id is missing.');
-    error.statusCode = 401;
-    throw error;
-  }
-
-  if (!email) {
-    const error = new Error('Supabase user has no email address.');
-    error.statusCode = 401;
-    throw error;
-  }
-
-  return { email, supabaseUserId };
-}
-
-async function findNeonUserBySupabaseId(client, supabaseUserId) {
-  const result = await client.query(
-    `select id, organization_id, email, role, supabase_user_id
-       from users
-      where supabase_user_id = $1
-      limit 1`,
-    [supabaseUserId]
-  );
-
-  return result.rows[0] || null;
-}
-
-async function findNeonUserByEmail(client, email) {
-  const result = await client.query(
-    `select id, organization_id, email, role, supabase_user_id
-       from users
-      where lower(email) = lower($1)
-      limit 1`,
-    [email]
-  );
-
-  return result.rows[0] || null;
-}
-
-async function backfillSupabaseUserId(client, user, supabaseUserId) {
-  if (!user || !supabaseUserId || user.supabase_user_id) return user;
-
-  try {
-    const result = await client.query(
-      `update users
-          set supabase_user_id = $1
-        where id = $2
-          and supabase_user_id is null
-      returning id, organization_id, email, role, supabase_user_id`,
-      [supabaseUserId, user.id]
-    );
-
-    return result.rows[0] || user;
-  } catch (error) {
-    if (error && error.code === '23505') {
-      const boundUser = await findNeonUserBySupabaseId(client, supabaseUserId);
-      if (boundUser && String(boundUser.id) === String(user.id)) return boundUser;
-    }
-    throw error;
-  }
-}
-
-async function authenticateRequest(req, client) {
-  const token = getBearerToken(req);
-  const { email, supabaseUserId } = await verifySupabaseToken(token);
-  let user = await findNeonUserBySupabaseId(client, supabaseUserId);
-
-  if (!user) {
-    user = await findNeonUserByEmail(client, email);
-
-    if (user && user.supabase_user_id && user.supabase_user_id !== supabaseUserId) {
-      const error = new Error('Supabase account is already bound to a different Revessent user.');
-      error.statusCode = 401;
-      throw error;
-    }
-
-    if (user) user = await backfillSupabaseUserId(client, user, supabaseUserId);
-  }
-
-  if (!user) {
-    const error = new Error('No Revessent user found for this Supabase account.');
-    error.statusCode = 401;
-    throw error;
-  }
-
-  return { token, email, supabaseUserId, user };
-}
-
 async function readJsonBody(req) {
   if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) {
     return req.body;
@@ -244,33 +127,10 @@ function toInt(value, fallback = 0) {
   return Number.isFinite(number) ? Math.round(number) : fallback;
 }
 
-function getEncryptionKey() {
-  const key = process.env.ENCRYPTION_KEY;
-
-  if (!key || !/^[0-9a-fA-F]{64}$/.test(key)) {
-    const error = new Error('Encryption key not configured.');
-    error.statusCode = 500;
-    throw error;
-  }
-
-  return Buffer.from(key, 'hex');
-}
-
+// Audit #7: decryption lives in _lib/secret-box — tries ENCRYPTION_KEY then
+// ENCRYPTION_KEY_OLD so keys rotate without breaking saved connections.
 function decryptSecret(connection) {
-  const key = getEncryptionKey();
-  const encrypted = Buffer.from(connection.encrypted_restricted_key || '', 'base64');
-  const iv = Buffer.from(connection.key_iv || '', 'base64');
-  const tag = Buffer.from(connection.key_tag || '', 'base64');
-
-  if (!encrypted.length || !iv.length || !tag.length) {
-    const error = new Error('Stored Razorpay secret is incomplete. Reconnect Razorpay.');
-    error.statusCode = 400;
-    throw error;
-  }
-
-  const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
-  decipher.setAuthTag(tag);
-  return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
+  return decryptColumns(connection.encrypted_restricted_key, connection.key_iv, connection.key_tag);
 }
 
 function razorpayAuthHeader(keyId, keySecret) {

@@ -42,12 +42,22 @@ tests/suite.test.js   offline test suite (mocked DB + network)
 | `RESEND_API_KEY` | optional | enables email sending |
 | `RESEND_FROM_EMAIL` | optional | default sender when no voice profile exists |
 | `PUBLIC_APP_URL` | optional | canonical base for unsubscribe links (defaults to the Vercel production URL) |
+| `SUPABASE_JWT_SECRET` | optional | verify access tokens locally (no per-request Supabase call) — Supabase → Settings → API → JWT Secret |
+| `RESEND_WEBHOOK_SECRET` | optional | enables `/api/webhooks/resend` (bounce/complaint → auto-suppression); from Resend → Webhooks |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | optional | durable cross-instance rate limiting; without them the limiter is per-instance in memory |
+| `ENCRYPTION_KEY_OLD` | optional | previous key during rotation — decrypt falls back to it while secrets re-encrypt on save |
+| `WEBHOOK_RETENTION_DAYS` | optional | webhook payload retention before the nightly delete (default 30) |
 
 ## Database
 
-`schema.ts` documents the shape; apply changes by running SQL in the Neon
-SQL editor (see `AUDIT.md` for the current migration block). There is no
-migration tool wired up yet.
+`schema.ts` documents the shape. Migrations live in `migrations/` and are
+applied in order, each in its own transaction, tracked in `_migrations`:
+
+```
+DATABASE_URL='postgres://…' npm run migrate
+```
+
+(Or copy the SQL blocks from `AUDIT.md` into the Neon SQL editor by hand.)
 
 ## Testing
 
@@ -60,3 +70,19 @@ npm test
 
 `vercel.json` runs `/api/cron/process-recovery-queue` daily at 03:30 UTC
 (09:00 IST) — the Hobby-plan maximum. On Pro, tighten to `0 * * * *`.
+Each run: sweeps stale pending attempts (>1h), deletes webhook payloads
+older than `WEBHOOK_RETENTION_DAYS` (default 30), processes due cases
+(respecting the org's trust level — `approval_required` parks cases instead
+of emailing customers), and generates/updates the weekly forensics digest
+per org.
+
+## Frontend Supabase config
+
+Every page loads `/api/config.js` (served by the single function from env
+vars) before its inline fallback, so changing the Supabase project is a
+Vercel env-var change, not an HTML edit.
+
+## CI
+
+`.github/workflows/ci.yml` runs the offline test suite and a single-function
+guard on every PR and push to `main`.

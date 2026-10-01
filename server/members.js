@@ -2,6 +2,7 @@
 // Lists Razorpay members/customers for the authenticated organization.
 
 const { Pool } = require('pg');
+const { authenticateRequest } = require('./_lib/supabase-auth'); // audit #66: shared auth (local JWT verify when SUPABASE_JWT_SECRET is set)
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://zujmouzzqiovgbnanrvv.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3';
@@ -17,125 +18,6 @@ function sendJson(res, status, body) {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json');
   res.end(JSON.stringify(body));
-}
-
-function getBearerToken(req) {
-  const header = req.headers.authorization || req.headers.Authorization || '';
-  const match = String(header).match(/^Bearer\s+(.+)$/i);
-  return match ? match[1].trim() : '';
-}
-
-async function verifySupabaseToken(token) {
-  if (!token) {
-    const error = new Error('Missing authorization token.');
-    error.statusCode = 401;
-    throw error;
-  }
-
-  const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      apikey: SUPABASE_ANON_KEY,
-    },
-  });
-
-  if (!response.ok) {
-    const error = new Error('Invalid or expired authorization token.');
-    error.statusCode = 401;
-    throw error;
-  }
-
-  const supabaseUser = await response.json();
-  const supabaseUserId = (supabaseUser && supabaseUser.id ? String(supabaseUser.id) : '').trim();
-  const email = (supabaseUser && supabaseUser.email ? String(supabaseUser.email) : '').trim().toLowerCase();
-
-  if (!supabaseUserId) {
-    const error = new Error('Supabase user id is missing.');
-    error.statusCode = 401;
-    throw error;
-  }
-
-  if (!email) {
-    const error = new Error('Supabase user has no email address.');
-    error.statusCode = 401;
-    throw error;
-  }
-
-  return { email, supabaseUserId };
-}
-
-async function findNeonUserBySupabaseId(client, supabaseUserId) {
-  const result = await client.query(
-    `select id, organization_id, email, role, supabase_user_id
-       from users
-      where supabase_user_id = $1
-      limit 1`,
-    [supabaseUserId]
-  );
-
-  return result.rows[0] || null;
-}
-
-async function findNeonUserByEmail(client, email) {
-  const result = await client.query(
-    `select id, organization_id, email, role, supabase_user_id
-       from users
-      where lower(email) = lower($1)
-      limit 1`,
-    [email]
-  );
-
-  return result.rows[0] || null;
-}
-
-async function backfillSupabaseUserId(client, user, supabaseUserId) {
-  if (!user || !supabaseUserId || user.supabase_user_id) return user;
-
-  try {
-    const result = await client.query(
-      `update users
-          set supabase_user_id = $1
-        where id = $2
-          and supabase_user_id is null
-      returning id, organization_id, email, role, supabase_user_id`,
-      [supabaseUserId, user.id]
-    );
-
-    return result.rows[0] || user;
-  } catch (error) {
-    if (error && error.code === '23505') {
-      const boundUser = await findNeonUserBySupabaseId(client, supabaseUserId);
-      if (boundUser && String(boundUser.id) === String(user.id)) return boundUser;
-    }
-    throw error;
-  }
-}
-
-async function authenticateRequest(req, client) {
-  const token = getBearerToken(req);
-  const { email, supabaseUserId } = await verifySupabaseToken(token);
-  let user = await findNeonUserBySupabaseId(client, supabaseUserId);
-
-  if (!user) {
-    user = await findNeonUserByEmail(client, email);
-
-    if (user && user.supabase_user_id && user.supabase_user_id !== supabaseUserId) {
-      const error = new Error('Supabase account is already bound to a different Revessent user.');
-      error.statusCode = 401;
-      throw error;
-    }
-
-    if (user) user = await backfillSupabaseUserId(client, user, supabaseUserId);
-  }
-
-  if (!user) {
-    const error = new Error('No Revessent user found for this Supabase account.');
-    error.statusCode = 401;
-    throw error;
-  }
-
-  return { token, email, supabaseUserId, user };
 }
 
 function toInt(value) {
@@ -155,7 +37,13 @@ module.exports = async (req, res) => {
     const { user } = await authenticateRequest(req, client);
     const organizationId = user.organization_id;
 
-    const [membersResult, casesResult] = await Promise.all([
+    // Audit #64: cursor-style pagination — the old hard `limit 100` silently
+    // hid member 101+. Page size caps at 200 so one wild request can't
+    // hammer Neon.
+    const limit = Math.min(200, Math.max(1, toInt(req.query && req.query.limit, 100) || 100));
+    const offset = Math.max(0, toInt(req.query && req.query.offset, 0) || 0);
+
+    const [membersResult, casesResult, countResult] = await Promise.all([
       client.query(
         `select
            sm.id,
@@ -169,8 +57,8 @@ module.exports = async (req, res) => {
          left join stripe_subscriptions ss on ss.member_id = sm.id
          where sm.organization_id = $1
          order by sm.created_at desc nulls last
-         limit 100`,
-        [organizationId]
+         limit $2 offset $3`,
+        [organizationId, limit, offset]
       ),
       client.query(
         `select member_id, id as case_id
@@ -178,6 +66,10 @@ module.exports = async (req, res) => {
           where organization_id = $1
             and status not in ${OPEN_CASE_STATUSES_SQL}
           order by failed_at desc nulls last, created_at desc nulls last`,
+        [organizationId]
+      ),
+      client.query(
+        `select count(*)::int as total from stripe_members where organization_id = $1`,
         [organizationId]
       ),
     ]);
@@ -198,6 +90,10 @@ module.exports = async (req, res) => {
         subscriptionCurrency: row.sub_currency || 'INR',
         openCaseId: openCaseByMember.get(String(row.id)) || null,
       })),
+      total: toInt((countResult.rows[0] || {}).total),
+      // Audit #64: the client uses this to show "Load more" instead of
+      // silently truncating.
+      hasMore: offset + membersResult.rows.length < toInt((countResult.rows[0] || {}).total),
     });
   } catch (error) {
     if (error.statusCode && [400, 401, 403].includes(error.statusCode)) {

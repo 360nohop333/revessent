@@ -15,6 +15,7 @@
 
 const { Pool } = require('pg');
 const crypto = require('crypto');
+const { decryptFromString } = require('../_lib/secret-box'); // audit #7: webhook secret is encrypted at rest
 const { sendAlertIfConfigured } = require('../alerts/send');
 
 const pool = new Pool({
@@ -181,8 +182,14 @@ async function getWebhookSecretForOrg(client, organizationId) {
       limit 1`,
     [organizationId]
   );
+  // Audit #7: values stored since batch-3 are "enc:v1:…" ciphertext;
+  // older rows hold plaintext and decryptFromString passes them through.
+  const row = result.rows[0] || null;
+  if (row && row.webhook_secret) {
+    row.webhook_secret = decryptFromString(row.webhook_secret);
+  }
 
-  return result.rows[0] || null;
+  return row;
 }
 
 function getPaymentEntity(eventPayload) {
@@ -289,6 +296,18 @@ function extractSubscriptionId(payment) {
 
 function getPaymentNotes(payment) {
   return payment && payment.notes && typeof payment.notes === 'object' ? payment.notes : {};
+}
+
+async function findMemberByCustomerId(client, organizationId, customerId) {
+  if (!customerId) return null;
+  const result = await client.query(
+    `select * from stripe_members
+      where organization_id = $1
+        and stripe_customer_id = $2
+      limit 1`,
+    [organizationId, customerId]
+  );
+  return result.rows[0] || null;
 }
 
 async function findOrCreateMember(client, organizationId, payment) {
@@ -650,6 +669,95 @@ async function handlePaymentCaptured(client, organizationId, eventPayload) {
   };
 }
 
+function getSubscriptionEntity(eventPayload) {
+  return (
+    eventPayload &&
+    eventPayload.payload &&
+    eventPayload.payload.subscription &&
+    eventPayload.payload.subscription.entity
+  );
+}
+
+function getRefundEntity(eventPayload) {
+  return (
+    eventPayload &&
+    eventPayload.payload &&
+    eventPayload.payload.refund &&
+    eventPayload.payload.refund.entity
+  );
+}
+
+// Audit #24: subscription lifecycle events keep stripe_subscriptions honest
+// and surface churn the moment Razorpay sees it.
+async function handleSubscriptionEvent(client, organizationId, eventPayload, razorpayStatus) {
+  const subscription = getSubscriptionEntity(eventPayload);
+  if (!subscription || !subscription.id) {
+    return { action: 'ignored', eventType: 'subscription.malformed' };
+  }
+
+  const member = await findMemberByCustomerId(client, organizationId, safeString(subscription.customer_id));
+  await upsertSubscriptionFromPayment(
+    client,
+    organizationId,
+    member ? member.id : null,
+    safeString(subscription.id),
+    razorpayStatus,
+    toInteger(subscription.total, 0),
+    normalizeCurrency(subscription.currency)
+  );
+
+  const COPY = {
+    cancelled: { type: 'subscription_cancelled', title: 'Subscription cancelled', description: 'The customer cancelled — recovery for this subscription stops.' },
+    halted: { type: 'subscription_halted', title: 'Subscription halted', description: 'Razorpay halted the subscription after repeated charge failures — the customer needs to act.' },
+    resumed: { type: 'subscription_resumed', title: 'Subscription resumed', description: 'The subscription is active again.' },
+    completed: { type: 'subscription_completed', title: 'Subscription completed', description: 'The subscription ran to the end of its term.' },
+  }[razorpayStatus] || { type: 'subscription_updated', title: 'Subscription updated', description: 'Subscription status changed to ' + razorpayStatus + '.' };
+
+  await insertActivity(client, {
+    organizationId,
+    type: COPY.type,
+    title: COPY.title,
+    description: COPY.description,
+    amountCents: null,
+    currency: normalizeCurrency(subscription.currency),
+    memberId: member ? member.id : null,
+    caseId: null,
+    metadata: { source: 'razorpay', subscription_id: safeString(subscription.id), status: razorpayStatus },
+  });
+
+  return { action: 'subscription_' + razorpayStatus, subscriptionId: safeString(subscription.id) };
+}
+
+// Audit #24: a refund against a payment we recovered deserves a visible
+// activity row — recovered-then-refunded is real churn the ledger must show.
+async function handleRefundProcessed(client, organizationId, eventPayload) {
+  const refund = getRefundEntity(eventPayload);
+  const payment = getPaymentEntity(eventPayload);
+  if (!refund || !refund.id) {
+    return { action: 'ignored', eventType: 'refund.malformed' };
+  }
+
+  const amountCents = toInteger(refund.amount, 0);
+  const paymentId = safeString(refund.payment_id || (payment && payment.id));
+
+  await insertActivity(client, {
+    organizationId,
+    type: 'refund_processed',
+    title: 'Payment refunded',
+    description:
+      'Razorpay processed a refund' +
+      (paymentId ? ' for payment ' + paymentId : '') +
+      '. If this payment was counted as recovered, the attribution ledger now overstates recovery.',
+    amountCents,
+    currency: normalizeCurrency(refund.currency || (payment && payment.currency)),
+    memberId: null,
+    caseId: null,
+    metadata: { source: 'razorpay', refund_id: safeString(refund.id), payment_id: paymentId },
+  });
+
+  return { action: 'refund_processed', refundId: safeString(refund.id) };
+}
+
 async function processEvent(client, organizationId, eventPayload) {
   const eventType = safeString(eventPayload && eventPayload.event);
 
@@ -660,6 +768,18 @@ async function processEvent(client, organizationId, eventPayload) {
   if (eventType === 'payment.captured') {
     return await handlePaymentCaptured(client, organizationId, eventPayload);
   }
+
+  // Audit #24: subscription lifecycle + refunds, previously ignored.
+  if (eventType === 'subscription.charged') {
+    // A successful subscription charge carries the payment — run the normal
+    // capture path (recovery attribution + subscription → active).
+    return await handlePaymentCaptured(client, organizationId, eventPayload);
+  }
+  if (eventType === 'subscription.cancelled') return await handleSubscriptionEvent(client, organizationId, eventPayload, 'cancelled');
+  if (eventType === 'subscription.halted') return await handleSubscriptionEvent(client, organizationId, eventPayload, 'halted');
+  if (eventType === 'subscription.resumed') return await handleSubscriptionEvent(client, organizationId, eventPayload, 'resumed');
+  if (eventType === 'subscription.completed') return await handleSubscriptionEvent(client, organizationId, eventPayload, 'completed');
+  if (eventType === 'refund.processed') return await handleRefundProcessed(client, organizationId, eventPayload);
 
   return { action: 'ignored', eventType };
 }

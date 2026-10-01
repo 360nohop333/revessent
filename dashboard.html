@@ -1530,11 +1530,10 @@ html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur
 @media(prefers-reduced-motion:reduce){.rv-heavy-blur i,.rv-heavy-blur span{animation:none!important}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="/api/config.js"></script> <!-- audit #66: Supabase project from env, fallback below -->
 <script>
-  const supabaseClient = supabase.createClient(
-    'https://zujmouzzqiovgbnanrvv.supabase.co',
-    'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3'
-  );
+  var __rvCfg = window.REVESSENT_SUPABASE_CONFIG || { url: 'https://zujmouzzqiovgbnanrvv.supabase.co', anonKey: 'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3' };
+  const supabaseClient = supabase.createClient(__rvCfg.url, __rvCfg.anonKey);
   window.__rvSession = null;
   window.__rvSessionReady = (async function checkSession() {
     const { data: { session } } = await supabaseClient.auth.getSession();
@@ -1943,7 +1942,7 @@ if((navigator.hardwareConcurrency||8) <= 4 || /Android/i.test(navigator.userAgen
 var DASH_CURRENCY='INR';
 /* Audit #51: format in the workspace currency (default INR — the product is Razorpay/India-first), not hard-coded $. */
 function usd(n){ try{ return new Intl.NumberFormat('en-IN',{style:'currency',currency:DASH_CURRENCY,maximumFractionDigits:0}).format(Math.round(n)); }catch(_){ return '\u20B9'+Math.round(n).toLocaleString('en-IN'); } }
-function moneyFromCents(cents){ return usd((Number(cents)||0)/100); }
+function moneyFromCents(cents){ return usd(centsToDisplay(cents)); }
 function axisMoney(n){
   n=Number(n)||0;
   if(n>=1000000) return '\u20B9'+(n/1000000).toFixed(n>=10000000?0:1)+'m';
@@ -3057,7 +3056,9 @@ function emptyDashboardData(){
     weeklyChart:[], declineBreakdown:[], recoveryQueue:[], activity:[]
   };
 }
-function centsToDisplay(c){ return (Number(c)||0)/100; }
+/* Audit #39: zero-decimal currencies (JPY…) are stored as whole units. */
+var ZERO_DECIMAL_CURRENCIES={JPY:1,KRW:1,VND:1,CLP:1,ISK:1,HUF:1,TWD:1,BHD:1,KWD:1,OMR:1};
+function centsToDisplay(c){ return (Number(c)||0)/(ZERO_DECIMAL_CURRENCIES[DASH_CURRENCY]?1:100); }
 function easeOutQuartLive(t){ return 1-Math.pow(1-t,4); }
 function countUpEl(el){
   var target=parseFloat(el.dataset.count)||0, pre=el.dataset.prefix||'', suf=el.dataset.suffix||'', dur=900, t0=null;
@@ -3210,10 +3211,25 @@ async function fetchDashboardData(range){
   if(!DASH_TOKEN){ applyDashboardData(emptyDashboardData()); return; }
   try{
     var res=await fetch('/api/dashboard-data?range='+encodeURIComponent(range||'30d'),{headers:{Authorization:'Bearer '+DASH_TOKEN}});
-    var body=await res.json().catch(function(){ return {}; });
+    /* Audit #59: a 401 on a long-idle tab usually means the access token
+       aged out while supabase-js hadn't refreshed it yet. Refresh the
+       session once and retry BEFORE bouncing the user to login. */
+    if(res.status===401 && !fetchDashboardData._retried){
+      fetchDashboardData._retried=true;
+      try{
+        var refreshed=await supabaseClient.auth.refreshSession();
+        if(refreshed && refreshed.data && refreshed.data.session){
+          DASH_TOKEN=refreshed.data.session.access_token;
+          return await fetchDashboardData(range);
+        }
+      }catch(_){}
+      window.location.assign('/login.html'); return;
+    }
     if(res.status===401){ window.location.assign('/login.html'); return; }
+    var body=await res.json().catch(function(){ return {}; });
     if(!res.ok) throw new Error(body.error||'Could not load dashboard data');
     hideDashError();
+    fetchDashboardData._retried=false;
     applyDashboardData(body);
   }catch(err){
     console.error('Dashboard data load failed',err);

@@ -6,7 +6,8 @@
     "pg": "^8.11.3"
   },
   "scripts": {
-    "test": "node tests/suite.test.js"
+    "test": "node tests/suite.test.js",
+    "migrate": "node scripts/migrate.js"
   },
   "engines": {
     "node": ">=18"

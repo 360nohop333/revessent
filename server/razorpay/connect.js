@@ -14,11 +14,23 @@
 const { Pool } = require('pg');
 const crypto = require('crypto');
 const { logAudit } = require('../_lib/audit');
+const { decryptColumns, encryptToString, decryptFromString } = require('../_lib/secret-box'); // audit #7
 const { backfillRazorpayHistory } = require('./backfill');
+const { authenticateRequest } = require('../_lib/supabase-auth'); // audit #66: shared auth (local JWT verify when SUPABASE_JWT_SECRET is set)
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://zujmouzzqiovgbnanrvv.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3';
-const RAZORPAY_WEBHOOK_EVENTS = ['payment.failed', 'payment.captured'];
+const RAZORPAY_WEBHOOK_EVENTS = [
+  'payment.failed',
+  'payment.captured',
+  // audit #24: subscription lifecycle + refunds
+  'subscription.charged',
+  'subscription.cancelled',
+  'subscription.halted',
+  'subscription.resumed',
+  'subscription.completed',
+  'refund.processed',
+];
 const DEFAULT_WEBHOOK_BASE_URL = 'https://revessent-alpha.vercel.app';
 
 const pool = new Pool({
@@ -31,125 +43,6 @@ function sendJson(res, status, body) {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json');
   res.end(JSON.stringify(body));
-}
-
-function getBearerToken(req) {
-  const header = req.headers.authorization || req.headers.Authorization || '';
-  const match = String(header).match(/^Bearer\s+(.+)$/i);
-  return match ? match[1].trim() : '';
-}
-
-async function verifySupabaseToken(token) {
-  if (!token) {
-    const error = new Error('Missing authorization token.');
-    error.statusCode = 401;
-    throw error;
-  }
-
-  const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      apikey: SUPABASE_ANON_KEY,
-    },
-  });
-
-  if (!response.ok) {
-    const error = new Error('Invalid or expired authorization token.');
-    error.statusCode = 401;
-    throw error;
-  }
-
-  const supabaseUser = await response.json();
-  const supabaseUserId = (supabaseUser && supabaseUser.id ? String(supabaseUser.id) : '').trim();
-  const email = (supabaseUser && supabaseUser.email ? String(supabaseUser.email) : '').trim().toLowerCase();
-
-  if (!supabaseUserId) {
-    const error = new Error('Supabase user id is missing.');
-    error.statusCode = 401;
-    throw error;
-  }
-
-  if (!email) {
-    const error = new Error('Supabase user has no email address.');
-    error.statusCode = 401;
-    throw error;
-  }
-
-  return { email, supabaseUserId };
-}
-
-async function findNeonUserBySupabaseId(client, supabaseUserId) {
-  const result = await client.query(
-    `select id, organization_id, email, role, supabase_user_id
-       from users
-      where supabase_user_id = $1
-      limit 1`,
-    [supabaseUserId]
-  );
-
-  return result.rows[0] || null;
-}
-
-async function findNeonUserByEmail(client, email) {
-  const result = await client.query(
-    `select id, organization_id, email, role, supabase_user_id
-       from users
-      where lower(email) = lower($1)
-      limit 1`,
-    [email]
-  );
-
-  return result.rows[0] || null;
-}
-
-async function backfillSupabaseUserId(client, user, supabaseUserId) {
-  if (!user || !supabaseUserId || user.supabase_user_id) return user;
-
-  try {
-    const result = await client.query(
-      `update users
-          set supabase_user_id = $1
-        where id = $2
-          and supabase_user_id is null
-      returning id, organization_id, email, role, supabase_user_id`,
-      [supabaseUserId, user.id]
-    );
-
-    return result.rows[0] || user;
-  } catch (error) {
-    if (error && error.code === '23505') {
-      const boundUser = await findNeonUserBySupabaseId(client, supabaseUserId);
-      if (boundUser && String(boundUser.id) === String(user.id)) return boundUser;
-    }
-    throw error;
-  }
-}
-
-async function authenticateRequest(req, client) {
-  const token = getBearerToken(req);
-  const { email, supabaseUserId } = await verifySupabaseToken(token);
-  let user = await findNeonUserBySupabaseId(client, supabaseUserId);
-
-  if (!user) {
-    user = await findNeonUserByEmail(client, email);
-
-    if (user && user.supabase_user_id && user.supabase_user_id !== supabaseUserId) {
-      const error = new Error('Supabase account is already bound to a different Revessent user.');
-      error.statusCode = 401;
-      throw error;
-    }
-
-    if (user) user = await backfillSupabaseUserId(client, user, supabaseUserId);
-  }
-
-  if (!user) {
-    const error = new Error('No Revessent user found for this Supabase account.');
-    error.statusCode = 401;
-    throw error;
-  }
-
-  return { token, email, supabaseUserId, user };
 }
 
 async function readJsonBody(req) {
@@ -199,33 +92,11 @@ function requireSameOrganization(user, organizationId) {
   return requested;
 }
 
-function getEncryptionKey() {
-  const key = process.env.ENCRYPTION_KEY;
-
-  if (!key || !/^[0-9a-fA-F]{64}$/.test(key)) {
-    const error = new Error('Encryption key not configured.');
-    error.statusCode = 500;
-    throw error;
-  }
-
-  return Buffer.from(key, 'hex');
-}
-
+// Audit #7: decryption lives in _lib/secret-box — it tries ENCRYPTION_KEY,
+// then ENCRYPTION_KEY_OLD, so keys can be rotated without breaking saved
+// Razorpay connections.
 function decryptSecret(connection) {
-  const key = getEncryptionKey();
-  const encrypted = Buffer.from(connection.encrypted_restricted_key || '', 'base64');
-  const iv = Buffer.from(connection.key_iv || '', 'base64');
-  const tag = Buffer.from(connection.key_tag || '', 'base64');
-
-  if (!encrypted.length || !iv.length || !tag.length) {
-    const error = new Error('Stored Razorpay secret is incomplete. Reconnect Razorpay.');
-    error.statusCode = 400;
-    throw error;
-  }
-
-  const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
-  decipher.setAuthTag(tag);
-  return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
+  return decryptColumns(connection.encrypted_restricted_key, connection.key_iv, connection.key_tag);
 }
 
 function razorpayAuthHeader(keyId, keySecret) {
@@ -271,7 +142,9 @@ async function registerRazorpayWebhook({ client, organizationId }) {
   // — Razorpay's API offers no webhook-secret update) instead of duplicating.
   let webhookId = '';
   let reused = false;
-  let webhookSecret = cleanString(connection.webhook_secret);
+  // Audit #7: read through the secret box so both enc:v1 ciphertext and
+  // legacy plaintext work; new saves always write ciphertext.
+  let webhookSecret = connection.webhook_secret ? decryptFromString(connection.webhook_secret) : '';
 
   const listResponse = await fetch('https://api.razorpay.com/v1/webhooks', {
     headers: { Authorization: razorpayAuthHeader(keyId, keySecret) },
@@ -279,6 +152,23 @@ async function registerRazorpayWebhook({ client, organizationId }) {
   const listBody = await listResponse.json().catch(() => ({}));
   const existing = (Array.isArray(listBody && listBody.items) ? listBody.items : [])
     .find((w) => cleanString(w && w.url) === url);
+  // Audit #24: an existing webhook may predate the subscription/refund
+  // events. PATCH it up to the full event set (secret untouched) instead of
+  // silently never receiving them.
+  if (existing) {
+    const currentEvents = (Array.isArray(existing.events) ? existing.events : []).map((e) => cleanString(e && e.event)).filter(Boolean);
+    const missing = RAZORPAY_WEBHOOK_EVENTS.filter((e) => !currentEvents.includes(e));
+    if (missing.length) {
+      await fetch(`https://api.razorpay.com/v1/webhooks/${encodeURIComponent(cleanString(existing.id))}`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: razorpayAuthHeader(keyId, keySecret),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url, active: true, events: RAZORPAY_WEBHOOK_EVENTS }),
+      });
+    }
+  }
 
   let response;
   if (existing) {
@@ -342,7 +232,8 @@ async function registerRazorpayWebhook({ client, organizationId }) {
         set webhook_endpoint_id = $2,
             webhook_secret = $3
       where id = $1`,
-    [connection.id, webhookId || null, webhookSecret]
+    // Audit #7: webhook secret now encrypted at rest (enc:v1 format).
+    [connection.id, webhookId || null, encryptToString(webhookSecret)]
   );
 
   return {
