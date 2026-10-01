@@ -179,8 +179,8 @@ async function createUserAndOrganization(client, email, supabaseUserId, refCode)
   const userId = crypto.randomUUID();
 
   await client.query(
-    `insert into organizations (id, name, created_at, updated_at)
-     values ($1, $2, now(), now())`,
+    `insert into organizations (id, name, created_at, updated_at, pilot_started_at, pilot_ends_at)
+     values ($1, $2, now(), now(), now(), now() + interval '14 days')`,
     [organizationId, 'New workspace']
   );
 

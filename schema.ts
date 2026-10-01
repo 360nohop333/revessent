@@ -435,3 +435,46 @@ export const referrals = pgTable("referrals", {
   referrerIdx: index("referrals_referrer_idx").on(t.referrerOrganizationId),
   codeIdx: index("referrals_code_idx").on(t.referralCode),
 }));
+
+// ─── Leads (audit #47) ─────────────────────────────────────────────────────────
+// Landing-page "Start free pilot" submissions. Public, no auth — the endpoint
+// validates + rate-limits. Cleared manually when worked.
+
+export const leads = pgTable("leads", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  email: text("email").notNull(),
+  source: text("source"),            // hero-form / pricing / signin-card / …
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// ─── Suppression list (audit #35/#37) ─────────────────────────────────────────
+// One row per unsubscribed email per org. send-note checks this before every
+// send; /api/unsubscribe upserts into it. Unique on (org, lower(email)).
+
+export const suppressionList = pgTable("suppression_list", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  memberId: uuid("member_id"),
+  email: text("email").notNull(),
+  unsubscribedAt: timestamp("unsubscribed_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (t) => ({
+  orgEmailIdx: uniqueIndex("suppression_list_org_email_idx").on(t.organizationId, sql`lower(${t.email})`),
+}));
+
+// ─── Audit log (audit #16) ─────────────────────────────────────────────────────
+// Best-effort trail of privileged actions (key created/revoked, Razorpay
+// connected, settings changed, retries, notes sent). Writes are try/caught —
+// a missing table or transient failure must never break the action itself.
+
+export const auditLog = pgTable("audit_log", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  organizationId: uuid("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  userId: uuid("user_id"),
+  action: text("action").notNull(),   // api_key.created / razorpay.connected / note.sent / …
+  detail: jsonb("detail").default({}),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (t) => ({
+  orgIdx: index("audit_log_org_idx").on(t.organizationId, t.createdAt),
+}));
+

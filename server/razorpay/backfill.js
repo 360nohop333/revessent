@@ -287,6 +287,7 @@ const NO_AUTO_RETRY_DECLINE_CODES = new Set([
   'lost_card',
   'stolen_card',
   'pickup_card',
+  'upi_mandate_issue', // UPI mandate/NACH failure — needs customer action, not a retry
 ]);
 
 const STANDARD_RETRY_SCHEDULE_DAYS = { 1: 1, 2: 3, 3: 7 };
@@ -334,7 +335,9 @@ function mapDeclineCode(payment) {
     .join(' ')
     .toLowerCase();
 
-  if (/insufficient|not\s+enough|funds/.test(haystack)) return 'insufficient_funds';
+  if (/insufficient|not\s+enough|funds/.test(haystack)) return 'insufficient_funds';  if (/upi[^a-z]*(limit|cap)|per[_\s-]?transaction[_\s-]?limit|limit[_\s-]?exceeded/.test(haystack)) return 'insufficient_funds';
+  if (/mandate|autopa?se|nach[_\s-]?(debit|failure|reject)/.test(haystack)) return 'upi_mandate_issue';
+
   if (/expired/.test(haystack)) return 'expired_card';
   if (/do[_\s-]?not[_\s-]?honou?r|honou?r/.test(haystack)) return 'do_not_honor';
   if (/invalid[_\s-]?(account|card)|incorrect[_\s-]?card|invalid/.test(haystack)) return 'invalid_account';

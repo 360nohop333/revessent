@@ -13,6 +13,7 @@
 
 const { Pool } = require('pg');
 const crypto = require('crypto');
+const { logAudit } = require('../_lib/audit');
 const { backfillRazorpayHistory } = require('./backfill');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://zujmouzzqiovgbnanrvv.supabase.co';
@@ -239,7 +240,7 @@ function webhookBaseUrl() {
 
 async function loadActiveConnection(client, organizationId) {
   const result = await client.query(
-    `select id, organization_id, stripe_account_id, encrypted_restricted_key, key_iv, key_tag, is_active
+    `select id, organization_id, stripe_account_id, encrypted_restricted_key, key_iv, key_tag, is_active, webhook_secret
        from stripe_connections
       where organization_id = $1
         and is_active = true
@@ -262,10 +263,49 @@ async function registerRazorpayWebhook({ client, organizationId }) {
 
   const keyId = cleanString(connection.stripe_account_id);
   const keySecret = decryptSecret(connection);
-  const webhookSecret = crypto.randomBytes(32).toString('hex');
   const url = `${webhookBaseUrl()}/api/webhooks/razorpay?org=${encodeURIComponent(organizationId)}`;
 
-  const response = await fetch('https://api.razorpay.com/v1/webhooks', {
+  // Audit #34: re-saving keys used to register a NEW webhook every time.
+  // List existing webhooks first; if ours is already registered, reuse it and
+  // keep the stored secret (rotating here would break signature verification
+  // — Razorpay's API offers no webhook-secret update) instead of duplicating.
+  let webhookId = '';
+  let reused = false;
+  let webhookSecret = cleanString(connection.webhook_secret);
+
+  const listResponse = await fetch('https://api.razorpay.com/v1/webhooks', {
+    headers: { Authorization: razorpayAuthHeader(keyId, keySecret) },
+  });
+  const listBody = await listResponse.json().catch(() => ({}));
+  const existing = (Array.isArray(listBody && listBody.items) ? listBody.items : [])
+    .find((w) => cleanString(w && w.url) === url);
+
+  let response;
+  if (existing) {
+    webhookId = cleanString(existing.id);
+    reused = true;
+    // Reusing but we have no stored secret (legacy connection): recover it
+    // from the webhook-detail endpoint if Razorpay returns it. Saving a fresh
+    // random secret here would silently break signature verification.
+    if (!webhookSecret) {
+      const detailResponse = await fetch(`https://api.razorpay.com/v1/webhooks/${encodeURIComponent(webhookId)}`, {
+        headers: { Authorization: razorpayAuthHeader(keyId, keySecret) },
+      });
+      const detailBody = await detailResponse.json().catch(() => ({}));
+      const recovered = cleanString(detailBody && (detailBody.secret || (detailBody.webhook && detailBody.webhook.secret)));
+      if (!recovered) {
+        const error = new Error(
+          'A webhook for this URL already exists in your Razorpay account, but its signing secret is not stored here. ' +
+          'Delete that webhook in Razorpay → Settings → Webhooks, then reconnect — Revessent will register a fresh one.'
+        );
+        error.statusCode = 400;
+        throw error;
+      }
+      webhookSecret = recovered;
+    }
+  } else {
+    webhookSecret = crypto.randomBytes(32).toString('hex');
+    response = await fetch('https://api.razorpay.com/v1/webhooks', {
     method: 'POST',
     headers: {
       Authorization: razorpayAuthHeader(keyId, keySecret),
@@ -281,7 +321,7 @@ async function registerRazorpayWebhook({ client, organizationId }) {
 
   const body = await response.json().catch(() => ({}));
 
-  if (!response.ok) {
+  if (!reused && !response.ok) {
     const message =
       cleanString(body && body.error && body.error.description) ||
       cleanString(body && body.error && body.error.reason) ||
@@ -293,8 +333,9 @@ async function registerRazorpayWebhook({ client, organizationId }) {
     error.razorpayBody = body;
     throw error;
   }
+  } // end else (webhook created via API)
 
-  const webhookId = cleanString(body.id || body.webhook_id);
+  if (!reused) webhookId = cleanString(body.id || body.webhook_id);
 
   await client.query(
     `update stripe_connections
@@ -306,9 +347,15 @@ async function registerRazorpayWebhook({ client, organizationId }) {
 
   return {
     webhookRegistered: true,
+    webhookReused: reused,
     webhookId: webhookId || null,
     webhookSecret,
     url,
+    // Manual fallback (audit #17): everything needed to add the webhook by
+    // hand in the Razorpay dashboard if the API path ever fails.
+    manualSetup: reused
+      ? null
+      : `In Razorpay → Settings → Webhooks, add URL ${url} with secret ${webhookSecret} and events: ${RAZORPAY_WEBHOOK_EVENTS.join(', ')}.`,
   };
 }
 
@@ -337,6 +384,7 @@ async function handler(req, res) {
 
     const organizationId = requireSameOrganization(user, body && body.organizationId);
     const result = await registerRazorpayWebhook({ client, organizationId });
+    await logAudit(client, { organizationId, userId: user.id, action: 'razorpay.connected', detail: { reused: result.webhookReused } });
 
     // Separate, best-effort step after the webhook registration succeeds:
     // scan the last 90 days of Razorpay history for missed failed payments.

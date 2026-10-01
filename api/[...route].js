@@ -8,8 +8,12 @@
 //
 // To add an endpoint: create server/<path>.js exporting (req, res), then add
 // it to the ROUTES map below (static requires so the bundler includes it).
+// Modules under server/_lib/ are shared helpers — they are NOT routable.
 
 const ROUTES = {
+  'health': require('../server/health.js'),
+  'leads': require('../server/leads.js'),
+  'unsubscribe': require('../server/unsubscribe.js'),
   'me': require('../server/me.js'),
   'settings': require('../server/settings.js'),
   'members': require('../server/members.js'),
@@ -35,6 +39,37 @@ const ROUTES = {
   'v1/dashboard-summary': require('../server/v1/dashboard-summary.js'),
 };
 
+// ── Rate limiting (audit #10, partial) ─────────────────────────────────────
+// In-memory sliding window per warm instance. NOT a durable limit — Vercel
+// may run many instances — but it meaningfully throttles abuse hitting a hot
+// instance and costs zero dependencies. A durable limit (Upstash/Vercel KV)
+// stays on the roadmap; the router is the single place to swap it in.
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 30; // requests per window per IP per route
+const rateBuckets = new Map();
+
+function clientIp(req) {
+  const fwd = req.headers && (req.headers['x-forwarded-for'] || req.headers['X-Forwarded-For']) || '';
+  const first = String(fwd).split(',')[0].trim();
+  if (first) return first;
+  return String((req.headers && (req.headers['x-real-ip'] || req.headers['x-real-ip'])) || 'unknown');
+}
+
+function rateLimited(key) {
+  const now = Date.now();
+  let bucket = rateBuckets.get(key);
+  if (!bucket) {
+    bucket = [];
+    rateBuckets.set(key, bucket);
+  }
+  while (bucket.length && now - bucket[0] > RATE_LIMIT_WINDOW_MS) bucket.shift();
+  if (bucket.length >= RATE_LIMIT_MAX) return true;
+  bucket.push(now);
+  // crude memory cap so a flood of unique IPs can't grow the map forever
+  if (rateBuckets.size > 5000) rateBuckets.clear();
+  return false;
+}
+
 function sendJson(res, status, body) {
   res.statusCode = status;
   res.setHeader('Content-Type', 'application/json');
@@ -53,6 +88,16 @@ module.exports = async (req, res) => {
 
   if (!handler) {
     return sendJson(res, 404, { error: 'Not found.' });
+  }
+
+  // Rate-limit writes + the public token endpoint. Webhooks (Razorpay) and
+  // the cron authenticate with their own secrets and are exempt.
+  const isWrite = req.method === 'POST' || req.method === 'DELETE' || req.method === 'PUT';
+  const exempt = pathname === 'webhooks/razorpay' || pathname === 'cron/process-recovery-queue';
+  if (isWrite && !exempt) {
+    if (rateLimited(`${clientIp(req)}|${pathname}|write`)) {
+      return sendJson(res, 429, { error: 'Too many requests — please slow down.' });
+    }
   }
 
   return handler(req, res);

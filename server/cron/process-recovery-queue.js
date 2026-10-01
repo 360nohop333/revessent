@@ -29,6 +29,7 @@ const { Pool } = require('pg');
 const crypto = require('crypto');
 const { performRetryAttempt, getRetrySchedule } = require('../recovery/retry');
 const { sendRecoveryEmail } = require('../recovery/send-note');
+const { logAudit } = require('../_lib/audit');
 
 // Process at most 50 due cases per run so one cron invocation cannot time
 // out on a huge backlog — anything past the batch is picked up by the next
@@ -104,8 +105,9 @@ async function insertActivity(client, values) {
 
 async function loadDueCases(client) {
   const result = await client.query(
-    `select rc.*
+    `select rc.*, o.trust_level as org_trust_level
        from recovery_cases rc
+       join organizations o on o.id = rc.organization_id
       where rc.status in ('detected', 'retrying')
         and rc.next_retry_at is not null
         and rc.next_retry_at <= now()
@@ -141,6 +143,28 @@ async function processCase(client, caseRow) {
         where id = $1`,
       [caseRow.id]
     );
+
+    // Audit #38: while the workspace requires approval (the default trust
+    // level), the scheduler must NOT email customers on its own — park the
+    // case for a human instead.
+    if (String(caseRow.org_trust_level || 'approval_required') === 'approval_required') {
+      await client.query(
+        `update recovery_cases set status = 'awaiting_approval', updated_at = now() where id = $1`,
+        [caseRow.id]
+      );
+      await insertActivity(client, {
+        organizationId,
+        type: 'awaiting_approval',
+        title: 'Recovery email needs approval',
+        description: 'A recovery email was drafted for this case but not sent — this workspace requires approval before customer outreach.',
+        amountCents: caseRow.amount_cents,
+        currency: caseRow.currency,
+        memberId: caseRow.member_id,
+        caseId: caseRow.id,
+        metadata: { source: 'cron', automatic: true },
+      });
+      return { action: 'awaiting_approval' };
+    }
 
     await sendRecoveryEmail({
       client,
@@ -196,7 +220,7 @@ async function processCase(client, caseRow) {
   // Escalate to outreach on the second retry (retry_count 1 → 2): the "we
   // tried quietly, now we talk to the customer" moment. The case stays
   // 'retrying' (updateCaseStatus: false) so the final ladder step still runs.
-  if (retryCount === 1 && result.newStatus !== 'lost') {
+  if (retryCount === 1 && result.newStatus !== 'lost' && String(caseRow.org_trust_level || 'approval_required') !== 'approval_required') {
     try {
       await sendRecoveryEmail({
         client,
@@ -243,6 +267,24 @@ module.exports = async (req, res) => {
 
   try {
     client = await pool.connect();
+
+    // Audit #32: sweep attempts whose function crashed mid-flight — a
+    // 'pending' attempt older than an hour is stale; fail it so its
+    // idempotency key stops blocking future retries with 409s.
+    try {
+      await client.query(
+        `update recovery_attempts
+            set status = 'failed',
+                error_code = 'stale',
+                error_message = 'Marked stale by scheduler (function crashed before recording an outcome)',
+                executed_at = now()
+          where status = 'pending'
+            and created_at < now() - interval '1 hour'`
+      );
+    } catch (sweepError) {
+      console.error('Revessent cron: stale-attempt sweep failed:', sweepError);
+    }
+
     const dueCases = await loadDueCases(client);
 
     let processed = 0;

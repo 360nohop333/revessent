@@ -240,6 +240,11 @@ async function testWebhookMoneyPath() {
   let webhookEvents = {}; // eventId -> row
   let processingShouldFail = false;
   const seenPaymentIds = new Set(); // simulates unique index on stripe_invoice_id
+  // batch-2 captures
+  let caseInserts = []; // recovery_cases insert params (UPI scheduling assertions)
+  let memberInserts = []; // stripe_members insert params (phone-name assertion)
+  let subUpserts = []; // stripe_subscriptions upsert params (audit #23)
+  let memberNotFound = false; // when true, member lookups return nothing → insert path
 
   function client() {
     return fakeClient([
@@ -260,9 +265,11 @@ async function testWebhookMoneyPath() {
         }
         return { rows: [] };
       }],
-      [/from stripe_members/, () => ({ rows: [MEMBER_ROW] })],
+      [/from stripe_members/, () => ({ rows: memberNotFound ? [] : [MEMBER_ROW] })],
+      [/insert into stripe_members/, ({ params }) => { memberInserts.push(params); return { rows: [{ ...MEMBER_ROW, id: 'member-new' }] }; }],
       [/update stripe_members/, () => ({ rows: [MEMBER_ROW] })],
       [/from stripe_subscriptions/, () => ({ rows: [] })],
+      [/insert into stripe_subscriptions/, ({ params }) => { subUpserts.push(params); return { rows: [] }; }],
       [/from recovery_cases/, ({ l }) => {
         if (l.startsWith('select')) {
           return { rows: clientOpenCase ? [clientOpenCase] : [] };
@@ -273,6 +280,7 @@ async function testWebhookMoneyPath() {
       [/insert into recovery_cases/, ({ params }) => {
         if (seenPaymentIds.has(params[4])) return { rows: [] }; // on conflict do nothing
         seenPaymentIds.add(params[4]);
+        caseInserts.push(params);
         return { rows: [{ id: 'case-new' }] };
       }],
       [/insert into recovery_attributions/, ({ params }) => { attributions.push(params); return { rows: [] }; }],
@@ -358,6 +366,39 @@ async function testWebhookMoneyPath() {
   CURRENT_CLIENT = client();
   res = await call(webhook, makeReq('POST', { headers: { 'x-razorpay-signature': 'deadbeef' }, query: '?org=org-1', body: '{}' }));
   check('webhook: bad signature → 400', res.statusCode === 400, JSON.stringify(res.body));
+
+  // 10. audit #26: UPI per-transaction-limit failures are payday-cycle
+  // 'insufficient_funds', NOT a dead case — first retry lands at +3 days.
+  caseInserts = []; subUpserts = [];
+  res = await post('payment.failed', { id: 'pay_upi1', amount: 9000, currency: 'INR', status: 'failed', error_description: 'UPI per transaction limit of INR 5000.00 exceeded', email: 'a@b.com', subscription_id: 'sub_upi1' });
+  const upiLimitCase = caseInserts.find((p) => p[4] === 'pay_upi1');
+  check('webhook: UPI per-txn limit → insufficient_funds, +3d retry, detected', res.statusCode === 200 && upiLimitCase && upiLimitCase[6] === 'insufficient_funds' && upiLimitCase[9] === 3 && upiLimitCase[5] === 'detected', JSON.stringify(upiLimitCase && [upiLimitCase[5], upiLimitCase[6], upiLimitCase[9]]));
+
+  // 11. audit #26: UPI mandate/NACH failures need the customer to fix the
+  // mandate — never auto-retried: no next_retry_at, parked for a human.
+  caseInserts = [];
+  res = await post('payment.failed', { id: 'pay_upi2', amount: 9000, currency: 'INR', status: 'failed', error_description: 'UPI mandate revoked by customer (NACH debit rejected)', email: 'a@b.com', subscription_id: 'sub_upi2' });
+  const mandateCase = caseInserts.find((p) => p[4] === 'pay_upi2');
+  check('webhook: UPI mandate/NACH → upi_mandate_issue, no auto retry', res.statusCode === 200 && mandateCase && mandateCase[6] === 'upi_mandate_issue' && mandateCase[9] == null && mandateCase[5] === 'awaiting_approval', JSON.stringify(mandateCase && [mandateCase[5], mandateCase[6], mandateCase[9]]));
+  const mandateSub = subUpserts.find((p) => p[3] === 'sub_upi2');
+  check('webhook: failed payment upserts subscription → past_due (audit #23)', Boolean(mandateSub) && mandateSub[4] === 'past_due', JSON.stringify(mandateSub && [mandateSub[3], mandateSub[4]]));
+
+  // 12. audit #39: a phone number in Razorpay's name field must never be
+  // stored as a person's name.
+  memberNotFound = true; memberInserts = [];
+  res = await post('payment.failed', { id: 'pay_phone', amount: 9000, currency: 'INR', status: 'failed', error_code: 'card_declined_by_bank', email: 'phone@b.com', contact: '+91 98765 43210', name: '+91 98765 43210' });
+  const phoneInsert = memberInserts[0];
+  check('webhook: phone-like name blanked on member insert', res.statusCode === 200 && phoneInsert && phoneInsert[4] === '' && phoneInsert[3] === 'phone@b.com', JSON.stringify(phoneInsert));
+  memberNotFound = false;
+
+  // 13. audit #23: a captured payment (recovery) upserts the subscription
+  // back to 'active'.
+  subUpserts = [];
+  clientOpenCase = { id: 'case-open', member_id: 'member-1', amount_cents: 25000, currency: 'INR' };
+  res = await post('payment.captured', { id: 'pay_capsub', amount: 25000, currency: 'INR', status: 'captured', email: 'a@b.com', subscription_id: 'sub_good' });
+  const capSub = subUpserts.find((p) => p[3] === 'sub_good');
+  check('webhook: captured payment upserts subscription → active (audit #23)', res.statusCode === 200 && Boolean(capSub) && capSub[4] === 'active', JSON.stringify(capSub && [capSub[3], capSub[4]]));
+  clientOpenCase = null;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -530,6 +571,237 @@ function testSources() {
   const schema = read('schema.ts');
   check('schema.ts: users.supabase_user_id + unique, slug nullable', /supabaseUserId: text\("supabase_user_id"\)/.test(schema) && /users_supabase_user_id_idx/.test(schema) && /slug: text\("slug"\), \/\/ audit #40/.test(schema));
   check('schema.ts: idempotency_key unique + hot indexes', /recovery_attempts_idempotency_key_idx/.test(schema) && /recovery_cases_org_status_idx/.test(schema) && /activity_feed_org_created_idx/.test(schema));
+
+  // batch-2 frontend + docs parity
+  check('reset-password.html exists + login redirects to it (audit #56)', fs.existsSync(path + '/reset-password.html') && read('login.html').includes('reset-password.html'));
+  check('index lead forms really POST /api/leads (audit #47)', (read('index.html').match(/\/api\/leads/g) || []).length >= 3);
+  check('dashboard: currency-aware money + no hard-coded $ KPIs (audit #51)', read('dashboard.html').includes('DASH_CURRENCY') && !read('dashboard.html').includes('data-prefix="$"'));
+  check('dashboard: connect card routes to Settings, no fake success (audit #48)', /settings\.html/.test(read('dashboard.html')) && !read('dashboard.html').includes('Razorpay connected — Revessent is ready'));
+  check('.env.example matches the real stack (audit #65)', !read('.env.example').includes('BETTER_AUTH') && !read('.env.example').includes('STRIPE_SECRET_KEY') && read('.env.example').includes('CRON_SECRET'));
+  check('schema.ts: batch-2 tables (leads, suppression_list, audit_log)', /export const leads = pgTable\("leads"/.test(schema) && /pgTable\("suppression_list"/.test(schema) && /pgTable\("audit_log"/.test(schema));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+async function testBatch2() {
+  console.log('\n── batch-2: leads, unsubscribe, health, rate limit, cron gates, dashboard ──');
+
+  const savedEnv = {};
+  for (const key of ['ENCRYPTION_KEY', 'CRON_SECRET', 'GEMINI_API_KEY', 'RESEND_API_KEY', 'RESEND_FROM_EMAIL']) {
+    savedEnv[key] = process.env[key];
+  }
+  process.env.ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'test-encryption-key';
+  process.env.CRON_SECRET = 'cron-secret-test';
+  process.env.GEMINI_API_KEY = 'gem-test';
+  process.env.RESEND_API_KEY = 're-test';
+  process.env.RESEND_FROM_EMAIL = 'hello@revessent.com';
+
+  // fetch mock extended for Gemini drafting + Resend sends (suppression/footer tests)
+  let RESEND_CALLS = [];
+  const prevFetch = global.fetch;
+  global.fetch = async (url, options) => {
+    const u = String(url);
+    if (u.includes('/auth/v1/user')) return { ok: true, status: 200, json: async () => SUPABASE_USER };
+    if (u.includes('generativelanguage.googleapis.com')) {
+      return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: 'Hi Priya, your payment did not go through. Please update your payment method when you get a moment — Team Acme.' }] } }] }) };
+    }
+    if (u.includes('api.resend.com/emails')) {
+      RESEND_CALLS.push({ url: u, body: JSON.parse(options.body) });
+      return { ok: true, status: 200, json: async () => ({ id: 're-123' }) };
+    }
+    return prevFetch(url, options);
+  };
+
+  // request helper for ROUTER calls (url must be the real /api/<route> path)
+  function apiReq(method, route, { headers = {}, query = '', body } = {}) {
+    const parsed = {};
+    new URLSearchParams(query.replace(/^\?/, '')).forEach((v, k) => { parsed[k] = v; });
+    return {
+      method, url: '/api/' + route + query, query: parsed, headers,
+      [Symbol.asyncIterator]: async function* () { if (body != null) yield Buffer.from(body); },
+    };
+  }
+
+  try {
+    // ── leads (audit #47) ──
+    const leads = require(path + '/server/leads.js');
+    let leadInserts = [];
+    CURRENT_CLIENT = fakeClient([
+      [/insert into leads/, ({ params }) => { leadInserts.push(params); return { rows: [] }; }],
+    ]);
+    let res = await call(leads, makeReq('POST', { body: JSON.stringify({ email: '  Pilot@Example.COM ', source: 'hero-form' }) }));
+    check('leads: POST → 200, email trimmed + lowercased before insert', res.statusCode === 200 && res.body.success === true && leadInserts[0][1] === 'pilot@example.com' && leadInserts[0][2] === 'hero-form', JSON.stringify(leadInserts));
+    res = await call(leads, makeReq('POST', { body: JSON.stringify({ email: 'not-an-email' }) }));
+    check('leads: invalid email → 400, nothing inserted', res.statusCode === 400 && leadInserts.length === 1, JSON.stringify(res.body));
+    res = await call(leads, makeReq('GET', {}));
+    check('leads: GET → 405', res.statusCode === 405, String(res.statusCode));
+
+    // ── unsubscribe tokens (audit #35) ──
+    const { createUnsubscribeToken, verifyUnsubscribeToken } = require(path + '/server/_lib/unsubscribe-token.js');
+    const token = createUnsubscribeToken('org-9', 'member-9', 'User@Example.com');
+    const payload = verifyUnsubscribeToken(token);
+    check('unsub token: create → verify round-trip', payload && payload.organizationId === 'org-9' && payload.memberId === 'member-9' && payload.email === 'User@Example.com', JSON.stringify(payload));
+    check('unsub token: tampered signature rejected', verifyUnsubscribeToken(token.slice(0, -1) + (token.endsWith('a') ? 'b' : 'a')) === null);
+    check('unsub token: garbage/missing parts rejected', verifyUnsubscribeToken('hello') === null && verifyUnsubscribeToken('') === null && verifyUnsubscribeToken('a.b') === null);
+
+    // ── unsubscribe endpoint (audit #35/#37) ──
+    const unsub = require(path + '/server/unsubscribe.js');
+    let suppressionInserts = [];
+    CURRENT_CLIENT = fakeClient([
+      [/insert into suppression_list/, ({ sql, params }) => { suppressionInserts.push({ sql, params }); return { rows: [] }; }],
+    ]);
+    res = await call(unsub, makeReq('GET', { query: '?token=' + encodeURIComponent(token) }));
+    check('unsubscribe: valid token → 200 page + suppression upsert (idempotent)', res.statusCode === 200 && /unsubscribed/i.test(String(res.raw)) && suppressionInserts.length === 1 && suppressionInserts[0].params[1] === 'org-9' && suppressionInserts[0].params[3] === 'user@example.com' && /on conflict \(organization_id, lower\(email\)\)/.test(suppressionInserts[0].sql), JSON.stringify(suppressionInserts.map((s) => s.params)));
+    res = await call(unsub, makeReq('GET', { query: '' }));
+    check('unsubscribe: missing/invalid token → 400', res.statusCode === 400, String(res.statusCode));
+
+    // ── health (audit #67) ──
+    const health = require(path + '/server/health.js');
+    res = await call(health, makeReq('GET', {}));
+    check('health: GET → 200 {ok:true}', res.statusCode === 200 && res.body && res.body.ok === true, JSON.stringify(res.body));
+
+    // ── rate limiting (audit #10, partial — in-memory) ──
+    const router = require(path + '/api/[...route].js');
+    const RL_IP = '203.0.113.9';
+    const rlStatuses = [];
+    for (let i = 0; i < 31; i++) {
+      const r = await call(router, apiReq('POST', 'leads', { headers: { 'x-forwarded-for': RL_IP }, body: JSON.stringify({ email: 'bad' }) }));
+      rlStatuses.push(r.statusCode);
+    }
+    check('rate limit: first 30 writes reach the handler (400 = invalid email)', rlStatuses.slice(0, 30).every((s) => s === 400), rlStatuses.join(','));
+    check('rate limit: 31st write inside the window → 429', rlStatuses[30] === 429, String(rlStatuses[30]));
+
+    let allOk = true;
+    for (let i = 0; i < 40; i++) {
+      const r = await call(router, apiReq('GET', 'health', { headers: { 'x-forwarded-for': RL_IP } }));
+      if (r.statusCode !== 200) allOk = false;
+    }
+    check('rate limit: reads are never limited (40 GETs, all 200)', allOk);
+
+    CURRENT_CLIENT = fakeClient([
+      TXN, SAVEPOINT,
+      [/from stripe_connections/, () => ({ rows: [{ organization_id: 'org-1', webhook_secret: 'whsec_t' }] })],
+    ]);
+    let whStatuses = [];
+    for (let i = 0; i < 35; i++) {
+      const r = await call(router, apiReq('POST', 'webhooks/razorpay', { headers: { 'x-forwarded-for': RL_IP, 'x-razorpay-signature': 'deadbeef' }, query: '?org=org-1', body: '{}' }));
+      whStatuses.push(r.statusCode);
+    }
+    check('rate limit: webhook + cron routes are exempt (35 posts, no 429)', whStatuses.every((s) => s === 400), whStatuses.join(','));
+
+    // ── send-note: suppression + unsubscribe footer (audit #35/#37) ──
+    const sendNote = require(path + '/server/recovery/send-note.js');
+    const CASE_CONTEXT = {
+      id: 'case-s1', organization_id: 'org-1', member_id: 'member-1', status: 'detected',
+      member_name: 'Priya Sharma', member_email: 'priya@x.com', organization_name: 'Acme',
+      amount_cents: 50000, currency: 'INR', decline_code: 'insufficient_funds',
+    };
+    let suppressedRows = [{}];
+    let auditInserts = [];
+    function sendNoteClient() {
+      return fakeClient([
+        TXN, SAVEPOINT, AUTH_BY_SBUID,
+        [/from recovery_cases rc\s+left join stripe_members/, () => ({ rows: [CASE_CONTEXT] })],
+        [/from voice_profiles/, () => ({ rows: [{ brand_name: 'Acme', sender_name: 'Team Acme', sender_email: 'hello@acme.com', tone_description: 'Friendly' }] })],
+        [/insert into recovery_notes/, () => ({ rows: [] })],
+        [/update recovery_notes/, () => ({ rows: [] })],
+        [/from suppression_list/, () => ({ rows: suppressedRows })],
+        [/update recovery_cases/, () => ({ rows: [] })],
+        [/insert into activity_feed/, () => ({ rows: [] })],
+        [/insert into audit_log/, ({ params }) => { auditInserts.push(params); return { rows: [] }; }],
+      ]);
+    }
+    CURRENT_CLIENT = sendNoteClient(); RESEND_CALLS = []; auditInserts = [];
+    res = await call(sendNote, makeReq('POST', { headers: AUTH, body: JSON.stringify({ caseId: 'case-s1', autoSend: true }) }));
+    check('send-note: suppressed recipient → 409, nothing emailed', res.statusCode === 409 && RESEND_CALLS.length === 0, JSON.stringify(res.body));
+
+    suppressedRows = [];
+    CURRENT_CLIENT = sendNoteClient(); RESEND_CALLS = []; auditInserts = [];
+    res = await call(sendNote, makeReq('POST', { headers: AUTH, body: JSON.stringify({ caseId: 'case-s1', autoSend: true }) }));
+    const sentBody = RESEND_CALLS[0] && RESEND_CALLS[0].body;
+    check('send-note: send carries unsubscribe footer + plain-text part + reply-to', res.statusCode === 200 && RESEND_CALLS.length === 1
+      && /\/api\/unsubscribe\?token=/.test(String(sentBody.html))
+      && /Unsubscribe:/.test(String(sentBody.text))
+      && sentBody.reply_to === 'hello@acme.com'
+      && sentBody.to[0] === 'priya@x.com', JSON.stringify(sentBody && { html: String(sentBody.html).slice(-120), reply_to: sentBody.reply_to }));
+    check('send-note: autoSend stamps approval + writes audit_log (audit #16/#38)', res.statusCode === 200 && auditInserts.length === 1 && auditInserts[0][3] === 'note.sent', JSON.stringify(auditInserts.map((a) => a[3])));
+
+    // ── cron: auth + trust-level gate + stale sweep (audit #32/#38) ──
+    const cron = require(path + '/server/cron/process-recovery-queue.js');
+    CURRENT_CLIENT = fakeClient([TXN]);
+    res = await call(cron, makeReq('GET', {}));
+    check('cron: missing secret → 401', res.statusCode === 401, String(res.statusCode));
+
+    const DUE_CASE = (extra) => ({
+      id: 'case-due', organization_id: 'org-1', member_id: 'member-1', status: 'detected',
+      amount_cents: 50000, currency: 'INR', decline_code: 'stolen_card',
+      retry_count: 0, max_retries: 3, next_retry_at: '2026-09-01T00:00:00Z',
+      org_trust_level: 'approval_required', ...extra,
+    });
+    let cronRuns = { staleSweep: 0, awaitingUpdates: [], activities: [], caseCtx: null };
+    function cronClient(dueRows) {
+      return fakeClient([
+        TXN, SAVEPOINT,
+        [/set status = 'failed',[\s\S]*'stale'/, () => { cronRuns.staleSweep += 1; return { rows: [] }; }],
+        [/from recovery_cases rc\s+join organizations/, () => ({ rows: dueRows })],
+        [/set next_retry_at = null/, () => ({ rows: [] })],
+        [/set status = 'awaiting_approval'/, ({ params }) => { cronRuns.awaitingUpdates.push(params); return { rows: [] }; }],
+        [/from recovery_cases rc\s+left join stripe_members/, () => ({ rows: cronRuns.caseCtx ? [cronRuns.caseCtx] : [] })],
+        [/from voice_profiles/, () => ({ rows: [{ brand_name: 'Acme', sender_name: 'Team Acme', sender_email: 'hello@acme.com', tone_description: 'Friendly' }] })],
+        [/insert into recovery_notes/, () => ({ rows: [] })],
+        [/from suppression_list/, () => ({ rows: [] })],
+        [/update recovery_notes/, () => ({ rows: [] })],
+        [/set status = 'note_sent'/, () => ({ rows: [] })],
+        [/insert into activity_feed/, ({ params }) => { cronRuns.activities.push(params); return { rows: [] }; }],
+      ]);
+    }
+
+    CURRENT_CLIENT = cronClient([DUE_CASE({ id: 'case-appr' })]); RESEND_CALLS = []; cronRuns = { staleSweep: 0, awaitingUpdates: [], activities: [], caseCtx: null };
+    res = await call(cron, makeReq('GET', { headers: { authorization: 'Bearer cron-secret-test' } }));
+    check('cron: approval_required org → case parked, NO customer email', res.statusCode === 200 && res.body.processed === 1 && res.body.emailsSent === 0 && RESEND_CALLS.length === 0
+      && cronRuns.awaitingUpdates.length === 1 && cronRuns.awaitingUpdates[0][0] === 'case-appr'
+      && cronRuns.activities.some((a) => a[2] === 'awaiting_approval'), JSON.stringify({ body: res.body, awaiting: cronRuns.awaitingUpdates, acts: cronRuns.activities.map((a) => a[2]) }));
+    check('cron: stale pending attempts swept (audit #32)', cronRuns.staleSweep === 1, 'sweeps=' + cronRuns.staleSweep);
+
+    CURRENT_CLIENT = cronClient([DUE_CASE({ id: 'case-trust', org_trust_level: 'trusted' })]); RESEND_CALLS = []; cronRuns = { staleSweep: 0, awaitingUpdates: [], activities: [], caseCtx: { ...CASE_CONTEXT, id: 'case-trust' } };
+    res = await call(cron, makeReq('GET', { headers: { authorization: 'Bearer cron-secret-test' } }));
+    check('cron: trusted org → recovery email sent with unsubscribe footer', res.statusCode === 200 && res.body.emailsSent === 1 && RESEND_CALLS.length === 1
+      && /\/api\/unsubscribe\?token=/.test(String(RESEND_CALLS[0].body.html)), JSON.stringify(res.body));
+
+    // ── dashboard-data: currency + pilot window (audit #49/#51) ──
+    const dash = require(path + '/server/dashboard-data.js');
+    function dashClient({ pilotRow, currencyRow }) {
+      return fakeClient([
+        AUTH_BY_SBUID,
+        [/with weeks as/, () => ({ rows: [] })],
+        [/from recovery_attributions/, () => ({ rows: [{ current_cents: 100000, prior_cents: 50000 }] })],
+        [/as open_case_count/, () => ({ rows: [{ amount_cents: 200000, open_case_count: 2 }] })],
+        [/filter \(where status = 'recovered'\)/, () => ({ rows: [{ recovered_count: 3, closed_count: 4 }] })],
+        [/select status, count\(\*\)::int as count/, () => ({ rows: [] })],
+        [/select decline_code,/, () => ({ rows: [] })],
+        [/from recovery_cases rc\s+join stripe_members/, () => ({ rows: [] })],
+        [/from activity_feed/, () => ({ rows: [] })],
+        [/select pilot_started_at, pilot_ends_at from organizations/, () => ({ rows: pilotRow ? [pilotRow] : [] })],
+        [/select currency from recovery_cases/, () => ({ rows: currencyRow ? [currencyRow] : [] })],
+      ]);
+    }
+    CURRENT_CLIENT = dashClient({ pilotRow: { pilot_started_at: '2026-09-20T00:00:00.000Z', pilot_ends_at: '2026-10-04T00:00:00.000Z' }, currencyRow: { currency: 'INR' } });
+    res = await call(dash, makeReq('GET', { headers: AUTH, query: '?range=30d' }));
+    check('dashboard: response carries workspace currency + pilot window', res.statusCode === 200 && res.body.currency === 'INR'
+      && res.body.pilot && res.body.pilot.startedAt === '2026-09-20T00:00:00.000Z' && res.body.pilot.endsAt === '2026-10-04T00:00:00.000Z'
+      && res.body.revenueRecovered && res.body.revenueRecovered.amountCents === 100000
+      && res.body.recoveryRate && res.body.recoveryRate.percent === 75
+      , JSON.stringify({ currency: res.body.currency, pilot: res.body.pilot }));
+
+    CURRENT_CLIENT = dashClient({ pilotRow: null, currencyRow: null });
+    res = await call(dash, makeReq('GET', { headers: AUTH, query: '?range=7d' }));
+    check('dashboard: currency defaults to INR, pilot nulls when unset', res.statusCode === 200 && res.body.currency === 'INR' && res.body.pilot && res.body.pilot.startedAt == null && res.body.pilot.endsAt == null, JSON.stringify({ currency: res.body.currency, pilot: res.body.pilot }));
+  } finally {
+    global.fetch = prevFetch;
+    for (const [key, value] of Object.entries(savedEnv)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -543,6 +815,7 @@ function testSources() {
     await testRetryGuards();
     await testKeysAndPublic();
     await testExports();
+    await testBatch2();
     testSources();
   } catch (e) {
     failures++;

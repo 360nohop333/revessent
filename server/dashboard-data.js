@@ -6,8 +6,9 @@ const { Pool } = require('pg');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://zujmouzzqiovgbnanrvv.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3';
-const INDUSTRY_AVG_RECOVERY_PERCENT = 68;
-const OPEN_CASE_STATUSES_SQL = `('recovered', 'lost', 'canceled')`;
+// Audit #46: this list holds the CLOSED statuses (queries use `not in`) —
+// renamed so it stops lying about its contents.
+const CLOSED_CASE_STATUSES_SQL = `('recovered', 'lost', 'canceled')`;
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -165,6 +166,10 @@ function toNumber(value) {
   return Number.isFinite(n) ? n : 0;
 }
 
+function cleanString(value) {
+  return value == null ? '' : String(value).trim();
+}
+
 function toInt(value) {
   return Math.round(toNumber(value));
 }
@@ -221,7 +226,7 @@ async function getRevenueAtRisk(client, organizationId) {
        count(*)::int as open_case_count
      from recovery_cases
      where organization_id = $1
-       and status not in ${OPEN_CASE_STATUSES_SQL}`,
+       and status not in ${CLOSED_CASE_STATUSES_SQL}`,
     [organizationId]
   );
 
@@ -233,14 +238,17 @@ async function getRevenueAtRisk(client, organizationId) {
   };
 }
 
-async function getRecoveryRate(client, organizationId) {
+async function getRecoveryRate(client, organizationId, rangeDays) {
+  // Audit #46: scoped to the selected range (was all-time) and the invented
+  // "industry average" is gone — the dashboard hides the field when absent.
   const result = await client.query(
     `select
        count(*) filter (where status = 'recovered')::int as recovered_count,
        count(*) filter (where status in ('recovered', 'lost'))::int as closed_count
      from recovery_cases
-     where organization_id = $1`,
-    [organizationId]
+     where organization_id = $1
+       and failed_at >= now() - make_interval(days => $2::int)`,
+    [organizationId, rangeDays]
   );
 
   const row = result.rows[0] || {};
@@ -249,7 +257,6 @@ async function getRecoveryRate(client, organizationId) {
 
   return {
     percent: closed > 0 ? Math.round((recovered / closed) * 100) : 0,
-    industryAvgPercent: INDUSTRY_AVG_RECOVERY_PERCENT,
   };
 }
 
@@ -258,7 +265,7 @@ async function getActiveCases(client, organizationId) {
     `select status, count(*)::int as count
      from recovery_cases
      where organization_id = $1
-       and status not in ${OPEN_CASE_STATUSES_SQL}
+       and status not in ${CLOSED_CASE_STATUSES_SQL}
      group by status`,
     [organizationId]
   );
@@ -362,7 +369,7 @@ async function getRecoveryQueue(client, organizationId) {
      from recovery_cases rc
      join stripe_members sm on rc.member_id = sm.id
      where rc.organization_id = $1
-       and rc.status not in ${OPEN_CASE_STATUSES_SQL}
+       and rc.status not in ${CLOSED_CASE_STATUSES_SQL}
      order by rc.failed_at desc nulls last, rc.created_at desc nulls last
      limit 20`,
     [organizationId]
@@ -426,13 +433,28 @@ module.exports = async (req, res) => {
     ] = await Promise.all([
       getRevenueRecovered(client, organizationId, rangeDays),
       getRevenueAtRisk(client, organizationId),
-      getRecoveryRate(client, organizationId),
+      getRecoveryRate(client, organizationId, rangeDays),
       getActiveCases(client, organizationId),
       getWeeklyChart(client, organizationId),
       getDeclineBreakdown(client, organizationId, rangeDays),
       getRecoveryQueue(client, organizationId),
       getActivity(client, organizationId),
     ]);
+
+    // Audit #49/#51: pilot window (set at signup) + the workspace currency,
+    // so the dashboard can render a real countdown and ₹/INR formatting.
+    const [orgRow, currencyRow] = await Promise.all([
+      client.query(
+        `select pilot_started_at, pilot_ends_at from organizations where id = $1 limit 1`,
+        [organizationId]
+      ),
+      client.query(
+        `select currency from recovery_cases where organization_id = $1 order by created_at desc limit 1`,
+        [organizationId]
+      ),
+    ]);
+    const org = orgRow.rows[0] || {};
+    const toIso = (v) => (v ? new Date(v).toISOString() : null);
 
     return sendJson(res, 200, {
       revenueRecovered,
@@ -443,6 +465,8 @@ module.exports = async (req, res) => {
       declineBreakdown,
       recoveryQueue,
       activity,
+      currency: cleanString((currencyRow.rows[0] || {}).currency) || 'INR',
+      pilot: { startedAt: toIso(org.pilot_started_at), endsAt: toIso(org.pilot_ends_at) },
     });
   } catch (error) {
     if (error.statusCode === 401) {

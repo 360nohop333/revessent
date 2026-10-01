@@ -34,12 +34,14 @@ tests/suite.test.js   offline test suite (mocked DB + network)
 | Variable | Required | Notes |
 |---|---|---|
 | `DATABASE_URL` | yes | Neon connection string (prefer the `-pooler` endpoint) |
-| `ENCRYPTION_KEY` | yes | 64 hex chars — encrypts Razorpay secrets (`openssl rand -hex 32`) |
+| `ENCRYPTION_KEY` | yes | 64 hex chars — encrypts Razorpay secrets AND signs unsubscribe tokens (`openssl rand -hex 32`) |
 | `CRON_SECRET` | yes | shared secret the daily cron presents |
 | `SUPABASE_URL` / `SUPABASE_ANON_KEY` | recommended | fall back to built-in defaults if unset |
 | `GEMINI_API_KEY` | optional | enables AI email/SMS drafting |
 | `GEMINI_MODEL` | optional | defaults to `gemini-2.5-flash` |
 | `RESEND_API_KEY` | optional | enables email sending |
+| `RESEND_FROM_EMAIL` | optional | default sender when no voice profile exists |
+| `PUBLIC_APP_URL` | optional | canonical base for unsubscribe links (defaults to the Vercel production URL) |
 
 ## Database
 

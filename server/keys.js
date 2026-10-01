@@ -12,6 +12,7 @@
 
 const { Pool } = require('pg');
 const crypto = require('crypto');
+const { logAudit } = require('./_lib/audit');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://zujmouzzqiovgbnanrvv.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3';
@@ -208,7 +209,7 @@ async function handleGet(req, res, client, organizationId) {
   return sendJson(res, 200, { keys });
 }
 
-async function handlePost(req, res, client, organizationId) {
+async function handlePost(req, res, client, organizationId, userId) {
   let body;
   try {
     body = await readJsonBody(req);
@@ -231,6 +232,7 @@ async function handlePost(req, res, client, organizationId) {
       );
 
       // The ONLY response that ever contains the full key.
+      await logAudit(client, { organizationId, userId, action: 'api_key.created', detail: { keyPrefix: key.keyPrefix, label } });
       return sendJson(res, 200, {
         success: true,
         apiKey: key.fullKey,
@@ -246,7 +248,7 @@ async function handlePost(req, res, client, organizationId) {
   return sendJson(res, 500, { error: 'Could not generate a unique API key. Please try again.' });
 }
 
-async function handleDelete(req, res, client, organizationId) {
+async function handleDelete(req, res, client, organizationId, userId) {
   let body;
   try {
     body = await readJsonBody(req);
@@ -273,6 +275,7 @@ async function handleDelete(req, res, client, organizationId) {
     return sendJson(res, 404, { error: 'API key not found.' });
   }
 
+  await logAudit(client, { organizationId, userId, action: 'api_key.revoked', detail: { keyId } });
   return sendJson(res, 200, { success: true });
 }
 
@@ -295,8 +298,8 @@ module.exports = async (req, res) => {
     }
 
     if (req.method === 'GET') return await handleGet(req, res, client, organizationId);
-    if (req.method === 'POST') return await handlePost(req, res, client, organizationId);
-    return await handleDelete(req, res, client, organizationId);
+    if (req.method === 'POST') return await handlePost(req, res, client, organizationId, user.id);
+    return await handleDelete(req, res, client, organizationId, user.id);
   } catch (error) {
     if (error.statusCode && [400, 401, 403, 404].includes(error.statusCode)) {
       return sendJson(res, error.statusCode, { error: error.message });

@@ -70,6 +70,7 @@ const NO_AUTO_RETRY_DECLINE_CODES = new Set([
   'lost_card',
   'stolen_card',
   'pickup_card',
+  'upi_mandate_issue', // UPI mandate/NACH failure — needs customer action, not a retry
 ]);
 
 const STANDARD_RETRY_SCHEDULE_DAYS = { 1: 1, 2: 3, 3: 7 };
@@ -224,7 +225,9 @@ function mapDeclineCode(payment) {
     .join(' ')
     .toLowerCase();
 
-  if (/insufficient|not\s+enough|funds/.test(haystack)) return 'insufficient_funds';
+  if (/insufficient|not\s+enough|funds/.test(haystack)) return 'insufficient_funds';  if (/upi[^a-z]*(limit|cap)|per[_\s-]?transaction[_\s-]?limit|limit[_\s-]?exceeded/.test(haystack)) return 'insufficient_funds';
+  if (/mandate|autopa?se|nach[_\s-]?(debit|failure|reject)/.test(haystack)) return 'upi_mandate_issue';
+
   if (/expired/.test(haystack)) return 'expired_card';
   if (/do[_\s-]?not[_\s-]?honou?r|honou?r/.test(haystack)) return 'do_not_honor';
   if (/invalid[_\s-]?(account|card)|incorrect[_\s-]?card|invalid/.test(haystack)) return 'invalid_account';
@@ -235,6 +238,16 @@ function mapDeclineCode(payment) {
   if (/declin|card/.test(haystack)) return 'card_declined';
 
   return 'unknown';
+}
+
+// Audit #39: Razorpay sometimes puts the customer's phone number in the
+// name field. Never store a "+91…" string as a person's name.
+function cleanName(value) {
+  return safeString(value).replace(/\s+/g, ' ').trim().slice(0, 120);
+}
+function isPhoneLike(value) {
+  const text = cleanName(value);
+  return text.length >= 7 && /^[+()\d\s.\-]+$/.test(text) && /\d/.test(text);
 }
 
 function extractCustomerId(payment) {
@@ -320,12 +333,12 @@ async function findOrCreateMember(client, organizationId, payment) {
       `update stripe_members
           set stripe_customer_id = coalesce(nullif($2, ''), stripe_customer_id),
               email = coalesce(nullif($3, ''), email),
-              name = coalesce(nullif($4, ''), name),
+              name = case when $4 = '' then name else $4 end,
               metadata = coalesce(metadata, '{}'::jsonb) || $5::jsonb,
               updated_at = now()
         where id = $1
         returning *`,
-      [found.id, customerId, email, name, asJson(metadata)]
+      [found.id, customerId, email, isPhoneLike(name) ? '' : name, asJson(metadata)]
     );
     return updated.rows[0];
   }
@@ -336,7 +349,7 @@ async function findOrCreateMember(client, organizationId, payment) {
      values
        ($1, $2, nullif($3, ''), nullif($4, ''), nullif($5, ''), $6::jsonb, now(), now())
      returning *`,
-    [crypto.randomUUID(), organizationId, customerId, email, name, asJson(metadata)]
+    [crypto.randomUUID(), organizationId, customerId, email, isPhoneLike(name) ? '' : name, asJson(metadata)]
   );
 
   return inserted.rows[0];
@@ -355,6 +368,29 @@ async function findSubscription(client, organizationId, razorpaySubscriptionId) 
   );
 
   return result.rows[0] || null;
+}
+
+// Audit #23 (light): keep stripe_subscriptions in sync from payment events —
+// captured → active, failed → past_due. Full backfill remains on the roadmap.
+async function upsertSubscriptionFromPayment(client, organizationId, memberId, subscriptionId, status, amountCents, currency) {
+  if (!subscriptionId || !memberId) return;
+  try {
+    await client.query(
+      `insert into stripe_subscriptions
+         (id, organization_id, member_id, stripe_subscription_id, status, amount_cents, currency, current_period_start, created_at, updated_at)
+       values
+         ($1, $2, $3, $4, $5, nullif($6, 0), $7, now(), now(), now())
+       on conflict (organization_id, stripe_subscription_id) do update
+         set status = excluded.status,
+             amount_cents = coalesce(nullif(excluded.amount_cents, 0), stripe_subscriptions.amount_cents),
+             currency = excluded.currency,
+             current_period_start = now(),
+             updated_at = now()`,
+      [crypto.randomUUID(), organizationId, memberId, subscriptionId, status, amountCents, currency]
+    );
+  } catch (error) {
+    console.error('Revessent webhook: subscription upsert failed:', error);
+  }
 }
 
 async function insertActivity(client, values) {
@@ -388,7 +424,9 @@ async function handlePaymentFailed(client, organizationId, eventPayload) {
   const currency = normalizeCurrency(payment.currency);
   const declineCode = mapDeclineCode(payment);
   const member = await findOrCreateMember(client, organizationId, payment);
-  const subscription = await findSubscription(client, organizationId, extractSubscriptionId(payment));
+  const subscriptionId = extractSubscriptionId(payment);
+  const subscription = await findSubscription(client, organizationId, subscriptionId);
+  await upsertSubscriptionFromPayment(client, organizationId, member.id, subscriptionId, 'past_due', amountCents, currency);
 
   // Decline-aware initial retry scheduling (Feature 1):
   // - Non-retryable decline codes (bad card) → no next_retry_at at all and the
@@ -559,6 +597,7 @@ async function handlePaymentCaptured(client, organizationId, eventPayload) {
 
   const amountCents = toInteger(payment.amount, recoveryCase.amount_cents || 0);
   const currency = normalizeCurrency(payment.currency || recoveryCase.currency);
+  await upsertSubscriptionFromPayment(client, organizationId, recoveryCase.member_id, extractSubscriptionId(payment), 'active', amountCents, currency);
 
   await client.query(
     `update recovery_cases

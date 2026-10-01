@@ -1717,13 +1717,13 @@ html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur
         <span class="bolt" aria-hidden="true"><svg class="ic"><use href="#i-bolt"/></svg></span>
         <span>
           <b id="cmsg">Connect your payment processor to start recovering revenue</b>
-          <span class="hint">Razorpay credentials stay server-side · no full card numbers ever leave Razorpay. <a href="#docs">How to find your Razorpay Key ID →</a></span>
+          <span class="hint">Razorpay credentials stay server-side · no full card numbers ever leave Razorpay. <a href="/settings.html">connect Razorpay in Settings →</a></span>
         </span>
       </div>
-      <form class="cform" id="cform" novalidate>
+      <form class="cform" id="cform" novalidate action="/settings.html">
         <label class="sr" for="apikey">Razorpay Key ID</label>
-        <span class="field" id="cfield"><input id="apikey" type="text" placeholder="rzp_live_••••••••••••" autocomplete="off" spellcheck="false"><span class="ul" aria-hidden="true"></span></span>
-        <button class="box start-btn sm" id="cbtn" type="submit" style="--w:170px"><span class="text">Get started</span><span class="btn-icon"><svg class="svg" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M779.180132 473.232045 322.354755 16.406668c-21.413706-21.413706-56.121182-21.413706-77.534887 0-21.413706 21.413706-21.413706 56.122205 0 77.534887l418.057421 418.057421L244.819868 930.057421c-21.413706 21.413706-21.413706 56.122205 0 77.534887 10.706853 10.706853 24.759917 16.059767 38.767955 16.059767s28.061103-5.353938 38.767955-16.059767L779.180132 550.767955C800.593837 529.35425 800.593837 494.64575 779.180132 473.232045z"></path></svg></span><span class="circle-overlay" aria-hidden="true"></span></button>
+        <span class="field" id="cfield"><input id="apikey" type="text" placeholder="rzp_live_••••••••••••" autocomplete="off" spellcheck="false" aria-describedby="cmsg"><span class="ul" aria-hidden="true"></span></span>
+        <button class="box start-btn sm" id="cbtn" type="submit" style="--w:170px"><span class="text">Connect in Settings</span><span class="btn-icon"><svg class="svg" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M779.180132 473.232045 322.354755 16.406668c-21.413706-21.413706-56.121182-21.413706-77.534887 0-21.413706 21.413706-21.413706 56.122205 0 77.534887l418.057421 418.057421L244.819868 930.057421c-21.413706 21.413706-21.413706 56.122205 0 77.534887 10.706853 10.706853 24.759917 16.059767 38.767955 16.059767s28.061103-5.353938 38.767955-16.059767L779.180132 550.767955C800.593837 529.35425 800.593837 494.64575 779.180132 473.232045z"></path></svg></span><span class="circle-overlay" aria-hidden="true"></span></button>
       </form>
     </div>
   </section>
@@ -1737,7 +1737,7 @@ html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur
         <span class="spot" aria-hidden="true"></span>
         <div class="kbody" style="display:flex;flex-direction:column;flex:1">
           <div class="klab"><i aria-hidden="true"></i>Revenue recovered · 30d</div>
-          <div class="kval gradtext" id="revRecoveredVal" data-count="0" data-prefix="$" aria-label="0 dollars recovered">$0</div>
+          <div class="kval gradtext" id="revRecoveredVal" data-count="0" data-prefix="" aria-label="0 recovered">₹0</div>
           <svg class="spark" viewBox="0 0 200 36" preserveAspectRatio="none" aria-hidden="true">
             <defs><linearGradient id="sparkG" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0" stop-color="rgb(var(--posC))" stop-opacity=".28"/><stop offset="1" stop-color="rgb(var(--posC))" stop-opacity="0"/>
@@ -1754,7 +1754,7 @@ html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur
         <span class="spot" aria-hidden="true"></span>
         <div class="kbody" style="display:flex;flex-direction:column;flex:1">
           <div class="klab"><i aria-hidden="true"></i>Revenue at risk · open</div>
-          <div class="kval kval-risk" id="revRiskVal" data-count="0" data-prefix="$" aria-label="0 dollars at risk">$0</div>
+          <div class="kval kval-risk" id="revRiskVal" data-count="0" data-prefix="" aria-label="0 at risk">₹0</div>
           <div id="revRiskOpenCases" style="font-size:12px;color:var(--text-muted);margin-top:6px">0 open cases</div>
           <div class="ksub">
             <span class="dots" id="revRiskDots" aria-hidden="true"></span>
@@ -1896,12 +1896,12 @@ html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur
         <div class="ripple" aria-hidden="true"><i style="animation-delay:0s"></i><i style="animation-delay:1.7s"></i><i style="animation-delay:3.4s"></i></div>
         <div class="ph" id="pilot-h"><span class="pulse" aria-hidden="true"></span>Workspace status</div>
         <div class="prog">
-          <div class="pm"><span>— / — days used</span><span>— left</span></div>
+          <div class="pm"><span id="pilotDays">— / — days used</span><span id="pilotLeft">— left</span></div>
           <div class="ptrack" role="progressbar" aria-valuemin="0" aria-valuemax="14" aria-valuenow="0" aria-label="Pilot days used">
             <div class="pfill" id="pfill"></div>
           </div>
         </div>
-        <p class="risk"><b id="pilotRiskAmount">$0</b> at risk — act before the pilot ends and Revessent stops retrying for you.</p>
+        <p class="risk"><b id="pilotRiskAmount">₹0</b> at risk — act before the pilot ends and Revessent stops retrying for you.</p>
         <button class="box start-btn" style="--w:100%" data-upgrade type="button"><span class="text">Upgrade</span><span class="btn-icon"><svg class="svg" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M779.180132 473.232045 322.354755 16.406668c-21.413706-21.413706-56.121182-21.413706-77.534887 0-21.413706 21.413706-21.413706 56.122205 0 77.534887l418.057421 418.057421L244.819868 930.057421c-21.413706 21.413706-21.413706 56.122205 0 77.534887 10.706853 10.706853 24.759917 16.059767 38.767955 16.059767s28.061103-5.353938 38.767955-16.059767L779.180132 550.767955C800.593837 529.35425 800.593837 494.64575 779.180132 473.232045z"></path></svg></span><span class="circle-overlay" aria-hidden="true"></span></button>
         <div class="guarantee"><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg>90-day money-back guarantee</div>
       </section>
@@ -1940,12 +1940,14 @@ if((navigator.hardwareConcurrency||8) <= 4 || /Android/i.test(navigator.userAgen
   document.documentElement.classList.add('eco');
 }
 /** Format a number as USD with thousands separators, no cents. */
-function usd(n){ return '$' + Math.round(n).toLocaleString('en-US'); }
+var DASH_CURRENCY='INR';
+/* Audit #51: format in the workspace currency (default INR — the product is Razorpay/India-first), not hard-coded $. */
+function usd(n){ try{ return new Intl.NumberFormat('en-IN',{style:'currency',currency:DASH_CURRENCY,maximumFractionDigits:0}).format(Math.round(n)); }catch(_){ return '\u20B9'+Math.round(n).toLocaleString('en-IN'); } }
 function moneyFromCents(cents){ return usd((Number(cents)||0)/100); }
 function axisMoney(n){
   n=Number(n)||0;
-  if(n>=1000000) return '$'+(n/1000000).toFixed(n>=10000000?0:1)+'m';
-  if(n>=1000) return '$'+Math.round(n/1000)+'k';
+  if(n>=1000000) return '\u20B9'+(n/1000000).toFixed(n>=10000000?0:1)+'m';
+  if(n>=1000) return '\u20B9'+Math.round(n/1000)+'k';
   return usd(n);
 }
 function timeAgo(iso){
@@ -2589,7 +2591,7 @@ function drawChart(){
     var y=padT+ih-(s/steps)*ih;
     g.appendChild(el('line',{x1:padL,x2:W-padR,y1:y,y2:y}));
     var tx=el('text',{x:padL-15,y:y+6,class:'axis','text-anchor':'end'});
-    tx.textContent=rawMax>0?axisMoney(max*s/steps):'$0';
+    tx.textContent=rawMax>0?axisMoney(max*s/steps):'₹0';
     g.appendChild(tx);
   }
   chart.appendChild(g);
@@ -3008,24 +3010,11 @@ function addActivity(a){
   function label(b,t){ var el=b.querySelector('.text'); if(el) el.textContent=t; }
   $('#cdismiss').addEventListener('click',function(){ dismiss('Banner dismissed'); });
   form.addEventListener('submit',function(e){
+    /* Audit #48: this card can't connect anything — the real Razorpay connect
+       (Key ID + Secret + webhook) lives in Settings → Payment gateway.
+       Any submit just takes the user there; no fake "Connected" state. */
     e.preventDefault();
-    var v=input.value.trim();
-    if(v.length<8){
-      field.classList.remove('err'); void field.offsetWidth; field.classList.add('err');
-      input.setAttribute('aria-invalid','true'); input.focus();
-      toast('That key looks too short — paste your rzp_live_ or rzp_test_ Key ID');
-      return;
-    }
-    input.removeAttribute('aria-invalid');
-    btn.setAttribute('aria-busy','true'); label(btn,'Connecting');
-    setTimeout(function(){
-      banner.classList.add('ok');
-      $('#cmsg').textContent='Razorpay connected — Revessent is ready to watch members';
-      btn.removeAttribute('aria-busy'); label(btn,'Connected');
-      addActivity({bc:'var(--alt)',bg:'rgb(var(--altC)/.14)',icon:'i-link',title:'Razorpay connected',sub:'Key ID accepted',amt:'',time:'now'});
-      toast('Razorpay connected · read-only');
-      setTimeout(function(){ dismiss(); },1500);
-    },1200);
+    window.location.assign('/settings.html');
   });
   /** Slide the banner up and out of the flow. */
   function dismiss(msg){
@@ -3165,10 +3154,24 @@ function updateSparkline(weeks){
 function applyDashboardData(data){
   data=data||emptyDashboardData();
   var rec=data.revenueRecovered||{}, risk=data.revenueAtRisk||{}, rate=data.recoveryRate||{}, active=data.activeCases||{};
+  /* Audit #49: real pilot countdown from org pilot dates (set at signup). */
+  var pilot=data.pilot||{};
+  var pd=$('#pilotDays'), pl=$('#pilotLeft');
+  if(pd && pl && pilot.endsAt){
+    try{
+      var pStart=new Date(pilot.startedAt||Date.now()), pEnd=new Date(pilot.endsAt), pNow=new Date();
+      var pTotal=Math.max(1,Math.round((pEnd-pStart)/864e5));
+      var pUsed=Math.min(pTotal,Math.max(0,Math.round((pNow-pStart)/864e5)));
+      var pLeft=Math.max(0,Math.round((pEnd-pNow)/864e5));
+      pd.textContent=pUsed+' / '+pTotal+' days used';
+      pl.textContent=pLeft+(pLeft===1?' day':' days')+' left';
+    }catch(_){}
+  }
   $$('.kpi').forEach(function(k){ k.classList.remove('loading'); });
-  setCount($('#revRecoveredVal'), centsToDisplay(rec.amountCents), '$', '');
+  if(data.currency) DASH_CURRENCY=data.currency;
+  setCount($('#revRecoveredVal'), centsToDisplay(rec.amountCents), '', '');
   setRecoveredDelta(rec.percentChangeVsPrior);
-  setCount($('#revRiskVal'), centsToDisplay(risk.amountCents), '$', '');
+  setCount($('#revRiskVal'), centsToDisplay(risk.amountCents), '', '');
   var openCount=Number(risk.openCaseCount)||0;
   var riskOpen=$('#revRiskOpenCases'); if(riskOpen) riskOpen.textContent=openCount+' open case'+(openCount===1?'':'s');
   var dots=$('#revRiskDots'); if(dots){ dots.innerHTML=''; for(var i=0;i<Math.min(openCount,8);i++){ var dot=document.createElement('i'); dot.style.background=i<2?'var(--info)':(i===2?'var(--warn)':(i===3?'var(--alt)':'var(--neu)')); dots.appendChild(dot); } }
@@ -3210,13 +3213,29 @@ async function fetchDashboardData(range){
     var body=await res.json().catch(function(){ return {}; });
     if(res.status===401){ window.location.assign('/login.html'); return; }
     if(!res.ok) throw new Error(body.error||'Could not load dashboard data');
+    hideDashError();
     applyDashboardData(body);
   }catch(err){
     console.error('Dashboard data load failed',err);
     applyDashboardData(emptyDashboardData());
-    toast("Couldn't load latest data — showing empty dashboard");
+    showDashError("Couldn't load your latest data — showing an empty dashboard. Refresh in a minute, or if this keeps happening, reconnect Razorpay in Settings.");
   }
 }
+/* Persistent, dismissible error banner — a toast disappears before you've read it. */
+function showDashError(msg){
+  hideDashError();
+  var b=document.createElement('div');
+  b.id='dashErr';
+  b.setAttribute('role','alert');
+  b.style.cssText='position:sticky;top:0;z-index:80;display:flex;gap:14px;align-items:center;justify-content:space-between;background:#3a1414;color:#ffd9d9;padding:10px 16px;font-size:13.5px;border-bottom:1px solid #7a2e2e';
+  var t=document.createElement('span'); t.textContent=msg;
+  var x=document.createElement('button'); x.type='button'; x.textContent='Dismiss';
+  x.style.cssText='background:none;border:1px solid #b96a6a;color:#ffd9d9;border-radius:8px;padding:3px 12px;cursor:pointer;flex:none';
+  x.addEventListener('click',function(){ b.remove(); });
+  b.appendChild(t); b.appendChild(x);
+  (document.querySelector('main')||document.body).prepend(b);
+}
+function hideDashError(){ var e=document.getElementById('dashErr'); if(e) e.remove(); }
 window.__rvLoadDashboardRange=function(range){ DASH_RANGE=range||'30d'; fetchDashboardData(DASH_RANGE); };
 /* Export CSV — fetch with the Bearer token (same auth as every other call),
    then trigger a browser download from a Blob via a temporary <a> element.

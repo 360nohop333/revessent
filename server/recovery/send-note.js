@@ -9,6 +9,8 @@
 // round-trip to this endpoint.
 
 const { Pool } = require('pg');
+const { createUnsubscribeToken, appBaseUrl } = require('../_lib/unsubscribe-token');
+const { logAudit } = require('../_lib/audit');
 const crypto = require('crypto');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://zujmouzzqiovgbnanrvv.supabase.co';
@@ -383,12 +385,42 @@ async function applyNoteOverrides(client, note, subjectOverride, bodyOverride) {
   return { ...note, subject, body };
 }
 
-async function sendWithResend({ fromName, fromEmail, toEmail, subject, body }) {
+async function sendWithResend({ client, organizationId, memberId, fromName, fromEmail, toEmail, subject, body }) {
   if (!process.env.RESEND_API_KEY) {
     const error = new Error('Email sending not configured.');
     error.statusCode = 500;
     throw error;
   }
+
+  // Audit #35/#37: suppression list — never email someone who unsubscribed.
+  if (client) {
+    const suppressed = await client.query(
+      `select 1 from suppression_list
+        where organization_id = $1
+          and lower(email) = lower($2)
+        limit 1`,
+      [organizationId, toEmail]
+    );
+    if (suppressed.rows[0]) {
+      const error = new Error('Recipient has unsubscribed from recovery emails.');
+      error.statusCode = 409;
+      error.suppressed = true;
+      throw error;
+    }
+  }
+
+  // Audit #35: every email carries a one-click unsubscribe link, a plain-text
+  // alternative, and a reply-to pointing at the sender.
+  const unsubUrl = organizationId
+    ? `${appBaseUrl()}/api/unsubscribe?token=${createUnsubscribeToken(organizationId, memberId, toEmail)}`
+    : '';
+  const footerText = unsubUrl
+    ? `\n\n—\nYou're receiving this because a payment didn't go through. Don't want these emails? Unsubscribe: ${unsubUrl}`
+    : '';
+  const footerHtml = unsubUrl
+    ? `<p style="margin-top:24px;font-size:12px;color:#8E8C86;border-top:1px solid #eee;padding-top:12px">You're receiving this because a payment didn't go through. <a href="${unsubUrl}" style="color:#35608f">Unsubscribe</a></p>`
+    : '';
+  const textPart = (body || '').replace(/<[^>]+>/g, ' ') + footerText;
 
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -400,7 +432,9 @@ async function sendWithResend({ fromName, fromEmail, toEmail, subject, body }) {
       from: `${fromName} <${fromEmail}>`,
       to: [toEmail],
       subject,
-      html: bodyToHtml(body),
+      html: bodyToHtml(body) + footerHtml,
+      text: textPart,
+      reply_to: fromEmail,
     }),
   });
 
@@ -493,6 +527,9 @@ async function sendRecoveryEmail({ client, organizationId, caseId, automatic = f
   });
 
   const resend = await sendWithResend({
+    client,
+    organizationId,
+    memberId: context.member_id,
     fromName: voice.senderName,
     fromEmail: voice.senderEmail,
     toEmail: context.member_email,
@@ -565,6 +602,14 @@ async function handler(req, res) {
         body: draftBody,
         requiresApproval: !autoSend,
       });
+      // Audit #38: autoSend is only reachable by an authenticated owner/admin
+      // (role gate above) — that click IS the approval. Record who approved.
+      if (autoSend) {
+        await client.query(
+          `update recovery_notes set approved_at = now(), approved_by_user_id = $2 where id = $1`,
+          [insertedNoteId, user.id]
+        );
+      }
       note = {
         id: insertedNoteId,
         case_id: context.id,
@@ -590,12 +635,16 @@ async function handler(req, res) {
     let resend;
     try {
       resend = await sendWithResend({
+        client,
+        organizationId,
+        memberId: note.member_id,
         fromName: voice.senderName,
         fromEmail: voice.senderEmail,
         toEmail: note.member_email,
         subject: note.subject,
         body: note.body,
       });
+      await logAudit(client, { organizationId, userId: user.id, action: 'note.sent', detail: { noteId: note.id, caseId: note.case_id } });
     } catch (error) {
       return sendJson(res, error.statusCode || 502, {
         success: false,

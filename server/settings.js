@@ -4,6 +4,7 @@
 
 const { Pool } = require('pg');
 const crypto = require('crypto');
+const { logAudit } = require('./_lib/audit');
 const { registerRazorpayWebhook } = require('./razorpay/connect');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://zujmouzzqiovgbnanrvv.supabase.co';
@@ -472,6 +473,10 @@ async function handlePost(req, res, client, user) {
     }
 
     await client.query('COMMIT');
+
+    // Audit #16: log the committed settings change once, regardless of how
+    // the (post-commit) webhook registration below goes.
+    await logAudit(client, { organizationId: values.organizationId, userId: user.id, action: 'settings.updated' });
 
     if (values.shouldUpdateRazorpay) {
       try {

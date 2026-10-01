@@ -1183,7 +1183,7 @@
           forgotButton.textContent = "Sending…";
 
           try {
-            const { error } = await supabaseClient.auth.resetPasswordForEmail(email);
+            const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/reset-password.html` });
             if (error) throw error;
             setMessage(signinMessage, "If an account exists for that email, you'll receive a password reset link shortly.", "success");
           } catch (error) {

@@ -17,6 +17,7 @@
 const { Pool } = require('pg');
 const crypto = require('crypto');
 const { sendAlertIfConfigured } = require('../alerts/send');
+const { logAudit } = require('../_lib/audit');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://zujmouzzqiovgbnanrvv.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3';
@@ -54,6 +55,7 @@ const NO_AUTO_RETRY_DECLINE_CODES = new Set([
   'lost_card',
   'stolen_card',
   'pickup_card',
+  'upi_mandate_issue', // UPI mandate/NACH failure — needs customer action, not a retry
 ]);
 
 const STANDARD_RETRY_SCHEDULE_DAYS = { 1: 1, 2: 3, 3: 7 };
@@ -344,13 +346,14 @@ async function createRazorpayRetry(caseRow, member, connection, keySecret, reser
     description: `Payment update for your ${currency} subscription`,
     reference_id: receipt,
     notes: { ...notes, razorpay_order_id: order.id || '' },
-    callback_method: 'get',
   };
 
   if (Object.keys(customer).length) paymentLinkPayload.customer = customer;
-  if (customer.email || customer.contact) {
-    paymentLinkPayload.notify = { email: Boolean(customer.email), sms: Boolean(customer.contact) };
-  }
+  // Audit #29: Razorpay's own notify (email/SMS) is deliberately OFF — those
+  // messages would bypass the merchant's voice and approval flow. The link is
+  // surfaced to the merchant instead, to send inside a Revessent note.
+  // callback_method is also omitted: there is no callback_url to call back.
+  paymentLinkPayload.notify = { email: false, sms: false };
 
   const paymentLink = await razorpayRequest('/payment_links', keyId, keySecret, paymentLinkPayload);
 
@@ -475,10 +478,12 @@ async function writeRetryResult(client, caseRow, reservation, razorpayResult, ra
 
       await insertActivity(client, {
         organizationId,
-        type: 'note_sent',
+        type: 'retry',
         title: automatic ? 'Automatic retry attempted' : 'Payment retry started',
+        // Audit #33: surface the payment link so the merchant can send it in
+        // their own voice (Razorpay notify is off).
         description: razorpayResult.checkoutUrl
-          ? 'A secure Razorpay payment link was created for the customer.'
+          ? 'Secure payment link created (Razorpay notify is off — send this in your own note): ' + razorpayResult.checkoutUrl
           : 'A Razorpay retry order was created.',
         amountCents: caseRow.amount_cents,
         currency: caseRow.currency,
@@ -683,6 +688,8 @@ async function handler(req, res) {
 
     const organizationId = user.organization_id;
 
+    const auditCtx = { organizationId, userId: user.id, action: 'case.retry', detail: { caseId } };
+
     const caseResult = await client.query(
       `select *
          from recovery_cases
@@ -709,6 +716,10 @@ async function handler(req, res) {
     // case a retry path ever marks a case recovered directly.
     // sendAlertIfConfigured never throws and quietly does nothing when the org
     // has no alert webhook configured.
+    if (result.attempted) {
+      await logAudit(client, auditCtx);
+    }
+
     if (result.attempted && result.newStatus === 'recovered') {
       await sendAlertIfConfigured(client, caseRow.organization_id, {
         title: '💰 Payment recovered',
