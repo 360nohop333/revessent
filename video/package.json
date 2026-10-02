@@ -1,0 +1,29 @@
+{
+  "name": "revessent-ad",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Revessent advertising video — Remotion project + real-UI capture pipeline",
+  "scripts": {
+    "capture": "node capture/capture.mjs",
+    "check-plates": "node capture/check-plates.mjs",
+    "audio": "node audio/build-audio.mjs",
+    "studio": "remotion studio",
+    "render": "remotion render",
+    "render:all": "bash -c 'for c in Master30-16x9 Master30-9x16 Master30-1x1 Cutdown15-16x9 Cutdown15-9x16 Cutdown15-1x1; do npx remotion render src/index.tsx $$c renders/$$(echo $$c | tr A-Z a-z).mp4; done'",
+    "qa": "node qa-frames.mjs"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.532",
+    "@sparticuz/chromium": "^153.0.0",
+    "puppeteer-core": "^25.12.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "remotion": "^4.0.532"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "pngjs": "^7.0.0",
+    "typescript": "^5.0.0"
+  }
+}

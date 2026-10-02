@@ -2505,7 +2505,29 @@ window.__rvToast = toast;
 function $(s,r){ return (r||document).querySelector(s); }
 function $$(s,r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); }
 var REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
-function usd(n){ return '$' + Math.round(n).toLocaleString('en-US'); }
+/* Cross-module helpers (audit #51): the first dashboard module (the IIFE
+   above) owns the INR-aware formatters, but its scope ends at its closing
+   parenthesis — these re-declarations keep THIS module self-contained.
+   Without them every /api/dashboard-data apply threw
+   "DASH_CURRENCY is not defined" (strict mode) and the dashboard fell
+   back to empty data. Found while capturing the real UI for the ad. */
+var DASH_CURRENCY='INR';
+function usd(n){ try{ return new Intl.NumberFormat('en-IN',{style:'currency',currency:DASH_CURRENCY,maximumFractionDigits:0}).format(Math.round(n)); }catch(_){ return '\u20B9'+Math.round(n).toLocaleString('en-IN'); } }
+function moneyFromCents(cents){ return usd(centsToDisplay(cents)); }
+function axisMoney(n){
+  n=Number(n)||0;
+  if(n>=1000000) return '\u20B9'+(n/1000000).toFixed(n>=10000000?0:1)+'m';
+  if(n>=1000) return '\u20B9'+Math.round(n/1000)+'k';
+  return usd(n);
+}
+function timeAgo(iso){
+  if(!iso) return '—';
+  var then=new Date(iso).getTime(); if(!then) return '—';
+  var s=Math.max(1,Math.floor((Date.now()-then)/1000));
+  if(s<60) return s+'s ago'; var m=Math.floor(s/60); if(m<60) return m+'m ago';
+  var h=Math.floor(m/60); if(h<24) return h+'h ago'; var d=Math.floor(h/24); return d+'d ago';
+}
+function titleize(v){ return String(v||'').replace(/_/g,' ').replace(/\b\w/g,function(m){return m.toUpperCase();}); }
 function toast(msg){
   var t=document.createElement('div');
   t.className='toast'; t.setAttribute('role','status');
