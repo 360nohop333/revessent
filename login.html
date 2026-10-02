@@ -849,6 +849,9 @@ document.documentElement.dataset.theme=(v==='amoled')?'dark':v;}});
         }
       }
     </style>
+<!-- Glass Kit: shared liquid-glass UI layer (pill CTAs, glass cards, switches) -->
+<link rel="stylesheet" href="/glass-kit.css">
+<script src="/glass-kit.js" defer></script>
   </head>
   <body>
     <div class="page-shell">
@@ -872,7 +875,7 @@ document.documentElement.dataset.theme=(v==='amoled')?'dark':v;}});
 
       <main>
         <div class="login-layout">
-          <section class="auth-card" aria-labelledby="authTitle">
+          <section class="auth-card" data-liquidglass aria-labelledby="authTitle">
             <div class="card-heading">
               <h2 id="authTitle">Welcome back</h2>
               <p>Sign in to your workspace or create a new account.</p>

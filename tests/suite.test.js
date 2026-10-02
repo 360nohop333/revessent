@@ -1369,6 +1369,61 @@ async function testBatch4() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+function testGlassKit() {
+  console.log('\n── glass kit (shared liquid-glass UI layer) ──');
+  const fs = require('fs');
+  const read = (f) => fs.readFileSync(path + '/' + f, 'utf8');
+  const KIT_PAGES = ['dashboard.html', 'members.html', 'weekly-digest.html', 'case-detail.html',
+    'changelog.html', 'index.html', 'login.html', 'reset-password.html', 'settings.html',
+    'privacy.html', 'terms.html'];
+
+  // kit linked on every page: css after the page's own styles (so it can win ties), js deferred
+  check('glass-kit: css + js linked on all 11 pages, css after page styles',
+    KIT_PAGES.every((p) => {
+      const s = read(p);
+      return s.includes('href="/glass-kit.css"') && s.includes('src="/glass-kit.js"') &&
+        s.indexOf('href="/glass-kit.css"') > s.lastIndexOf('</style>');
+    }));
+
+  // Minimal I / II must stay flat: card treatment gated on :not(minimal/minimal2),
+  // pill bevel/sheen and switch glass neutralised under both minimal themes
+  const kitCss = read('glass-kit.css');
+  check('glass-kit: liquid-glass cards gated off under Minimal I / II',
+    /:not\(\[data-theme="?minimal"?\]\):not\(\[data-theme="?minimal2"?\]\) \[data-liquidglass\]/.test(kitCss) &&
+    !/minimal"?\] \[data-liquidglass\]/.test(kitCss.replace(/:not\(\[data-theme="?(minimal|minimal2)"?\]\):not\(\[data-theme="?(minimal|minimal2)"?\]\)/g, '')));
+  check('glass-kit: pill sheens hidden + switches flat under Minimal I / II',
+    /minimal"?\] \.btn-pri::after[^\{]*\{[^}]*display:\s*none/.test(kitCss.replace(/\s+/g, ' ')) ||
+    (kitCss.includes('minimal"] .btn-pri::after') && kitCss.includes('display: none')));
+
+  // the SVG filter: three displacement passes (one per channel), each colour
+  // matrix exactly 20 values, chroma upgrade feature-detected via CSS.supports
+  const kitJs = read('glass-kit.js');
+  const disp = (kitJs.match(/<feDisplacementMap /g) || []).length;
+  const matrices = kitJs.match(/values="[^"]+"/g) || [];
+  check('glass-kit: filter has 3 feDisplacementMap passes (R/G/B split)',
+    disp === 3 && kitJs.includes('scale="-20"') && kitJs.includes('scale="-24"') && kitJs.includes('scale="-28"'));
+  check('glass-kit: every feColorMatrix carries exactly 20 values',
+    matrices.length === 3 && matrices.every((m) => (m.match(/-?\d+/g) || []).length === 20),
+    matrices.map((m) => (m.match(/-?\d+/g) || []).length).join(','));
+  check('glass-kit: chroma upgrade is feature-detected, frost fallback kept',
+    kitJs.includes("CSS.supports('backdrop-filter', 'url(#gk-glass-filter)')") &&
+    kitJs.includes('lg-chroma') &&
+    /backdrop-filter:\s*blur\(10px\)/.test(kitCss) && kitCss.includes('var(--gk-filter, blur(10px))'));
+
+  // one signature liquid-glass surface per showcase page, plus a pill CTA or
+  // (on settings) the liquid switches
+  const GLASS_PAGES = ['dashboard.html', 'index.html', 'login.html', 'reset-password.html',
+    'members.html', 'weekly-digest.html', 'case-detail.html'];
+  check('glass-kit: data-liquidglass surface on the 7 showcase pages',
+    GLASS_PAGES.every((p) => read(p).includes('data-liquidglass')));
+  const PILL_PAGES = { 'dashboard.html': 'btn-pri', 'index.html': 'btn-pri', 'changelog.html': 'btn-pri',
+    'login.html': 'glassy-button', 'reset-password.html': 'id="resetBtn"', 'case-detail.html': 'btn primary' };
+  check('glass-kit: pill CTA present on every page with a primary action',
+    Object.keys(PILL_PAGES).every((p) => read(p).includes(PILL_PAGES[p])) &&
+    (read('settings.html').match(/class="switch/g) || []).length >= 3);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 (async () => {
   try {
     await testRouter();
@@ -1383,6 +1438,7 @@ async function testBatch4() {
     await testBatch3();
     await testBatch4();
     testSources();
+    testGlassKit();
   } catch (e) {
     failures++;
     console.error('UNCAUGHT TEST ERROR:', e);

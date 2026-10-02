@@ -380,3 +380,43 @@ system, on **every** page:
 Verification: scripts parse on all 11 pages, CSS brace-balanced,
 `npm test` → **192/192** (Minimal availability on every page, four-theme
 pickers, registry + passthrough mapping).
+
+## Glass Kit — the liquid-glass UI layer, app-wide
+
+The reference components (glass pill CTA, liquid-glass card with chromatic
+dispersion, jh3y-style liquid toggle, fooontic's Liquid Glass Switcher) are
+now a **shared layer** every page loads, instead of one-off copies:
+
+- **`glass-kit.css` + `glass-kit.js`**, linked on all 11 pages (CSS after the
+  page's own styles so the kit wins ties; JS deferred, ~10 KB + ~5 KB).
+- **Glass pill** on every primary CTA: bevel box-shadows (inset highlight
+  pairs), a diagonal sheen via a blurred `::after` gradient (transparent
+  centre, lit shoulders), hover lift, active squish. Targets: `.btn-pri`
+  (index, dashboard, changelog), `.btn.primary` (case-detail),
+  `#resetBtn` (reset-password), login's `.glassy-button` submit pair —
+  there the sheen rides `::before`, because that component's `::after`
+  *is* its surface fill — and login's `.theme-toggle`.
+- **Liquid-glass card** on one signature surface per page via
+  `data-liquidglass`: dashboard pilot, landing featured plan, login
+  auth-card, reset-password card, members / weekly-digest / case-detail
+  hero cards. Frost backdrop + inset light plays; where
+  `backdrop-filter: url()` is supported (Chromium), `.lg-chroma` upgrades
+  to the injected SVG filter — a procedurally generated displacement map
+  (canvas, zero base64 shipped) feeding three `feDisplacementMap` passes
+  (scale −20/−24/−28, one per colour channel), blended back and softened.
+  Browsers without url() support keep the plain frost.
+- **Liquid switch** on settings' three `role="switch"` toggles: glass
+  track, glossy radial-gradient knob, and the press-stretch moment
+  (jh3y/fooontic essence) — the knob widens toward its target on
+  `:active`, then settles. Shrinks under 380 px.
+- **Minimal I / II stay flat by construction**: the card treatment is
+  gated with `:not([data-theme=minimal]):not([data-theme=minimal2])` so
+  page CSS fully owns those looks; pill bevels/sheens and switch glass are
+  neutralised to ink-on-paper. All motion respects
+  `prefers-reduced-motion`. Visual layer only — no markup or JS behaviour
+  changes on any page.
+
+Verification: scripts parse on all 11 pages, CSS brace-balanced,
+`npm test` → **200/200** (kit linked everywhere, Minimal gating, 3×
+displacement + 20-value matrices, feature-detected chroma, showcase
+surfaces, pill coverage).

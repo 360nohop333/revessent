@@ -1,0 +1,281 @@
+/* ════════════════════════════════════════════════════════════════
+   REVESSENT · GLASS KIT — shared UI layer, linked by every page.
+   Loads AFTER page styles: ties resolve in the kit's favour, and
+   :root-prefixed rules sit one specificity step above page bases.
+
+   Contents
+   1. GLASS PILL  — the primary-CTA pill (bevel + diagonal sheen),
+                    applied to every page's main action buttons.
+                    Login's .glassy-button keeps its own surface
+                    choreography (::after is its fill layer), so the
+                    sheen rides ::before there.
+   2. LIQUID GLASS CARD — [data-liquidglass]: frosted surface with
+                    inset light plays; .lg-chroma adds the SVG
+                    chromatic-displacement filter where supported.
+   3. LIQUID SWITCH — the settings role="switch" toggles as glass
+                    switches with glossy, press-stretchy knobs.
+
+   Theme contract: Eclipse/Daylight get the full glass treatment;
+   Minimal I / II stay strictly ink-on-paper — the card treatment is
+   gated on :not([data-theme=minimal/minimal2]) so page CSS fully
+   owns those looks, and pill/switch bevels+sheens are neutralised.
+   Fully fluid — no fixed-width layouts; safe under
+   prefers-reduced-motion. Visual layer only.
+   ════════════════════════════════════════════════════════════════ */
+
+:root{
+  --gk-tr: 18%;                                   /* sheen spread */
+  --gk-ease: cubic-bezier(.34, 1.56, .64, 1);
+  --gk-t: .26s;
+  /* glass reads per theme; overridden below */
+  --gk-hi1: rgba(255, 255, 255, .55);
+  --gk-hi2: rgba(255, 255, 255, .34);
+  --gk-core: rgba(0, 0, 0, .38);
+  --gk-drop: rgba(15, 23, 42, .22);
+  --gk-sheen: rgba(255, 255, 255, .55);
+  --gk-frost: .055;
+}
+/* theme: Eclipse & the login dark mode — dimmer glass, deeper core */
+html[data-theme="amoled"]{ --gk-hi1:rgba(255,255,255,.30); --gk-hi2:rgba(255,255,255,.16);
+  --gk-core:rgba(0,0,0,.75); --gk-drop:rgba(0,0,0,.55); --gk-sheen:rgba(255,255,255,.30); --gk-frost:.045; }
+html[data-theme="dark"]{ --gk-hi1:rgba(255,255,255,.30); --gk-hi2:rgba(255,255,255,.16);
+  --gk-core:rgba(0,0,0,.75); --gk-drop:rgba(0,0,0,.55); --gk-sheen:rgba(255,255,255,.30); --gk-frost:.045; }
+html[data-theme="light"]{ --gk-hi1:rgba(255,255,255,.85); --gk-hi2:rgba(255,255,255,.55);
+  --gk-core:rgba(0,0,0,.42); --gk-drop:rgba(64,48,26,.26); --gk-sheen:rgba(255,255,255,.75); --gk-frost:.30; }
+
+/* ══ 1. GLASS PILL — primary CTAs ══════════════════════════════ */
+
+/* 1a. structure — bevel + motion, shared by every pill */
+:root .btn-pri,
+:root .btn.primary,
+:root .glassy-button.signin-submit,
+:root .glassy-button.signup-submit,
+:root #resetBtn,
+:root .theme-toggle{
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px double rgb(var(--gk-line-rgb, 128 128 128) / .10);
+  box-shadow:
+    inset 2px -2px 1px -1px var(--gk-hi1),
+    inset -2px 2px 1px -1px var(--gk-hi1),
+    inset 6px -6px 1px -6px var(--gk-hi2),
+    inset -6px 6px 1px -6px var(--gk-hi2),
+    inset 0 0 2px var(--gk-core),
+    0 4px 10px var(--gk-drop);
+  transition:
+    transform var(--gk-t) var(--gk-ease),
+    box-shadow var(--gk-t) ease,
+    background-color var(--gk-t) ease,
+    filter var(--gk-t) ease;
+}
+/* 1b. the diagonal sheen — transparent centre, lit shoulders.
+   Plain buttons carry it on ::after; login's .glassy-button uses
+   ::after as its surface fill, so there it rides ::before, tucked
+   under the text span (same stacking level, earlier in paint order). */
+:root .btn-pri::after,
+:root .btn.primary::after,
+:root #resetBtn::after,
+:root .theme-toggle::after,
+:root .glassy-button.signin-submit::before,
+:root .glassy-button.signup-submit::before{
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 2;
+  filter: blur(6px);
+  background: linear-gradient(
+    45deg,
+    var(--gk-sheen) 0%,
+    transparent var(--gk-tr),
+    transparent calc(100% - var(--gk-tr)),
+    var(--gk-sheen) 100%
+  );
+}
+:root .glassy-button.signin-submit::before,
+:root .glassy-button.signup-submit::before{
+  z-index: 1;
+}
+/* 1c. motion — hover lift for plain pills (the glassy button has
+   its own hover choreography on span+::after, so it only squishes) */
+:root .btn-pri:hover,
+:root .btn.primary:hover,
+:root #resetBtn:hover,
+:root .theme-toggle:hover{
+  transform: translateY(-2px);
+}
+:root .btn-pri:active,
+:root .btn.primary:active,
+:root .glassy-button.signin-submit:active,
+:root .glassy-button.signup-submit:active,
+:root #resetBtn:active,
+:root .theme-toggle:active{
+  transform: scale(.96);
+  transition-duration: .08s;
+}
+/* 1d. Minimal I / II — flat by design: no bevel, no sheen */
+html[data-theme="minimal"] .btn-pri,
+html[data-theme="minimal"] .btn.primary,
+html[data-theme="minimal"] .glassy-button.signin-submit,
+html[data-theme="minimal"] .glassy-button.signup-submit,
+html[data-theme="minimal"] #resetBtn,
+html[data-theme="minimal"] .theme-toggle,
+html[data-theme="minimal2"] .btn-pri,
+html[data-theme="minimal2"] .btn.primary,
+html[data-theme="minimal2"] .glassy-button.signin-submit,
+html[data-theme="minimal2"] .glassy-button.signup-submit,
+html[data-theme="minimal2"] #resetBtn,
+html[data-theme="minimal2"] .theme-toggle{
+  overflow: visible;
+  border: 1px solid currentColor;
+  box-shadow: none;
+}
+html[data-theme="minimal"] .btn-pri::after,
+html[data-theme="minimal"] .btn.primary::after,
+html[data-theme="minimal"] #resetBtn::after,
+html[data-theme="minimal"] .theme-toggle::after,
+html[data-theme="minimal"] .glassy-button.signin-submit::before,
+html[data-theme="minimal"] .glassy-button.signup-submit::before,
+html[data-theme="minimal2"] .btn-pri::after,
+html[data-theme="minimal2"] .btn.primary::after,
+html[data-theme="minimal2"] #resetBtn::after,
+html[data-theme="minimal2"] .theme-toggle::after,
+html[data-theme="minimal2"] .glassy-button.signin-submit::before,
+html[data-theme="minimal2"] .glassy-button.signup-submit::before{
+  display: none;
+}
+
+/* ══ 2. LIQUID GLASS CARD ══════════════════════════════════════ */
+/* Glass themes only — gated with :not() so Minimal I / II keep the
+   page's own ink-on-paper cards, untouched by the kit. */
+html:not([data-theme="minimal"]):not([data-theme="minimal2"]) [data-liquidglass]{
+  background: rgb(255 255 255 / var(--gk-frost));
+  box-shadow:
+    inset 0 0 2px 1px rgba(255, 255, 255, .35),
+    inset 0 0 10px 4px rgba(255, 255, 255, .15),
+    inset 0 4px 16px rgba(17, 17, 26, .05),
+    inset 0 8px 24px rgba(17, 17, 26, .05),
+    inset 0 6px 56px rgba(17, 17, 26, .05),
+    0 24px 60px -28px var(--gk-drop);
+  -webkit-backdrop-filter: blur(10px) saturate(1.2);
+  backdrop-filter: blur(10px) saturate(1.2);
+}
+/* chromatic dispersion (Chromium): the plain blur is declared first,
+   so browsers that drop the url() reference still keep the frost. */
+html:not([data-theme="minimal"]):not([data-theme="minimal2"]) [data-liquidglass].lg-chroma{
+  -webkit-backdrop-filter: blur(10px) saturate(1.2);
+  backdrop-filter: blur(10px) saturate(1.2);
+  -webkit-backdrop-filter: var(--gk-filter, blur(10px)) saturate(1.2);
+  backdrop-filter: var(--gk-filter, blur(10px)) saturate(1.2);
+}
+html[data-theme="light"] [data-liquidglass]{
+  box-shadow:
+    inset 0 0 2px 1px rgba(255, 255, 255, .65),
+    inset 0 0 10px 4px rgba(255, 255, 255, .30),
+    inset 0 4px 16px rgba(64, 48, 26, .06),
+    inset 0 8px 24px rgba(64, 48, 26, .05),
+    inset 0 6px 56px rgba(64, 48, 26, .04),
+    0 24px 60px -28px var(--gk-drop);
+}
+
+/* ══ 3. LIQUID SWITCH — settings' role="switch" toggles ════════ */
+:root .switch{
+  width: 50px;
+  height: 28px;
+  border: 1px solid rgb(255 255 255 / .12);
+  background: rgb(var(--cc, 128 128 128) / .28);
+  box-shadow:
+    inset 2px -2px 1px -1px var(--gk-hi1),
+    inset -2px 2px 1px -1px var(--gk-hi1),
+    inset 0 0 2px var(--gk-core),
+    0 3px 8px var(--gk-drop);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  transition: background-color calc(var(--gk-t) * .6) ease,
+              border-color calc(var(--gk-t) * .6) ease,
+              box-shadow var(--gk-t) ease;
+}
+:root .switch::after{
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, .95) 0%, rgba(255, 255, 255, 0) 42%),
+    linear-gradient(180deg, #ffffff, #e6e8ec);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, .9),
+    inset 0 -2px 3px rgba(0, 0, 0, .12),
+    0 3px 7px rgba(0, 0, 0, .35);
+  transition:
+    transform var(--gk-t) var(--gk-ease),
+    width var(--gk-t) var(--gk-ease),
+    translate var(--gk-t) var(--gk-ease);
+}
+:root .switch:hover{
+  box-shadow:
+    inset 2px -2px 1px -1px var(--gk-hi1),
+    inset -2px 2px 1px -1px var(--gk-hi1),
+    inset 0 0 2px var(--gk-core),
+    0 5px 12px var(--gk-drop);
+}
+/* the liquid moment: press → the knob stretches toward its target */
+:root .switch:active::after{ width: 27px; }
+:root .switch[aria-checked="true"]{ background: var(--btnA, #3DDC97); }
+:root .switch[aria-checked="true"]::after{
+  transform: translateX(22px);
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, .95) 0%, rgba(255, 255, 255, 0) 42%),
+    linear-gradient(180deg, #ffffff, #eef7f2);
+}
+:root .switch[aria-checked="true"]:active::after{
+  transform: translateX(15px);
+  width: 27px;
+}
+/* Minimal I / II — ink toggle, no glass */
+html[data-theme="minimal"] .switch,
+html[data-theme="minimal2"] .switch{
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border: 1px solid currentColor;
+  box-shadow: none;
+}
+html[data-theme="minimal"] .switch::after,
+html[data-theme="minimal2"] .switch::after{
+  background: var(--text-faint, #767676);
+  box-shadow: none;
+}
+html[data-theme="minimal"] .switch[aria-checked="true"]::after,
+html[data-theme="minimal2"] .switch[aria-checked="true"]::after{
+  background: var(--btnAtx, #fff);
+}
+
+/* ══ responsiveness & motion ═══════════════════════════════════ */
+@media (max-width: 380px){
+  :root .switch{ width: 44px; height: 25px; }
+  :root .switch::after{ width: 18px; height: 18px; }
+  :root .switch:active::after{ width: 24px; }
+  :root .switch[aria-checked="true"]::after{ transform: translateX(19px); }
+  :root .switch[aria-checked="true"]:active::after{ transform: translateX(13px); }
+}
+@media (prefers-reduced-motion: reduce){
+  :root .btn-pri,
+  :root .btn.primary,
+  :root .glassy-button.signin-submit,
+  :root .glassy-button.signup-submit,
+  :root #resetBtn,
+  :root .theme-toggle,
+  :root .switch,
+  :root .switch::after{
+    transition: none;
+  }
+  :root .btn-pri:hover,
+  :root .btn.primary:hover,
+  :root #resetBtn:hover,
+  :root .theme-toggle:hover{
+    transform: none;
+  }
+}

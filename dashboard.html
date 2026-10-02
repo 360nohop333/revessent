@@ -1475,6 +1475,9 @@ html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur
 .swatch[data-sw=minimal2]{background:#000000;border-color:rgba(255,255,255,.45);
   background-image:radial-gradient(circle at 50% 50%,#fff 0 22%,transparent 23%)}
 </style>
+<!-- Glass Kit: shared liquid-glass UI layer (pill CTAs, glass cards, switches) -->
+<link rel="stylesheet" href="/glass-kit.css">
+<script src="/glass-kit.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="/api/config.js"></script> <!-- audit #66: Supabase project from env, fallback below -->
 <script>
@@ -1835,7 +1838,7 @@ html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur
       </section>
 
       <!-- PILOT STATUS -->
-      <section class="pilot glass grain rv" aria-labelledby="pilot-h" data-d="120">
+      <section class="pilot glass grain rv" data-liquidglass aria-labelledby="pilot-h" data-d="120">
         <div class="grainy" aria-hidden="true"></div>
         <div class="ripple" aria-hidden="true"><i style="animation-delay:0s"></i><i style="animation-delay:1.7s"></i><i style="animation-delay:3.4s"></i></div>
         <div class="ph" id="pilot-h"><span class="pulse" aria-hidden="true"></span>Workspace status</div>
