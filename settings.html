@@ -11,7 +11,7 @@
 <script>
 /* ECLIPSE — apply the shared theme choice before first paint. */
 (function(){var t='amoled';try{var s=localStorage.getItem('rv.theme')||localStorage.getItem('revessent-theme')||'';
-if(s==='light'||s==='minimal')t='light';}catch(_){}
+if(s==='light'||s==='minimal'||s==='minimal2')t=s;}catch(_){}
 document.documentElement.dataset.theme=t;})();
 </script>
 <style>
@@ -855,7 +855,7 @@ document.documentElement.dataset.theme=t;})();
     function applyStoredTheme(){
       let saved = "";
       try { saved = localStorage.getItem('rv.theme') || localStorage.getItem('revessent-theme') || ""; } catch (_) {}
-      saved = (saved === 'light' || saved === 'minimal') ? 'light' : 'amoled';
+      saved = ['light', 'minimal', 'minimal2'].includes(saved) ? saved : 'amoled';
       document.documentElement.dataset.theme = saved;
       const meta = document.querySelector('meta[name="color-scheme"]');
       if(meta) meta.setAttribute('content', saved === 'amoled' ? 'dark light' : 'light dark');

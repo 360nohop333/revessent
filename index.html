@@ -6,7 +6,7 @@
    mode picked here is the mode you get on login, dashboard, and beyond.
    Default: Eclipse (AMOLED black). */
 (function(){var t='amoled';try{var s=localStorage.getItem('rv.theme');
-if(s==='light'||s==='minimal')t='light';}catch(_){t='amoled';}
+if(s==='light'||s==='minimal'||s==='minimal2')t=s;}catch(_){t='amoled';}
 document.documentElement.setAttribute('data-theme',t);})();
 </script>
 <meta charset="UTF-8">
@@ -817,6 +817,8 @@ html[data-theme=dark] .tmenu-i:hover,html[data-theme=amoled] .tmenu-i:hover{back
 .tmenu-i[data-theme-set=light]  .sw{background:linear-gradient(140deg,#fffdf7,#ecdcc0)}
 .tmenu-i[data-theme-set=dark]   .sw{background:linear-gradient(140deg,#C4C6C9 0%,#55585E 45%,#5A544B 100%)}
 .tmenu-i[data-theme-set=amoled] .sw{background:linear-gradient(140deg,#000 0%,#000 55%,#3DDC97 55%)}
+.tmenu-i[data-theme-set=minimal] .sw{background:linear-gradient(140deg,#fff 0%,#fff 55%,#000 55%)}
+.tmenu-i[data-theme-set=minimal2] .sw{background:linear-gradient(140deg,#000 0%,#000 55%,#fff 55%)}
 .tmenu-i .lbl{display:flex;flex-direction:column;line-height:1.25;min-width:0}
 .tmenu-i .lbl small{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint);margin-top:2px}
 .tmenu-i .tick{margin-left:auto;width:15px;height:15px;color:var(--acc);opacity:0;transform:scale(.6);transition:opacity .3s ease,transform .4s var(--spring)}
@@ -935,6 +937,63 @@ html[data-theme=amoled]{
   --sh-sm:inset 0 1px 0 rgba(255,255,255,.05),0 1px 1px rgba(0,0,0,.6),0 12px 30px -14px rgba(0,0,0,.9);
   --sh-md:inset 0 1px 0 rgba(255,255,255,.06),0 1px 1px rgba(0,0,0,.65),0 24px 52px -18px rgba(0,0,0,.95);
 }
+/* MINIMAL — white page, black ink, zero gradient. */
+html[data-theme=minimal]{
+  --canvas:#ffffff; --page:#ffffff;
+  --text-primary:#000000; --text-secondary:#1a1a1a; --text-muted:#5a5a5a; --text-inverse:#ffffff;
+  --text-faint:#767676;
+  --ink:var(--text-primary); --ink2:var(--text-secondary); --ink3:var(--text-muted);
+  --glass1:rgba(255,255,255,.86);
+  --glass2:rgba(255,255,255,.92);
+  --glass3:rgba(255,255,255,.96);
+  --glass-hi:rgba(0,0,0,.04);
+  --cc:255 255 255;
+  --lc:0 0 0;
+  --edge:rgba(0,0,0,.16);
+  --hi:rgba(0,0,0,.05);
+  --icB:rgba(0,0,0,.06);
+  --accC:0 0 0; --acc:#000000; --acc-ink:#000000;
+  --btnA:#000000; --btnAtx:#ffffff;
+  --ok:#000000; --err:#000000;
+  --avaA:#ffffff; --avaB:#e4e4e4; --avaTx:#000000;
+  --mkA:#ffffff; --mkB:#dcdcdc; --mkC:#000000;
+  --line:rgb(0 0 0 / .18);
+  --line-soft:rgb(0 0 0 / .10);
+  --sh-sm:0 1px 2px rgba(0,0,0,.10),0 6px 16px -8px rgba(0,0,0,.16);
+  --sh-md:0 1px 2px rgba(0,0,0,.10),0 12px 28px -12px rgba(0,0,0,.20);
+}
+/* MINIMAL II — the inverse: white ink on black. */
+html[data-theme=minimal2]{
+  --canvas:#000000; --page:#000000;
+  --text-primary:#ffffff; --text-secondary:#e4e4e4; --text-muted:#8f8f8f; --text-inverse:#000000;
+  --text-faint:#6f6f6f;
+  --ink:var(--text-primary); --ink2:var(--text-secondary); --ink3:var(--text-muted);
+  --glass1:rgba(255,255,255,.05);
+  --glass2:rgba(255,255,255,.08);
+  --glass3:rgba(255,255,255,.12);
+  --glass-hi:rgba(255,255,255,.06);
+  --cc:0 0 0;
+  --lc:255 255 255;
+  --edge:rgba(255,255,255,.16);
+  --hi:rgba(255,255,255,.07);
+  --icB:rgba(255,255,255,.10);
+  --accC:255 255 255; --acc:#ffffff; --acc-ink:#ffffff;
+  --btnA:#ffffff; --btnAtx:#000000;
+  --ok:#ffffff; --err:#ffffff;
+  --avaA:#000000; --avaB:#1a1a1a; --avaTx:#ffffff;
+  --mkA:#000000; --mkB:#1a1a1a; --mkC:#ffffff;
+  --line:rgb(255 255 255 / .18);
+  --line-soft:rgb(255 255 255 / .10);
+  --sh-sm:0 1px 2px rgba(0,0,0,.60),0 6px 16px -8px rgba(0,0,0,.80);
+  --sh-md:0 1px 2px rgba(0,0,0,.65),0 12px 28px -12px rgba(0,0,0,.90);
+}
+/* Minimal I/II: flat page, no sky, no vignette. */
+html[data-theme=minimal] #gradbg,html[data-theme=minimal2] #gradbg{opacity:1;background:var(--page)}
+html[data-theme=minimal] #gradbg i,html[data-theme=minimal2] #gradbg i{display:none}
+html[data-theme=minimal] #bluesky,html[data-theme=minimal2] #bluesky{opacity:0}
+html[data-theme=minimal] #skybox,html[data-theme=minimal2] #skybox{opacity:0}
+html[data-theme=minimal] body,html[data-theme=minimal2] body{background:var(--page)}
+html[data-theme=minimal] #veil::before,html[data-theme=minimal2] #veil::before{background:none}
 html[data-theme=dark] body{background:#161512}
 html[data-theme=amoled] body{background:#000}
 html[data-theme=dark] #veil::before{
@@ -1281,6 +1340,8 @@ svg .vline{stroke-width:2.2}
         <span class="tmenu-h" style="--d:40ms">Appearance</span>
         <button type="button" role="menuitemradio" class="tmenu-i" data-theme-set="light"  aria-checked="false" style="--d:90ms"><span class="sw" aria-hidden="true"></span><span class="lbl">Daylight<small>bright · airy</small></span><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></button>
                 <button type="button" role="menuitemradio" class="tmenu-i" data-theme-set="amoled" aria-checked="false" style="--d:150ms"><span class="sw" aria-hidden="true"></span><span class="lbl">Eclipse<small>pure black · mint</small></span><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></button>
+        <button type="button" role="menuitemradio" class="tmenu-i" data-theme-set="minimal" aria-checked="false" style="--d:210ms"><span class="sw" aria-hidden="true"></span><span class="lbl">Minimal<small>white · black ink</small></span><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></button>
+        <button type="button" role="menuitemradio" class="tmenu-i" data-theme-set="minimal2" aria-checked="false" style="--d:270ms"><span class="sw" aria-hidden="true"></span><span class="lbl">Minimal II<small>inverted · ink on black</small></span><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></button>
         <hr class="tmenu-sep" aria-hidden="true">
         <button type="button" role="menuitem" class="tmenu-i rnd" data-theme-random style="--d:265ms"><span class="sw" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg></span><span class="lbl">Random theme<small>surprise me</small></span></button>
         <div class="tmenu-sky" id="tskynow" hidden><span class="meta"><b data-sky-name></b><small data-sky-en></small></span><span class="dots" data-sky-dots aria-hidden="true"></span></div>
@@ -1308,6 +1369,8 @@ svg .vline{stroke-width:2.2}
         <div class="m-seg" role="group" aria-label="Appearance">
           <button type="button" class="m-topt" data-theme-set="light" aria-pressed="true">Daylight<small>light</small></button>
                     <button type="button" class="m-topt" data-theme-set="amoled" aria-pressed="false">Eclipse<small>pure black</small></button>
+          <button type="button" class="m-topt" data-theme-set="minimal" aria-pressed="false">Minimal<small>white · ink</small></button>
+          <button type="button" class="m-topt" data-theme-set="minimal2" aria-pressed="false">Minimal II<small>inverted</small></button>
           <button type="button" class="m-topt" data-theme-random>Random<small>surprise me</small></button>
         </div>
       </div>
@@ -2380,6 +2443,13 @@ var PALETTES = [
 var recent=[], pageCount=0;
 var curPal = null;
 function setAccent(pal){
+  /* Minimal I/II stay strictly ink-on-paper — no accent tinting; any
+     tint left over from a previous theme is cleared. */
+  if(currentTheme()==='minimal'||currentTheme()==='minimal2'){
+    var rs0=document.documentElement.style;
+    ['--acc','--acc-ink','--acc-line','--acc-wash','--accC'].forEach(function(p){ rs0.removeProperty(p); });
+    return;
+  }
   curPal = pal;
   var th=currentTheme();
   var s = pal.s, l = pal.l, ink, v1, v2;
@@ -2411,15 +2481,15 @@ $$('[data-skip]').forEach(function(b){
   });
 });
 /* ---------- appearance engine: daylight / evening / pure black ---------- */
-function currentTheme(){ var t=document.documentElement.getAttribute('data-theme'); return t==='light'?'light':'amoled'; }
+function currentTheme(){ var t=document.documentElement.getAttribute('data-theme'); return (t==='light'||t==='amoled'||t==='minimal'||t==='minimal2')?t:'amoled'; }
 var savedTheme=null; try{ savedTheme=localStorage.getItem('rv.theme'); }catch(e){}
-/* ECLIPSE is the default; Nocturne-era values map by intent. */
-savedTheme=(savedTheme==='light'||savedTheme==='minimal')?'light':'amoled';
+/* ECLIPSE is the default; Minimal I/II pass through, dark picks stay dark. */
+savedTheme=(savedTheme==='light'||savedTheme==='minimal'||savedTheme==='minimal2')?savedTheme:'amoled';
 document.documentElement.setAttribute('data-theme', savedTheme);
 /* One choice, every page — other tabs follow a theme change instantly. */
-addEventListener('storage',function(e){ if(e.key==='rv.theme'&&e.newValue){ setTheme(e.newValue==='light'?'light':'amoled'); } });
-function nextTheme(t){ return t==='light'?'amoled':'light'; }
-function themeWord(t){ return t==='light'?'Daylight theme':'Eclipse theme'; }
+addEventListener('storage',function(e){ if(e.key==='rv.theme'&&e.newValue){ var v=e.newValue; setTheme((v==='light'||v==='amoled'||v==='minimal'||v==='minimal2')?v:'amoled'); } });
+function nextTheme(t){ var T=['light','amoled','minimal','minimal2']; return T[(T.indexOf(t)+1)%T.length]||'light'; }
+function themeWord(t){ return t==='light'?'Daylight theme':(t==='minimal'?'Minimal theme':(t==='minimal2'?'Minimal II theme':'Eclipse theme')); }
 var pendingPal=null;
 function rethemePalette(){
   if(pendingPal){ var p=pendingPal; pendingPal=null; setAccent(p); return; }
@@ -2484,7 +2554,7 @@ $$('[data-theme-set]').forEach(function(b){
 });
 
 /* ---------- random theme — a different mode plus a fresh accent ---------- */
-var THEME_IDS=['light','amoled'];
+var THEME_IDS=['light','amoled','minimal','minimal2'];
 function hex2hsl(h){
   var v=parseInt(h.slice(1),16), r=(v>>16&255)/255, g=(v>>8&255)/255, b=(v&255)/255;
   var mx=Math.max(r,g,b), mn=Math.min(r,g,b), d=mx-mn, H=0, L=(mx+mn)/2;

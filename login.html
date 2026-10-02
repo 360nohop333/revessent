@@ -5,10 +5,11 @@
    mode you picked on the landing page is the mode you land on here.
    Default: Eclipse (AMOLED black). */
 (function(){var t='amoled';try{var s=localStorage.getItem('rv.theme')||localStorage.getItem('revessent-theme')||'';
-if(s==='light'||s==='minimal')t='light';}catch(_){t='amoled';}
-document.documentElement.dataset.theme=(t==='light')?'light':'dark';})();
+if(s==='light'||s==='minimal'||s==='minimal2')t=s;}catch(_){t='amoled';}
+document.documentElement.dataset.theme=(t==='amoled')?'dark':t;})();
 addEventListener('storage',function(e){if(e.key==='rv.theme'&&e.newValue){
-document.documentElement.dataset.theme=(e.newValue==='light'||e.newValue==='minimal')?'light':'dark';}});
+var v=e.newValue;if(v!=='light'&&v!=='minimal'&&v!=='minimal2')v='amoled';
+document.documentElement.dataset.theme=(v==='amoled')?'dark':v;}});
 </script>
   <head>
     <meta charset="utf-8" />
@@ -138,6 +139,43 @@ document.documentElement.dataset.theme=(e.newValue==='light'||e.newValue==='mini
         --rfx-shadow: inset 0 0 0 1px rgba(255, 255, 255, .09), 0 8px 32px rgba(0, 0, 0, .58);
         --rfx-shadow-hi: inset 0 0 0 1px rgba(61, 220, 151, .22), 0 18px 52px rgba(0, 0, 0, .72);
       }
+
+      /* MINIMAL — white paper, black ink. */
+      html[data-theme="minimal"] {
+        color-scheme: light;
+        --canvas: #ffffff; --page: #ffffff;
+        --text-primary: #000000; --text-secondary: #1a1a1a; --text-muted: #5a5a5a; --text-inverse: #ffffff; --text-faint: #767676;
+        --glass1: rgba(255, 255, 255, .86); --glass2: rgba(255, 255, 255, .92); --glass3: rgba(255, 255, 255, .96); --glass-hi: rgba(0, 0, 0, .04);
+        --cc: 255 255 255; --lc: 0 0 0; --edge: rgba(0, 0, 0, .16); --hi: rgba(0, 0, 0, .05); --icB: rgba(0, 0, 0, .06);
+        --accC: 0 0 0; --acc: #000000; --acc-ink: #000000;
+        --btnA: #000000; --btnAtx: #ffffff;
+        --ok: #000000; --okTx: #000000; --err: #000000;
+        --line: rgb(0 0 0 / .18); --line-soft: rgb(0 0 0 / .10);
+        --pos: #000000; --pos-ink: #000000; --warn: #000000; --warn-ink: #000000; --neg: #000000; --neg-ink: #000000;
+        --rfx-bg: rgba(255, 255, 255, .96); --rfx-border: rgba(0, 0, 0, .16);
+        --rfx-shadow: 0 1px 2px rgba(0, 0, 0, .08), 0 8px 24px -12px rgba(0, 0, 0, .16);
+        --rfx-shadow-hi: 0 2px 4px rgba(0, 0, 0, .10), 0 16px 32px -16px rgba(0, 0, 0, .20);
+      }
+      html[data-theme="minimal"] body { background: var(--page); }
+      html[data-theme="minimal"] body::before { background: none; }
+      /* MINIMAL II — the inverse: white ink on black. */
+      html[data-theme="minimal2"] {
+        color-scheme: dark;
+        --canvas: #000000; --page: #000000;
+        --text-primary: #ffffff; --text-secondary: #e4e4e4; --text-muted: #8f8f8f; --text-inverse: #000000; --text-faint: #6f6f6f;
+        --glass1: rgba(255, 255, 255, .05); --glass2: rgba(255, 255, 255, .08); --glass3: rgba(255, 255, 255, .12); --glass-hi: rgba(255, 255, 255, .06);
+        --cc: 0 0 0; --lc: 255 255 255; --edge: rgba(255, 255, 255, .16); --hi: rgba(255, 255, 255, .07); --icB: rgba(255, 255, 255, .10);
+        --accC: 255 255 255; --acc: #ffffff; --acc-ink: #ffffff;
+        --btnA: #ffffff; --btnAtx: #000000;
+        --ok: #ffffff; --okTx: #ffffff; --err: #ffffff;
+        --line: rgb(255 255 255 / .18); --line-soft: rgb(255 255 255 / .10);
+        --pos: #ffffff; --pos-ink: #ffffff; --warn: #ffffff; --warn-ink: #ffffff; --neg: #ffffff; --neg-ink: #ffffff;
+        --rfx-bg: rgba(0, 0, 0, .92); --rfx-border: rgba(255, 255, 255, .16);
+        --rfx-shadow: 0 1px 2px rgba(0, 0, 0, .60), 0 8px 24px -12px rgba(0, 0, 0, .80);
+        --rfx-shadow-hi: 0 2px 4px rgba(0, 0, 0, .70), 0 16px 32px -16px rgba(0, 0, 0, .90);
+      }
+      html[data-theme="minimal2"] body { background: var(--page); }
+      html[data-theme="minimal2"] body::before { background: none; }
 
       * {
         box-sizing: border-box;
@@ -991,19 +1029,26 @@ document.documentElement.dataset.theme=(e.newValue==='light'||e.newValue==='mini
           });
         });
 
-        /* Eclipse (dark) ⇄ Daylight (light), stored in the SAME rv.theme
-           key every other page reads — the choice follows you everywhere. */
+        /* ECLIPSE · DAYLIGHT · MINIMAL · MINIMAL II — four themes in the
+           SAME rv.theme key every page reads; the choice follows you
+           everywhere. The toggle cycles through all four. */
+        const LOGIN_THEMES = ["amoled", "light", "minimal", "minimal2"];
+        const themeName = (t) => (t === "light" ? "Daylight" : t === "minimal" ? "Minimal" : t === "minimal2" ? "Minimal II" : "Eclipse");
+        const domTheme = (t) => (t === "amoled" ? "dark" : t);
+        const nextLoginTheme = (t) => LOGIN_THEMES[(LOGIN_THEMES.indexOf(t) + 1) % LOGIN_THEMES.length] || "amoled";
         function applyTheme(theme) {
-          const isLight = theme === "light";
-          document.documentElement.dataset.theme = isLight ? "light" : "dark";
-          themeToggle.setAttribute("aria-pressed", String(isLight));
-          themeToggle.setAttribute("aria-label", isLight ? "Switch to Eclipse theme" : "Switch to Daylight theme");
-          themeToggle.querySelector(".theme-toggle-label").textContent = isLight ? "Eclipse" : "Daylight";
-          themeIcon.innerHTML = isLight
+          const t = LOGIN_THEMES.includes(theme) ? theme : "amoled";
+          document.documentElement.dataset.theme = domTheme(t);
+          const nxt = nextLoginTheme(t);
+          const darkish = t === "amoled" || t === "minimal2";
+          themeToggle.setAttribute("aria-pressed", String(darkish));
+          themeToggle.setAttribute("aria-label", "Switch to " + themeName(nxt) + " theme");
+          themeToggle.querySelector(".theme-toggle-label").textContent = themeName(nxt);
+          themeIcon.innerHTML = darkish
             ? '<path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.7 6.7 0 0 0 21 12.8Z"></path>'
             : '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"></path>';
           try {
-            localStorage.setItem("rv.theme", isLight ? "light" : "amoled");
+            localStorage.setItem("rv.theme", t);
           } catch (error) {
             // Storage can be unavailable in privacy-focused browser modes.
           }
@@ -1012,16 +1057,19 @@ document.documentElement.dataset.theme=(e.newValue==='light'||e.newValue==='mini
         let savedTheme = "amoled";
         try {
           const saved = localStorage.getItem("rv.theme") || localStorage.getItem("revessent-theme") || "";
-          savedTheme = (saved === "light" || saved === "minimal") ? "light" : "amoled";
+          savedTheme = LOGIN_THEMES.includes(saved) ? saved : "amoled";
         } catch (error) {
           savedTheme = "amoled";
         }
         applyTheme(savedTheme);
-        themeToggle.addEventListener("click", () => applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"));
+        themeToggle.addEventListener("click", () => {
+          const cur = document.documentElement.dataset.theme === "dark" ? "amoled" : document.documentElement.dataset.theme;
+          applyTheme(nextLoginTheme(cur));
+        });
         /* A theme picked on any other page follows here instantly. */
         addEventListener("storage", function(e) {
           if (e.key === "rv.theme" && e.newValue) {
-            applyTheme(e.newValue === "light" ? "light" : "amoled");
+            applyTheme(e.newValue);
           }
         });
 

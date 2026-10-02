@@ -11,7 +11,7 @@
 /* ECLIPSE — apply the shared theme choice (rv.theme, used by every page)
    before first paint. Default: Eclipse (AMOLED black). */
 (function(){var t='amoled';try{var s=localStorage.getItem('rv.theme');
-if(s==='light'||s==='minimal')t='light';}catch(_){}
+if(s==='light'||s==='minimal'||s==='minimal2')t=s;}catch(_){}
 document.documentElement.setAttribute('data-theme',t);})();
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -180,10 +180,193 @@ html[data-theme=amoled]{
   --grid:rgba(255,255,255,.20); --grid-num:#F2F5F7;
 }
 html[data-theme=amoled] ::selection{background:var(--acc);color:#00140C}
+/* ── 3b. THEME: MINIMAL — white page, black ink, zero gradient ── */
+html[data-theme=minimal]{
+  /* ink = foreground, paper = background. MINIMAL II swaps just these. */
+  --mn-ink:#000000; --mn-ink-2:#1f1f1f;
+  --mn-paper:#ffffff; --mn-paper-2:#f0f0f0;
+  --mn-grey:#9b9b9b; --mn-rule:rgba(0,0,0,.14);
+  --canvas:#f5f5f5; --page:#ffffff;
+  --text-primary:#000000; --text-secondary:#1a1a1a; --text-muted:#5a5a5a; --text-inverse:#ffffff;
+  --text-faint:#767676;
+  --glass1:rgba(255,255,255,.86);
+  --glass2:rgba(255,255,255,.92);
+  --glass3:rgba(255,255,255,.96);
+  --glass-hi:rgba(0,0,0,.04);
+  --cc:255 255 255;
+  --lc:0 0 0;
+  --edge:rgba(0,0,0,.16);
+  --hi:rgba(0,0,0,.05);
+  --icB:rgba(0,0,0,.06);
+  --accC:0 0 0;
+  --acc:#000000; --acc-ink:#000000;
+  --btnA:#000000; --btnAtx:#ffffff;
+  --ok:#000000; --okTx:#000000; --err:#000000;
+  --avaA:#ffffff; --avaB:#e4e4e4; --avaTx:#000000;
+  --mkA:#ffffff; --mkB:#dcdcdc; --mkC:#000000;
+  --line:rgb(0 0 0 / .18);
+  --line-soft:rgb(0 0 0 / .10);
+  --sh-sm:0 1px 2px rgba(0,0,0,.08);
+  --sh-md:0 2px 6px rgba(0,0,0,.10);
+  --sh-lg:0 4px 12px rgba(0,0,0,.12);
+  /* semantic ink stays readable but drops all saturation-driven fills */
+  --pos:#0a6b3d;  --pos-ink:#075232;
+  --warn:#8a5a00; --warn-ink:#6d4700;
+  --neg:#a11212;  --neg-ink:#870f0f;
+  --info:#0b4a9e; --info-ink:#083a7d;
+  --alt:#4a2d8a;  --alt-ink:#3a2270;
+  --neu:#3a3a3a;  --neu-ink:#1f1f1f;
+  --posC:10 107 61; --warnC:138 90 0; --negC:161 18 18; --infoC:11 74 158; --altC:74 45 138; --neuC:58 58 58;
+  /* flat, high-contrast panes — no blur haze, no coloured glow */
+  --rfx-bg:rgba(255,255,255,0.92);
+  --rfx-border:rgba(0,0,0,0.18);
+  --rfx-blur:blur(24px) saturate(1);
+  --rfx-shadow:0 1px 2px rgba(0,0,0,.07);
+  --rfx-shadow-hi:0 3px 10px rgba(0,0,0,.12);
+  --rfx-sheen:rgba(0,0,0,0);
+  --rfx-pop:#ffffff;
+  /* MINIMAL keeps the bevel geometry but flattens every light */
+  --lg-r1:rgba(255,255,255,0);
+  --lg-r2:rgba(255,255,255,0);
+  --lg-core:rgba(0,0,0,.55);
+  --lg-drop:rgba(0,0,0,.10);
+  --lg-edge:rgba(0,0,0,.55);
+  --lg-ring:rgba(0,0,0,0);
+  --lg-ring-o:0;
+  --lg-sheen:rgba(255,255,255,0);
+  --lg-hair:rgba(0,0,0,0);
+  --lg-blur:0px;
+  --bar-rec:#000000;  --bar-rec-glow:rgba(0,0,0,0);
+  --bar-lost:#9b9b9b; --bar-lost-glow:rgba(0,0,0,0);
+  /* MINIMAL: solid black reference lines and labels */
+  --grid:#000000; --grid-num:#000000;
+}
+
+/* ── 3c. THEME: MINIMAL II — the inverse. Black page, white ink. ── */
+html[data-theme=minimal2]{
+  --mn-ink:#ffffff; --mn-ink-2:#e2e2e2;
+  --mn-paper:#000000; --mn-paper-2:#171717;
+  --mn-grey:#8a8a8a; --mn-rule:rgba(255,255,255,.16);
+  --canvas:#0a0a0a; --page:#000000;
+  --text-primary:#ffffff; --text-secondary:#e6e6e6; --text-muted:#a8a8a8; --text-inverse:#000000;
+  --text-faint:#8c8c8c;
+  --glass1:rgba(0,0,0,.86);
+  --glass2:rgba(0,0,0,.92);
+  --glass3:rgba(0,0,0,.96);
+  --glass-hi:rgba(255,255,255,.06);
+  --cc:0 0 0;
+  --lc:255 255 255;
+  --edge:rgba(255,255,255,.20);
+  --hi:rgba(255,255,255,.07);
+  --icB:rgba(255,255,255,.08);
+  --accC:255 255 255;
+  --acc:#ffffff; --acc-ink:#ffffff;
+  --btnA:#ffffff; --btnAtx:#000000;
+  --ok:#ffffff; --okTx:#ffffff; --err:#ffffff;
+  --avaA:#000000; --avaB:#1c1c1c; --avaTx:#ffffff;
+  --mkA:#000000; --mkB:#242424; --mkC:#ffffff;
+  --line:rgb(255 255 255 / .22);
+  --line-soft:rgb(255 255 255 / .12);
+  --sh-sm:0 1px 2px rgba(0,0,0,.6);
+  --sh-md:0 2px 6px rgba(0,0,0,.7);
+  --sh-lg:0 4px 12px rgba(0,0,0,.8);
+  /* semantic ink lifts off black instead of sinking into white */
+  --pos:#5fd79b;  --pos-ink:#82e5b4;
+  --warn:#e2b45f; --warn-ink:#efcb8b;
+  --neg:#f07f7f;  --neg-ink:#f6a0a0;
+  --info:#82b2f2; --info-ink:#a6caf8;
+  --alt:#b79ce9;  --alt-ink:#ccb8f1;
+  --neu:#b4b4b4;  --neu-ink:#d4d4d4;
+  --posC:95 215 155; --warnC:226 180 95; --negC:240 127 127; --infoC:130 178 242; --altC:183 156 233; --neuC:180 180 180;
+  --rfx-bg:rgba(0,0,0,0.92);
+  --rfx-border:rgba(255,255,255,0.22);
+  --rfx-blur:blur(24px) saturate(1);
+  --rfx-shadow:0 1px 2px rgba(0,0,0,.7);
+  --rfx-shadow-hi:0 3px 10px rgba(0,0,0,.85);
+  --rfx-sheen:rgba(255,255,255,0);
+  --rfx-pop:#000000;
+  /* same flattened bevel, mirrored */
+  --lg-r1:rgba(255,255,255,0);
+  --lg-r2:rgba(255,255,255,0);
+  --lg-core:rgba(255,255,255,.30);
+  --lg-drop:rgba(0,0,0,.55);
+  --lg-edge:rgba(255,255,255,.55);
+  --lg-ring:rgba(0,0,0,0);
+  --lg-ring-o:0;
+  --lg-sheen:rgba(255,255,255,0);
+  --lg-hair:rgba(255,255,255,0);
+  --lg-blur:0px;
+  --bar-rec:#ffffff;  --bar-rec-glow:rgba(0,0,0,0);
+  --bar-lost:#8a8a8a; --bar-lost-glow:rgba(0,0,0,0);
+  /* MINIMAL II: the same lines, inverted to white */
+  --grid:#ffffff; --grid-num:#ffffff;
+}
+
+html[data-theme=minimal] body,html[data-theme=minimal2] body{background:var(--mn-paper)}
+html[data-theme=minimal] #gradbg,html[data-theme=minimal2] #gradbg{opacity:1;background:var(--mn-paper)}
+html[data-theme=minimal] #bluesky,html[data-theme=minimal2] #bluesky{opacity:0}
+html[data-theme=minimal] #veil::before,html[data-theme=minimal2] #veil::before{background:none}
+html[data-theme=minimal] #veil::after,html[data-theme=minimal2] #veil::after{opacity:0}
+html[data-theme=minimal] ::selection,html[data-theme=minimal2] ::selection{background:var(--mn-ink);color:var(--mn-paper)}
+/* Both MINIMALs strip every decorative gradient / drift / shimmer */
+html[data-theme=minimal] .aurora,html[data-theme=minimal2] .aurora,
+html[data-theme=minimal] .meteors,html[data-theme=minimal2] .meteors,
+html[data-theme=minimal] .bbeams,html[data-theme=minimal2] .bbeams,
+html[data-theme=minimal] .wave,html[data-theme=minimal2] .wave,
+html[data-theme=minimal] .pilot .ripple,html[data-theme=minimal2] .pilot .ripple,
+html[data-theme=minimal] .pilot .grainy,html[data-theme=minimal2] .pilot .grainy,
+html[data-theme=minimal] .grain::after,html[data-theme=minimal2] .grain::after,
+html[data-theme=minimal] .glass::before,html[data-theme=minimal2] .glass::before,
+html[data-theme=minimal] .connect::before,html[data-theme=minimal2] .connect::before,
+html[data-theme=minimal] .sb::before,html[data-theme=minimal2] .sb::before,
+html[data-theme=minimal] .tb::before,html[data-theme=minimal2] .tb::before,
+html[data-theme=minimal] .sb::after,html[data-theme=minimal2] .sb::after,
+html[data-theme=minimal] .tb::after,html[data-theme=minimal2] .tb::after,
+html[data-theme=minimal] .shimmer::before,html[data-theme=minimal2] .shimmer::before{display:none}
+html[data-theme=minimal] .pilot,html[data-theme=minimal2] .pilot{box-shadow:var(--rfx-shadow)}
+html[data-theme=minimal] .connect.ok,html[data-theme=minimal2] .connect.ok{box-shadow:var(--rfx-shadow),0 0 0 1px var(--mn-ink)}
+html[data-theme=minimal] .ring-lbl,html[data-theme=minimal] .kval,
+html[data-theme=minimal2] .ring-lbl,html[data-theme=minimal2] .kval{color:var(--text-primary)}
+html[data-theme=minimal] .kval-risk,html[data-theme=minimal2] .kval-risk{color:var(--warn-ink)}
+/* chart in both MINIMALs: ink for recovered, grey for lost — contrast, not hue */
+html[data-theme=minimal] .b-rec,html[data-theme=minimal2] .b-rec{fill:var(--mn-ink)}
+html[data-theme=minimal] .b-lost,html[data-theme=minimal2] .b-lost{fill:var(--mn-grey)}
+html[data-theme=minimal] .gradtext,html[data-theme=minimal2] .gradtext{background:none;-webkit-text-fill-color:currentColor;color:var(--pos-ink);animation:none}
+html[data-theme=minimal] .ava,html[data-theme=minimal2] .ava{background:var(--mn-paper)!important;border:1px solid var(--mn-ink);color:var(--mn-ink)}
+html[data-theme=minimal] .pfill,html[data-theme=minimal2] .pfill{background:var(--mn-ink);box-shadow:none}
+html[data-theme=minimal] .pilot::before,html[data-theme=minimal2] .pilot::before{background:none;border:0}
+html[data-theme=minimal] .btn-pri,html[data-theme=minimal2] .btn-pri{background:var(--mn-ink);color:var(--mn-paper);box-shadow:none}
+html[data-theme=minimal] .btn-pri:hover,html[data-theme=minimal2] .btn-pri:hover{filter:none;background:var(--mn-ink-2)}
+html[data-theme=minimal] .btn-glass,html[data-theme=minimal] .pill,
+html[data-theme=minimal] .tgl,html[data-theme=minimal] .bell,html[data-theme=minimal] .burger,
+html[data-theme=minimal2] .btn-glass,html[data-theme=minimal2] .pill,
+html[data-theme=minimal2] .tgl,html[data-theme=minimal2] .bell,html[data-theme=minimal2] .burger{border-color:var(--mn-ink);background:var(--mn-paper)}
+html[data-theme=minimal] .tag,html[data-theme=minimal2] .tag{border-color:currentColor;background:transparent;font-weight:600}
+html[data-theme=minimal] .st i::after,html[data-theme=minimal2] .st i::after{display:none}
+html[data-theme=minimal] .navlist a.on,html[data-theme=minimal2] .navlist a.on{background:transparent}
+html[data-theme=minimal] .navpill,html[data-theme=minimal2] .navpill{background:var(--mn-paper-2);border-color:var(--mn-ink);box-shadow:none}
+html[data-theme=minimal] .seg .ind,html[data-theme=minimal2] .seg .ind{background:var(--mn-ink)}
+html[data-theme=minimal] .seg button[aria-selected=true],html[data-theme=minimal2] .seg button[aria-selected=true]{color:var(--mn-paper)}
+html[data-theme=minimal] .fchip[aria-pressed=true],html[data-theme=minimal2] .fchip[aria-pressed=true]{background:var(--mn-ink);color:var(--mn-paper);border-color:var(--mn-ink)}
+html[data-theme=minimal] .ring .prg,html[data-theme=minimal2] .ring .prg{stroke:var(--mn-ink)}
+html[data-theme=minimal] .ring .trk,html[data-theme=minimal2] .ring .trk{stroke:var(--mn-rule)}
+/* Nocturne keeps a softer halo than the other themes */
+html[data-theme=amoled] .b-rec{filter:drop-shadow(0 0 4px var(--bar-rec-glow))}
+html[data-theme=amoled] .b-lost{filter:drop-shadow(0 0 4px var(--bar-lost-glow))}
+html[data-theme=amoled] .bargrp:hover .b-rec{filter:drop-shadow(0 0 9px var(--bar-rec-glow)) brightness(1.1)}
+html[data-theme=amoled] .bargrp:hover .b-lost{filter:drop-shadow(0 0 9px var(--bar-lost-glow)) brightness(1.1)}
+html[data-theme=minimal] .bar,html[data-theme=minimal] .bargrp:hover .bar,
+html[data-theme=minimal2] .bar,html[data-theme=minimal2] .bargrp:hover .bar{filter:none}
+html[data-theme=minimal] .b-rec,html[data-theme=minimal2] .b-rec{fill:var(--mn-ink)}
+html[data-theme=minimal] .b-lost,html[data-theme=minimal2] .b-lost{fill:var(--mn-grey)}
+
+
 /* Retarget the shared surface tokens at the liquid-glass bevel, so every
    rule already consuming them inherits the new component automatically. */
 :root,
-html[data-theme=amoled]{
+html[data-theme=amoled],
+html[data-theme=minimal],
+html[data-theme=minimal2]{
   --rfx-border:var(--lg-edge);
   --rfx-shadow:
       inset 2px -2px 1px -1px var(--lg-r1),
@@ -1254,6 +1437,43 @@ html[data-theme=amoled] .seg .ind{background:#0A1210!important;border-color:rgba
 @keyframes rvBlurSweep{0%{transform:translateX(-10vw) rotate(18deg);opacity:0}16%{opacity:.32}56%{opacity:.22}100%{transform:translateX(190vw) rotate(18deg);opacity:0}}
 @media(max-width:768px){.rv-heavy-blur{inset:-30vmax;opacity:.66}.rv-heavy-blur i{filter:blur(72px);opacity:.30}.rv-heavy-blur .rvb-sweep{opacity:.22}}
 @media(prefers-reduced-motion:reduce){.rv-heavy-blur i,.rv-heavy-blur span{animation:none!important}}
+
+/* ════════════════════════════════════════════════════════════
+   MINIMAL I / II — component-level overrides (restored)
+   ════════════════════════════════════════════════════════════ */
+html[data-theme=minimal] .lg-fx,html[data-theme=minimal] .lg-sm::after,
+html[data-theme=minimal2] .lg-fx,html[data-theme=minimal2] .lg-sm::after{display:none}
+html[data-theme=minimal] .pill::after,html[data-theme=minimal] .btn-glass::after,
+html[data-theme=minimal] .bell::after,html[data-theme=minimal] .tglbtn::after,
+html[data-theme=minimal] .burger::after,html[data-theme=minimal] .seg::after,
+html[data-theme=minimal] .sb-foot::after,html[data-theme=minimal] .navpill::after,
+html[data-theme=minimal] .toast::after,html[data-theme=minimal] .tip::after,
+html[data-theme=minimal] .ava::after,html[data-theme=minimal] .aico::after,
+html[data-theme=minimal] .autosw::after,html[data-theme=minimal] .bolt::after,
+html[data-theme=minimal2] .pill::after,html[data-theme=minimal2] .btn-glass::after,
+html[data-theme=minimal2] .bell::after,html[data-theme=minimal2] .tglbtn::after,
+html[data-theme=minimal2] .burger::after,html[data-theme=minimal2] .seg::after,
+html[data-theme=minimal2] .sb-foot::after,html[data-theme=minimal2] .navpill::after,
+html[data-theme=minimal2] .toast::after,html[data-theme=minimal2] .tip::after,
+html[data-theme=minimal2] .ava::after,html[data-theme=minimal2] .aico::after,
+html[data-theme=minimal2] .autosw::after,html[data-theme=minimal2] .bolt::after{display:none}
+html[data-theme=minimal] .topt:hover{background:#f2f2f2;border-color:#000}
+html[data-theme=minimal2] .topt:hover{background:#151515;border-color:#fff}
+html[data-theme=minimal] .topt[aria-checked=true]{background:#f2f2f2;border-color:#000}
+html[data-theme=minimal2] .topt[aria-checked=true]{background:#151515;border-color:#fff}
+html[data-theme=minimal] .autosw[aria-pressed=true]{color:#000}
+html[data-theme=minimal2] .autosw[aria-pressed=true]{color:#fff}
+html[data-theme=minimal] .asw-ring .ap,html[data-theme=minimal] .asw-dot{stroke:#000;background:#000}
+html[data-theme=minimal2] .asw-ring .ap,html[data-theme=minimal2] .asw-dot{stroke:#fff;background:#fff}
+/* the two flat themes get unbroken, full-strength reference lines */
+html[data-theme=minimal] .grid line,html[data-theme=minimal2] .grid line{
+  stroke-dasharray:none;stroke-width:1;opacity:.55}
+html[data-theme=minimal] .axis.xlab,html[data-theme=minimal2] .axis.xlab{opacity:1}
+html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur{opacity:.22;mix-blend-mode:normal}
+.swatch[data-sw=minimal]{background:#ffffff;border-color:rgba(0,0,0,.35);
+  background-image:radial-gradient(circle at 50% 50%,#000 0 22%,transparent 23%)}
+.swatch[data-sw=minimal2]{background:#000000;border-color:rgba(255,255,255,.45);
+  background-image:radial-gradient(circle at 50% 50%,#fff 0 22%,transparent 23%)}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="/api/config.js"></script> <!-- audit #66: Supabase project from env, fallback below -->
@@ -1398,6 +1618,16 @@ html[data-theme=amoled] .seg .ind{background:#0A1210!important;border-color:rgba
           <button class="topt" role="radio" aria-checked="false" data-theme-set="light">
             <span class="swatch" data-sw="light" aria-hidden="true"></span>
             <span class="tlbl"><b>Daylight</b><small>Bright · Airy · Glass</small></span>
+            <svg class="tick" aria-hidden="true"><use href="#i-check"/></svg>
+          </button>
+          <button class="topt" role="radio" aria-checked="false" data-theme-set="minimal">
+            <span class="swatch" data-sw="minimal" aria-hidden="true"></span>
+            <span class="tlbl"><b>Minimal</b><small>Clean · High contrast</small></span>
+            <svg class="tick" aria-hidden="true"><use href="#i-check"/></svg>
+          </button>
+          <button class="topt" role="radio" aria-checked="false" data-theme-set="minimal2">
+            <span class="swatch" data-sw="minimal2" aria-hidden="true"></span>
+            <span class="tlbl"><b>Minimal II</b><small>Inverted · Ink on black</small></span>
             <svg class="tick" aria-hidden="true"><use href="#i-check"/></svg>
           </button>
         </div>
@@ -1913,14 +2143,16 @@ new MutationObserver(function(){ skySyncRamp(); skyKick(); }).observe(document.d
 /* ECLIPSE + DAYLIGHT — the two shared themes. Every page reads the same
    rv.theme key, so the choice follows you across the whole app. */
 var THEMES={
-  amoled : {name:'Eclipse',  desc:'Pure black · Electric mint', scheme:'dark',  tone:'#000000', wash:'#000000'},
-  light  : {name:'Daylight', desc:'Bright · Airy · Glass',      scheme:'light', tone:'#f3ead6', wash:'#a9cdf3'}
+  amoled : {name:'Eclipse',   desc:'Pure black · Electric mint', scheme:'dark',  tone:'#000000', wash:'#000000'},
+  light  : {name:'Daylight',  desc:'Bright · Airy · Glass',      scheme:'light', tone:'#f3ead6', wash:'#a9cdf3'},
+  minimal: {name:'Minimal',   desc:'Clean · High contrast',      scheme:'light', tone:'#ffffff', wash:'#ffffff'},
+  minimal2:{name:'Minimal II',desc:'Inverted · Ink on black',    scheme:'dark',  tone:'#000000', wash:'#000000'}
 };
-/* Nocturne-era values map by intent: dark picks stay dark. */
-function mapTheme(t){ return (t==='light'||t==='minimal')?'light':'amoled'; }
+/* Nocturne-era values map by intent; Minimal I/II pass through. */
+function mapTheme(t){ return (t==='light'||t==='minimal'||t==='minimal2')?t:'amoled'; }
 /* Hoist-safe: the sky module calls this before THEMES is assigned. */
 function currentTheme(){ var t=document.documentElement.getAttribute('data-theme');
-  return (t==='light'||t==='amoled')?t:'amoled'; }
+  return (t==='light'||t==='amoled'||t==='minimal'||t==='minimal2')?t:'amoled'; }
 var savedTheme='amoled'; try{ savedTheme=mapTheme(localStorage.getItem('rv.theme')); }catch(e){}
 document.documentElement.setAttribute('data-theme', savedTheme);
 /** Sync the panel button, the radio ticks and color-scheme to the live theme. */

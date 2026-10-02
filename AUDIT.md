@@ -348,3 +348,35 @@ Verification: inline scripts parse on all 11 pages; CSS brace-balanced;
 tokens on every page, rv.theme + storage listener + pre-paint bootstrap
 everywhere, dark default, picker contents, login shared key, landing trim,
 mint favicons).
+
+---
+
+## Minimal I / II restored — the theme system is now four-way everywhere
+
+Eclipse's launch consolidated the picker to two themes; dropping Minimal and
+Minimal II was overreach. They're back — as full members of the shared
+system, on **every** page:
+
+- **Eclipse** (`amoled`, default) · **Daylight** (`light`) ·
+  **Minimal** (`minimal`, white paper / black ink) ·
+  **Minimal II** (`minimal2`, the inverse — white ink on black).
+- All four read/write the same `rv.theme` key, apply before first paint,
+  and follow the `storage` event live — Minimal picked on the dashboard is
+  Minimal on the landing page, login, and every already-open tab.
+- Dashboard: the original Minimal I/II token blocks and component
+  overrides were restored **verbatim from git history** (commit `d51c7e0`),
+  and the picker offers all four again.
+- Landing page: theme menu (desktop + mobile) offers all four; the
+  quick-toggle cycles Daylight → Eclipse → Minimal → Minimal II; the
+  runtime sky/accent engine skips tinting under Minimal (strictly
+  ink-on-paper, and leftover tints are cleared).
+- Login: the toggle cycles all four (label shows the next theme).
+- members / weekly-digest / case-detail, settings, reset-password,
+  changelog, privacy, terms: Minimal I/II blocks added (settings' original
+  blocks were still present; only its mapping needed fixing).
+- Legacy stored values still map by intent: dark picks → Eclipse,
+  Minimal I/II pass straight through.
+
+Verification: scripts parse on all 11 pages, CSS brace-balanced,
+`npm test` → **192/192** (Minimal availability on every page, four-theme
+pickers, registry + passthrough mapping).

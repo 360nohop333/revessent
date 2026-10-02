@@ -9,7 +9,7 @@
 <script>
 /* ECLIPSE — apply the shared theme choice before first paint. */
 (function(){var t='amoled';try{var s=localStorage.getItem('rv.theme')||localStorage.getItem('revessent-theme')||'';
-if(s==='light'||s==='minimal')t='light';}catch(_){t='amoled';}
+if(s==='light'||s==='minimal'||s==='minimal2')t=s;}catch(_){t='amoled';}
 document.documentElement.dataset.theme=t;})();
 </script>
 <style>
@@ -70,6 +70,36 @@ html[data-theme=amoled]{
   --sh-sm:inset 0 1px 0 rgba(255,255,255,.05),0 1px 1px rgba(0,0,0,.6),0 12px 30px -14px rgba(0,0,0,.9);
   --sh-md:inset 0 1px 0 rgba(255,255,255,.06),0 1px 1px rgba(0,0,0,.65),0 24px 52px -18px rgba(0,0,0,.95);
 }
+/* MINIMAL — white page, black ink, zero gradient. */
+html[data-theme=minimal]{
+  --canvas:#ffffff; --page:#ffffff;
+  --text-primary:#000000; --text-secondary:#1a1a1a; --text-muted:#5a5a5a; --text-inverse:#ffffff;
+  --text-faint:#767676;
+  --glass1:rgba(255,255,255,.86); --glass2:rgba(255,255,255,.92); --glass3:rgba(255,255,255,.96); --glass-hi:rgba(0,0,0,.04);
+  --cc:255 255 255; --lc:0 0 0; --edge:rgba(0,0,0,.16); --hi:rgba(0,0,0,.05); --icB:rgba(0,0,0,.06);
+  --accC:0 0 0; --acc:#000000; --acc-ink:#000000;
+  --btnA:#000000; --btnAtx:#ffffff;
+  --ok:#000000; --okTx:#000000; --err:#000000;
+  --sh-sm:0 1px 2px rgba(0,0,0,.10),0 6px 16px -8px rgba(0,0,0,.16);
+  --sh-md:0 1px 2px rgba(0,0,0,.10),0 12px 28px -12px rgba(0,0,0,.20);
+}
+/* MINIMAL II — the inverse: white ink on black. */
+html[data-theme=minimal2]{
+  --canvas:#000000; --page:#000000;
+  --text-primary:#ffffff; --text-secondary:#e4e4e4; --text-muted:#8f8f8f; --text-inverse:#000000;
+  --text-faint:#6f6f6f;
+  --glass1:rgba(255,255,255,.05); --glass2:rgba(255,255,255,.08); --glass3:rgba(255,255,255,.12); --glass-hi:rgba(255,255,255,.06);
+  --cc:0 0 0; --lc:255 255 255; --edge:rgba(255,255,255,.16); --hi:rgba(255,255,255,.07); --icB:rgba(255,255,255,.10);
+  --accC:255 255 255; --acc:#ffffff; --acc-ink:#ffffff;
+  --btnA:#ffffff; --btnAtx:#000000;
+  --ok:#ffffff; --okTx:#ffffff; --err:#ffffff;
+  --sh-sm:0 1px 2px rgba(0,0,0,.60),0 6px 16px -8px rgba(0,0,0,.80);
+  --sh-md:0 1px 2px rgba(0,0,0,.65),0 12px 28px -12px rgba(0,0,0,.90);
+}
+html[data-theme=minimal] #gradbg,html[data-theme=minimal2] #gradbg{opacity:1;background:var(--page)}
+html[data-theme=minimal] #gradbg i,html[data-theme=minimal2] #gradbg i{display:none}
+html[data-theme=minimal] .hd.scrolled{background:rgba(255,255,255,.72)}
+html[data-theme=minimal2] .hd.scrolled{background:rgba(0,0,0,.72)}
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
 body{
   font-family:var(--f-sans);color:var(--text-primary);font-weight:450;line-height:1.68;
@@ -268,13 +298,13 @@ footer{border-top:1px solid rgb(var(--lc)/.08);padding:60px 0 30px;margin-top:0}
   (function applyTheme() {
     var saved = '';
     try { saved = localStorage.getItem('rv.theme') || localStorage.getItem('revessent-theme') || ''; } catch (_) {}
-    saved = (saved === 'light' || saved === 'minimal') ? 'light' : 'amoled';
+    saved = ['light', 'minimal', 'minimal2'].includes(saved) ? saved : 'amoled';
     document.documentElement.dataset.theme = saved;
   })();
   /* A theme picked on any other page follows here instantly. */
   addEventListener('storage', function(e) {
     if (e.key === 'rv.theme' && e.newValue) {
-      document.documentElement.dataset.theme = (e.newValue === 'light' || e.newValue === 'minimal') ? 'light' : 'amoled';
+      var v = e.newValue; document.documentElement.dataset.theme = ['light', 'minimal', 'minimal2'].includes(v) ? v : 'amoled';
     }
   });
 
