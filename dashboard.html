@@ -6,7 +6,14 @@
 <title>Revessent — Overview</title>
 <meta name="description" content="Revessent dashboard — revenue recovery for subscription businesses. Detect failed payments, retry at the best moment, recover quietly.">
 <meta name="color-scheme" content="light dark">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23fff8e9'/%3E%3Cstop offset='1' stop-color='%23ecdcc0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='url(%23g)'/%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='none' stroke='%23ffffff' stroke-opacity='.55'/%3E%3Cpath d='M9 21h3l2-7 3 10 2.4-8 2.6 5H24' fill='none' stroke='%2335608f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='%23000000'/%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='none' stroke='%233DDC97' stroke-opacity='.45' stroke-width='1.5'/%3E%3Cpath d='M9 21h3l2-7 3 10 2.4-8 2.6 5H24' fill='none' stroke='%233DDC97' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<script>
+/* ECLIPSE — apply the shared theme choice (rv.theme, used by every page)
+   before first paint. Default: Eclipse (AMOLED black). */
+(function(){var t='amoled';try{var s=localStorage.getItem('rv.theme');
+if(s==='light'||s==='minimal')t='light';}catch(_){}
+document.documentElement.setAttribute('data-theme',t);})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -77,7 +84,7 @@
   /* ── refractive glass (ui.glass/generator + glassmorphism.com) ──
         one recipe, every surface. Light mode needs a denser pane and a
         warmer ambient shadow than the spec's dark-tuned numbers. */
-  --rfx-bg:rgba(253,251,247,0.96);   /* Blue Sky panes are opaque */
+  --rfx-bg:rgba(253,251,247,0.96);   /* Daylight panes are opaque */
   --rfx-border:rgba(255,255,255,0.55);
   --rfx-blur:blur(24px) saturate(1.4);
   --rfx-shadow:
@@ -110,305 +117,73 @@
   /* chart reference lines + their $ labels */
   --grid:rgba(0,0,0,.26); --grid-num:#15140f;
 }
-/* ── 2. THEME: EVENING (dark) — verbatim token block ─────────── */
-html[data-theme=dark]{
-  --canvas:#1c1a17; --page:#161512;
-  --text-primary:#EFECE4; --text-secondary:#C4C6C9; --text-muted:#96938C; --text-inverse:#161512;
-  --text-faint:#7E7B74;
-  --glass1:rgba(34,32,28,.50);
-  --glass2:rgba(39,37,33,.64);
-  --glass3:rgba(45,43,38,.78);
-  --glass-hi:rgba(255,255,255,.10);
-  --cc:42 40 36;
-  --lc:196 198 201;
-  --edge:rgba(224,222,214,.20);
-  --hi:rgba(255,255,255,.13);
-  --icB:rgba(255,255,255,.15);
-  --accC:196 198 201;
-  --acc:#C4C6C9; --acc-ink:#EFECE4;
-  --btnA:#C4C6C9; --btnAtx:#1d1b18;
-  --ok:#8FA089; --okTx:#d5dfc9; --err:#D79A82;
-  --avaA:#3a3730; --avaB:#55585E; --avaTx:#E2E0D9;
-  --mkA:#4a4740; --mkB:#6b6c6e; --mkC:#9EA0A3;
-  --line:rgb(196 198 201 / .16);
-  --line-soft:rgb(196 198 201 / .10);
-  --sh-sm:inset 0 1px 0 rgba(255,255,255,.10),0 1px 1px rgba(0,0,0,.35),0 10px 28px -20px rgba(0,0,0,.62);
-  --sh-md:inset 0 1px 0 rgba(255,255,255,.12),0 1px 1px rgba(0,0,0,.4),0 22px 46px -22px rgba(0,0,0,.7);
-  --sh-lg:inset 0 1px 0 rgba(255,255,255,.12),0 1px 1px rgba(0,0,0,.45),0 30px 60px -24px rgba(0,0,0,.78);
-  --pos:#8FA089;  --pos-ink:#A9BBA2;
-  --warn:#C2A472; --warn-ink:#D6BC8E;
-  --neg:#D79A82;  --neg-ink:#E4B29D;
-  --info:#9BB4D2; --info-ink:#B6C9E0;
-  --alt:#AFA2C4;  --alt-ink:#C3B8D5;
-  --neu:#9A968E;  --neu-ink:#B0ACA4;
-  --posC:143 160 137; --warnC:194 164 114; --negC:215 154 130; --infoC:155 180 210; --altC:175 162 196; --neuC:154 150 142;
-  --rfx-bg:rgba(255,255,255,0.05);
-  --rfx-border:rgba(255,255,255,0.15);
-  --rfx-shadow:
-      inset 0 1px 0 rgba(255,255,255,0.20),\n      inset 0 0 2px 0 rgba(255,255,255,0.15),\n      0 8px 32px rgba(0,0,0,0.30);
-  --rfx-shadow-hi:
-      inset 0 1px 0 rgba(255,255,255,0.26),\n      inset 0 0 2px 0 rgba(255,255,255,0.18),\n      0 18px 52px rgba(0,0,0,0.42);
-  --rfx-pop:rgba(28,26,23,0.94);
-  --rfx-sheen:rgba(255,255,255,0.45);
-  --lg-r1:rgba(255,255,255,.26);
-  --lg-r2:rgba(255,255,255,.13);
-  --lg-core:rgba(0,0,0,.85);
-  --lg-drop:rgba(0,0,0,.50);
-  --lg-edge:rgba(255,255,255,.11);
-  --lg-ring:rgba(0,0,0,.95);
-  --lg-ring-o:.40;
-  --lg-sheen:rgba(255,255,255,.34);
-  --lg-hair:rgba(255,255,255,.10);
-  --bar-rec:#3ee38c;  --bar-rec-glow:rgba(62,227,140,.55);
-  --bar-lost:#ff7d5c; --bar-lost-glow:rgba(255,125,92,.50);
-  --grid:rgba(255,255,255,.26); --grid-num:#F4F2EC;
-}
-/* ── 3. THEME: NOCTURNE (replaces AMOLED) — deep navy glass ───── */
+/* ── 2. THEME: ECLIPSE — true black, electric mint ────────────── */
 html[data-theme=amoled]{
-  /* Nocturne — premium Revessent dark: deep navy, champagne glass, soft mint success. */
-  --canvas:#07111f; --page:#050914;
-  --text-primary:#FFF8E9; --text-secondary:#D9DEE8; --text-muted:#9AA4B6; --text-inverse:#07111f;
-  --text-faint:#747F93;
-  --glass1:rgba(255,248,233,.050);
-  --glass2:rgba(255,248,233,.078);
-  --glass3:rgba(255,248,233,.115);
-  --glass-hi:rgba(255,255,255,.075);
-  --cc:18 27 43;
-  --lc:174 186 205;
-  --edge:rgba(255,248,233,.16);
-  --hi:rgba(255,255,255,.105);
-  --icB:rgba(255,255,255,.12);
-  --accC:203 176 126;
-  --acc:#CBB07E; --acc-ink:#F2D8A2;
-  --btnA:#F2D8A2; --btnAtx:#08111f;
-  --ok:#81B99B; --okTx:#C9E8D4; --err:#E7A083;
-  --avaA:#101a2b; --avaB:#1a2b45; --avaTx:#F2D8A2;
-  --mkA:#0b1728; --mkB:#172945; --mkC:#CBB07E;
-  --line:rgb(203 176 126 / .18);
-  --line-soft:rgb(203 176 126 / .10);
-  --sh-sm:inset 0 1px 0 rgba(255,248,233,.09),0 1px 1px rgba(0,0,0,.55),0 12px 30px -14px rgba(0,0,0,.88);
-  --sh-md:inset 0 1px 0 rgba(255,248,233,.11),0 1px 1px rgba(0,0,0,.62),0 24px 52px -18px rgba(0,0,0,.92);
-  --sh-lg:inset 0 1px 0 rgba(255,248,233,.12),0 1px 1px rgba(0,0,0,.68),0 32px 66px -20px rgba(0,0,0,.96);
-  --pos:#81B99B;  --pos-ink:#BFE5CC;
-  --warn:#CBB07E; --warn-ink:#F2D8A2;
-  --neg:#E7A083;  --neg-ink:#F2B9A0;
-  --info:#8FB8E8; --info-ink:#B7D4F6;
-  --alt:#B6A2D8;  --alt-ink:#D2C2EA;
-  --neu:#929AAB;  --neu-ink:#ADB5C4;
-  --posC:129 185 155; --warnC:203 176 126; --negC:231 160 131; --infoC:143 184 232; --altC:182 162 216; --neuC:146 154 171;
-  --rfx-bg:rgba(12,20,34,0.72);
-  --rfx-border:rgba(255,248,233,0.16);
+  /* Eclipse — Revessent's AMOLED theme: a true #000000 canvas, near-black
+     panes with hairline white borders, and one vivid mint accent.
+     Money-in reads mint; at-risk reads amber; losses a muted coral.
+     No champagne, no navy — pure black with electric green. */
+  --canvas:#000000; --page:#000000;
+  --text-primary:#F2F5F7; --text-secondary:#C3CBD6; --text-muted:#8B94A3; --text-inverse:#000000;
+  --text-faint:#6B7482;
+  --glass1:rgba(255,255,255,.030);
+  --glass2:rgba(255,255,255,.055);
+  --glass3:rgba(10,13,15,.92);
+  --glass-hi:rgba(255,255,255,.065);
+  --cc:10 13 15;
+  --lc:139 148 163;
+  --edge:rgba(255,255,255,.10);
+  --hi:rgba(255,255,255,.06);
+  --icB:rgba(255,255,255,.10);
+  --accC:61 220 151;
+  --acc:#3DDC97; --acc-ink:#8CF0C4;
+  --btnA:#3DDC97; --btnAtx:#00140C;
+  --ok:#3DDC97; --okTx:#8CF0C4; --err:#F87B6C;
+  --avaA:#0A1512; --avaB:#12291F; --avaTx:#8CF0C4;
+  --mkA:#050807; --mkB:#122019; --mkC:#3DDC97;
+  --line:rgb(140 244 196 / .13);
+  --line-soft:rgb(140 244 196 / .07);
+  --sh-sm:inset 0 1px 0 rgba(255,255,255,.05),0 1px 1px rgba(0,0,0,.60),0 12px 30px -14px rgba(0,0,0,.85);
+  --sh-md:inset 0 1px 0 rgba(255,255,255,.06),0 1px 1px rgba(0,0,0,.66),0 24px 52px -18px rgba(0,0,0,.90);
+  --sh-lg:inset 0 1px 0 rgba(255,255,255,.07),0 1px 1px rgba(0,0,0,.72),0 32px 66px -20px rgba(0,0,0,.94);
+  --pos:#3DDC97;  --pos-ink:#8CF0C4;
+  --warn:#F5B84C; --warn-ink:#FFD98A;
+  --neg:#F87B6C;  --neg-ink:#FFA99E;
+  --info:#6BB8FF; --info-ink:#A8D4FF;
+  --alt:#A78BFA;  --alt-ink:#CBB6FF;
+  --neu:#8B94A3;  --neu-ink:#A9B1BD;
+  --posC:61 220 151; --warnC:245 184 76; --negC:248 123 108; --infoC:107 184 255; --altC:167 139 250; --neuC:139 148 163;
+  --rfx-bg:rgba(6,10,8,0.72);
+  --rfx-border:rgba(255,255,255,0.10);
   --rfx-shadow:
-      inset 0 1px 0 rgba(255,248,233,0.20),
-      inset 0 0 2px 0 rgba(255,248,233,0.12),
+      inset 0 1px 0 rgba(255,255,255,0.14),
+      inset 0 0 2px 0 rgba(255,255,255,0.08),
       0 8px 32px rgba(0,0,0,0.58);
   --rfx-shadow-hi:
-      inset 0 1px 0 rgba(255,248,233,0.28),
-      inset 0 0 2px 0 rgba(255,248,233,0.18),
+      inset 0 1px 0 rgba(255,255,255,0.20),
+      inset 0 0 2px 0 rgba(255,255,255,0.12),
       0 18px 56px rgba(0,0,0,0.72);
-  --rfx-pop:rgba(8,15,27,0.94);
-  --rfx-sheen:rgba(255,248,233,0.36);
-  --lg-r1:rgba(255,248,233,.24);
-  --lg-r2:rgba(255,248,233,.12);
+  --rfx-pop:rgba(5,9,7,0.94);
+  --rfx-sheen:rgba(255,255,255,0.30);
+  --lg-r1:rgba(255,255,255,.18);
+  --lg-r2:rgba(255,255,255,.09);
   --lg-core:rgba(0,0,0,.92);
   --lg-drop:rgba(0,0,0,.64);
-  --lg-edge:rgba(255,248,233,.13);
+  --lg-edge:rgba(255,255,255,.11);
   --lg-ring:rgba(0,0,0,1);
   --lg-ring-o:.42;
-  --lg-sheen:rgba(255,248,233,.30);
-  --lg-hair:rgba(255,248,233,.09);
-  --bar-rec:#81B99B;  --bar-rec-glow:rgba(129,185,155,.34);
-  --bar-lost:#E7A083; --bar-lost-glow:rgba(231,160,131,.28);
-  --grid:rgba(255,248,233,.24); --grid-num:#FFF8E9;
-}
-
-/* ── 3b. THEME: MINIMAL — white page, black ink, zero gradient ── */
-html[data-theme=minimal]{
-  /* ink = foreground, paper = background. MINIMAL II swaps just these. */
-  --mn-ink:#000000; --mn-ink-2:#1f1f1f;
-  --mn-paper:#ffffff; --mn-paper-2:#f0f0f0;
-  --mn-grey:#9b9b9b; --mn-rule:rgba(0,0,0,.14);
-  --canvas:#f5f5f5; --page:#ffffff;
-  --text-primary:#000000; --text-secondary:#1a1a1a; --text-muted:#5a5a5a; --text-inverse:#ffffff;
-  --text-faint:#767676;
-  --glass1:rgba(255,255,255,.86);
-  --glass2:rgba(255,255,255,.92);
-  --glass3:rgba(255,255,255,.96);
-  --glass-hi:rgba(0,0,0,.04);
-  --cc:255 255 255;
-  --lc:0 0 0;
-  --edge:rgba(0,0,0,.16);
-  --hi:rgba(0,0,0,.05);
-  --icB:rgba(0,0,0,.06);
-  --accC:0 0 0;
-  --acc:#000000; --acc-ink:#000000;
-  --btnA:#000000; --btnAtx:#ffffff;
-  --ok:#000000; --okTx:#000000; --err:#000000;
-  --avaA:#ffffff; --avaB:#e4e4e4; --avaTx:#000000;
-  --mkA:#ffffff; --mkB:#dcdcdc; --mkC:#000000;
-  --line:rgb(0 0 0 / .18);
-  --line-soft:rgb(0 0 0 / .10);
-  --sh-sm:0 1px 2px rgba(0,0,0,.08);
-  --sh-md:0 2px 6px rgba(0,0,0,.10);
-  --sh-lg:0 4px 12px rgba(0,0,0,.12);
-  /* semantic ink stays readable but drops all saturation-driven fills */
-  --pos:#0a6b3d;  --pos-ink:#075232;
-  --warn:#8a5a00; --warn-ink:#6d4700;
-  --neg:#a11212;  --neg-ink:#870f0f;
-  --info:#0b4a9e; --info-ink:#083a7d;
-  --alt:#4a2d8a;  --alt-ink:#3a2270;
-  --neu:#3a3a3a;  --neu-ink:#1f1f1f;
-  --posC:10 107 61; --warnC:138 90 0; --negC:161 18 18; --infoC:11 74 158; --altC:74 45 138; --neuC:58 58 58;
-  /* flat, high-contrast panes — no blur haze, no coloured glow */
-  --rfx-bg:rgba(255,255,255,0.92);
-  --rfx-border:rgba(0,0,0,0.18);
-  --rfx-blur:blur(24px) saturate(1);
-  --rfx-shadow:0 1px 2px rgba(0,0,0,.07);
-  --rfx-shadow-hi:0 3px 10px rgba(0,0,0,.12);
-  --rfx-sheen:rgba(0,0,0,0);
-  --rfx-pop:#ffffff;
-  /* MINIMAL keeps the bevel geometry but flattens every light */
-  --lg-r1:rgba(255,255,255,0);
-  --lg-r2:rgba(255,255,255,0);
-  --lg-core:rgba(0,0,0,.55);
-  --lg-drop:rgba(0,0,0,.10);
-  --lg-edge:rgba(0,0,0,.55);
-  --lg-ring:rgba(0,0,0,0);
-  --lg-ring-o:0;
-  --lg-sheen:rgba(255,255,255,0);
-  --lg-hair:rgba(0,0,0,0);
+  --lg-sheen:rgba(255,255,255,.24);
+  --lg-hair:rgba(255,255,255,.07);
   --lg-blur:0px;
-  --bar-rec:#000000;  --bar-rec-glow:rgba(0,0,0,0);
-  --bar-lost:#9b9b9b; --bar-lost-glow:rgba(0,0,0,0);
-  /* MINIMAL: solid black reference lines and labels */
-  --grid:#000000; --grid-num:#000000;
+  --bar-rec:#3DDC97;  --bar-rec-glow:rgba(61,220,151,.32);
+  --bar-lost:#F87B6C; --bar-lost-glow:rgba(248,123,108,.26);
+  --grid:rgba(255,255,255,.20); --grid-num:#F2F5F7;
 }
-
-/* ── 3c. THEME: MINIMAL II — the inverse. Black page, white ink. ── */
-html[data-theme=minimal2]{
-  --mn-ink:#ffffff; --mn-ink-2:#e2e2e2;
-  --mn-paper:#000000; --mn-paper-2:#171717;
-  --mn-grey:#8a8a8a; --mn-rule:rgba(255,255,255,.16);
-  --canvas:#0a0a0a; --page:#000000;
-  --text-primary:#ffffff; --text-secondary:#e6e6e6; --text-muted:#a8a8a8; --text-inverse:#000000;
-  --text-faint:#8c8c8c;
-  --glass1:rgba(0,0,0,.86);
-  --glass2:rgba(0,0,0,.92);
-  --glass3:rgba(0,0,0,.96);
-  --glass-hi:rgba(255,255,255,.06);
-  --cc:0 0 0;
-  --lc:255 255 255;
-  --edge:rgba(255,255,255,.20);
-  --hi:rgba(255,255,255,.07);
-  --icB:rgba(255,255,255,.08);
-  --accC:255 255 255;
-  --acc:#ffffff; --acc-ink:#ffffff;
-  --btnA:#ffffff; --btnAtx:#000000;
-  --ok:#ffffff; --okTx:#ffffff; --err:#ffffff;
-  --avaA:#000000; --avaB:#1c1c1c; --avaTx:#ffffff;
-  --mkA:#000000; --mkB:#242424; --mkC:#ffffff;
-  --line:rgb(255 255 255 / .22);
-  --line-soft:rgb(255 255 255 / .12);
-  --sh-sm:0 1px 2px rgba(0,0,0,.6);
-  --sh-md:0 2px 6px rgba(0,0,0,.7);
-  --sh-lg:0 4px 12px rgba(0,0,0,.8);
-  /* semantic ink lifts off black instead of sinking into white */
-  --pos:#5fd79b;  --pos-ink:#82e5b4;
-  --warn:#e2b45f; --warn-ink:#efcb8b;
-  --neg:#f07f7f;  --neg-ink:#f6a0a0;
-  --info:#82b2f2; --info-ink:#a6caf8;
-  --alt:#b79ce9;  --alt-ink:#ccb8f1;
-  --neu:#b4b4b4;  --neu-ink:#d4d4d4;
-  --posC:95 215 155; --warnC:226 180 95; --negC:240 127 127; --infoC:130 178 242; --altC:183 156 233; --neuC:180 180 180;
-  --rfx-bg:rgba(0,0,0,0.92);
-  --rfx-border:rgba(255,255,255,0.22);
-  --rfx-blur:blur(24px) saturate(1);
-  --rfx-shadow:0 1px 2px rgba(0,0,0,.7);
-  --rfx-shadow-hi:0 3px 10px rgba(0,0,0,.85);
-  --rfx-sheen:rgba(255,255,255,0);
-  --rfx-pop:#000000;
-  /* same flattened bevel, mirrored */
-  --lg-r1:rgba(255,255,255,0);
-  --lg-r2:rgba(255,255,255,0);
-  --lg-core:rgba(255,255,255,.30);
-  --lg-drop:rgba(0,0,0,.55);
-  --lg-edge:rgba(255,255,255,.55);
-  --lg-ring:rgba(0,0,0,0);
-  --lg-ring-o:0;
-  --lg-sheen:rgba(255,255,255,0);
-  --lg-hair:rgba(255,255,255,0);
-  --lg-blur:0px;
-  --bar-rec:#ffffff;  --bar-rec-glow:rgba(0,0,0,0);
-  --bar-lost:#8a8a8a; --bar-lost-glow:rgba(0,0,0,0);
-  /* MINIMAL II: the same lines, inverted to white */
-  --grid:#ffffff; --grid-num:#ffffff;
-}
-
-html[data-theme=minimal] body,html[data-theme=minimal2] body{background:var(--mn-paper)}
-html[data-theme=minimal] #gradbg,html[data-theme=minimal2] #gradbg{opacity:1;background:var(--mn-paper)}
-html[data-theme=minimal] #bluesky,html[data-theme=minimal2] #bluesky{opacity:0}
-html[data-theme=minimal] #veil::before,html[data-theme=minimal2] #veil::before{background:none}
-html[data-theme=minimal] #veil::after,html[data-theme=minimal2] #veil::after{opacity:0}
-html[data-theme=minimal] ::selection,html[data-theme=minimal2] ::selection{background:var(--mn-ink);color:var(--mn-paper)}
-/* Both MINIMALs strip every decorative gradient / drift / shimmer */
-html[data-theme=minimal] .aurora,html[data-theme=minimal2] .aurora,
-html[data-theme=minimal] .meteors,html[data-theme=minimal2] .meteors,
-html[data-theme=minimal] .bbeams,html[data-theme=minimal2] .bbeams,
-html[data-theme=minimal] .wave,html[data-theme=minimal2] .wave,
-html[data-theme=minimal] .pilot .ripple,html[data-theme=minimal2] .pilot .ripple,
-html[data-theme=minimal] .pilot .grainy,html[data-theme=minimal2] .pilot .grainy,
-html[data-theme=minimal] .grain::after,html[data-theme=minimal2] .grain::after,
-html[data-theme=minimal] .glass::before,html[data-theme=minimal2] .glass::before,
-html[data-theme=minimal] .connect::before,html[data-theme=minimal2] .connect::before,
-html[data-theme=minimal] .sb::before,html[data-theme=minimal2] .sb::before,
-html[data-theme=minimal] .tb::before,html[data-theme=minimal2] .tb::before,
-html[data-theme=minimal] .sb::after,html[data-theme=minimal2] .sb::after,
-html[data-theme=minimal] .tb::after,html[data-theme=minimal2] .tb::after,
-html[data-theme=minimal] .shimmer::before,html[data-theme=minimal2] .shimmer::before{display:none}
-html[data-theme=minimal] .pilot,html[data-theme=minimal2] .pilot{box-shadow:var(--rfx-shadow)}
-html[data-theme=minimal] .connect.ok,html[data-theme=minimal2] .connect.ok{box-shadow:var(--rfx-shadow),0 0 0 1px var(--mn-ink)}
-html[data-theme=minimal] .ring-lbl,html[data-theme=minimal] .kval,
-html[data-theme=minimal2] .ring-lbl,html[data-theme=minimal2] .kval{color:var(--text-primary)}
-html[data-theme=minimal] .kval-risk,html[data-theme=minimal2] .kval-risk{color:var(--warn-ink)}
-/* chart in both MINIMALs: ink for recovered, grey for lost — contrast, not hue */
-html[data-theme=minimal] .b-rec,html[data-theme=minimal2] .b-rec{fill:var(--mn-ink)}
-html[data-theme=minimal] .b-lost,html[data-theme=minimal2] .b-lost{fill:var(--mn-grey)}
-html[data-theme=minimal] .gradtext,html[data-theme=minimal2] .gradtext{background:none;-webkit-text-fill-color:currentColor;color:var(--pos-ink);animation:none}
-html[data-theme=minimal] .ava,html[data-theme=minimal2] .ava{background:var(--mn-paper)!important;border:1px solid var(--mn-ink);color:var(--mn-ink)}
-html[data-theme=minimal] .pfill,html[data-theme=minimal2] .pfill{background:var(--mn-ink);box-shadow:none}
-html[data-theme=minimal] .pilot::before,html[data-theme=minimal2] .pilot::before{background:none;border:0}
-html[data-theme=minimal] .btn-pri,html[data-theme=minimal2] .btn-pri{background:var(--mn-ink);color:var(--mn-paper);box-shadow:none}
-html[data-theme=minimal] .btn-pri:hover,html[data-theme=minimal2] .btn-pri:hover{filter:none;background:var(--mn-ink-2)}
-html[data-theme=minimal] .btn-glass,html[data-theme=minimal] .pill,
-html[data-theme=minimal] .tgl,html[data-theme=minimal] .bell,html[data-theme=minimal] .burger,
-html[data-theme=minimal2] .btn-glass,html[data-theme=minimal2] .pill,
-html[data-theme=minimal2] .tgl,html[data-theme=minimal2] .bell,html[data-theme=minimal2] .burger{border-color:var(--mn-ink);background:var(--mn-paper)}
-html[data-theme=minimal] .tag,html[data-theme=minimal2] .tag{border-color:currentColor;background:transparent;font-weight:600}
-html[data-theme=minimal] .st i::after,html[data-theme=minimal2] .st i::after{display:none}
-html[data-theme=minimal] .navlist a.on,html[data-theme=minimal2] .navlist a.on{background:transparent}
-html[data-theme=minimal] .navpill,html[data-theme=minimal2] .navpill{background:var(--mn-paper-2);border-color:var(--mn-ink);box-shadow:none}
-html[data-theme=minimal] .seg .ind,html[data-theme=minimal2] .seg .ind{background:var(--mn-ink)}
-html[data-theme=minimal] .seg button[aria-selected=true],html[data-theme=minimal2] .seg button[aria-selected=true]{color:var(--mn-paper)}
-html[data-theme=minimal] .fchip[aria-pressed=true],html[data-theme=minimal2] .fchip[aria-pressed=true]{background:var(--mn-ink);color:var(--mn-paper);border-color:var(--mn-ink)}
-html[data-theme=minimal] .ring .prg,html[data-theme=minimal2] .ring .prg{stroke:var(--mn-ink)}
-html[data-theme=minimal] .ring .trk,html[data-theme=minimal2] .ring .trk{stroke:var(--mn-rule)}
-/* Nocturne keeps a softer halo than the other themes */
-html[data-theme=amoled] .b-rec{filter:drop-shadow(0 0 4px var(--bar-rec-glow))}
-html[data-theme=amoled] .b-lost{filter:drop-shadow(0 0 4px var(--bar-lost-glow))}
-html[data-theme=amoled] .bargrp:hover .b-rec{filter:drop-shadow(0 0 9px var(--bar-rec-glow)) brightness(1.1)}
-html[data-theme=amoled] .bargrp:hover .b-lost{filter:drop-shadow(0 0 9px var(--bar-lost-glow)) brightness(1.1)}
-html[data-theme=minimal] .bar,html[data-theme=minimal] .bargrp:hover .bar,
-html[data-theme=minimal2] .bar,html[data-theme=minimal2] .bargrp:hover .bar{filter:none}
-html[data-theme=minimal] .b-rec,html[data-theme=minimal2] .b-rec{fill:var(--mn-ink)}
-html[data-theme=minimal] .b-lost,html[data-theme=minimal2] .b-lost{fill:var(--mn-grey)}
-
+html[data-theme=amoled] ::selection{background:var(--acc);color:#00140C}
 /* Retarget the shared surface tokens at the liquid-glass bevel, so every
    rule already consuming them inherits the new component automatically. */
 :root,
-html[data-theme=dark],
-html[data-theme=amoled],
-html[data-theme=minimal],
-html[data-theme=minimal2]{
+html[data-theme=amoled]{
   --rfx-border:var(--lg-edge);
   --rfx-shadow:
       inset 2px -2px 1px -1px var(--lg-r1),
@@ -435,16 +210,12 @@ body{
   text-rendering:optimizeLegibility;background:var(--page,#f1e8d4);overflow-x:hidden;
   transition:background-color .6s ease,color .6s ease;
 }
-html[data-theme=dark] body{background:#161512}
-html[data-theme=amoled] body{background:#050914}
 img,svg{display:block}
 a{color:inherit;text-decoration:none}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
 input{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--acc-ink);outline-offset:3px;border-radius:8px}
 ::selection{background:var(--acc);color:#f4f9ff}
-html[data-theme=dark] ::selection{background:var(--acc);color:#1d1b18}
-html[data-theme=amoled] ::selection{background:var(--acc);color:#08111f}
 .num,.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 /* EVERY colour/bg/border transitions — the theme change is one slow breath */
@@ -464,11 +235,9 @@ a,button,input,svg,path,circle,rect,line,text,div,span,li,td,th,section,aside,he
 #gradbg{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0;transition:opacity .9s ease;overflow:hidden;
   background:radial-gradient(120% 90% at 50% 0%,#17263f 0%,#0d1322 48%,#080d16 100%)}
 html[data-theme=light] #gradbg{opacity:1;background:linear-gradient(180deg in oklab,#E6F2FF,#B3D9FF,#80B3FF,#6699E6)}
-html[data-theme=dark] #gradbg{opacity:1;background:linear-gradient(180deg in oklab,#C4C6C9,#55585E,#5A544B,#5A544B)}
-html[data-theme=amoled] #gradbg{opacity:1;background:radial-gradient(900px 620px at 12% -10%,rgba(203,176,126,.18),transparent 66%),radial-gradient(740px 520px at 88% 14%,rgba(143,184,232,.13),transparent 70%),linear-gradient(180deg,#07111f,#050914 56%,#030611)}
 /* exact-sky WebGL canvas — day + night, above the CSS fallback */
 #bluesky{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:0;transition:opacity .9s ease}
-html[data-theme=light] #bluesky,html[data-theme=dark] #bluesky{opacity:1}
+html[data-theme=light] #bluesky{opacity:1}
 html.nosky #bluesky{display:none!important}
 /* the veil — vignette + ground-glass micro-noise (fffuel-style fractalNoise) */
 #veil{position:fixed;inset:0;z-index:1;pointer-events:none}
@@ -477,14 +246,6 @@ html.nosky #bluesky{display:none!important}
     radial-gradient(125% 92% at 50% -4%, rgb(var(--cc)/.5), transparent 46%),
     radial-gradient(150% 120% at 50% 50%, transparent 58%, rgba(94,70,34,.07) 100%);
   transition:background .6s ease}
-html[data-theme=dark] #veil::before{
-  background:
-    radial-gradient(125% 92% at 50% -4%, rgba(226,225,219,.09), transparent 46%),
-    radial-gradient(150% 120% at 50% 50%, transparent 52%, rgba(20,18,15,.50) 100%)}
-html[data-theme=amoled] #veil::before{
-  background:
-    radial-gradient(125% 92% at 50% -4%, rgba(150,180,240,.045), transparent 46%),
-    radial-gradient(150% 120% at 50% 50%, transparent 60%, rgba(0,0,0,.55) 100%)}
 #veil::after{content:"";position:absolute;inset:0;opacity:.03;mix-blend-mode:soft-light;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23n)' opacity='0.85'/%3E%3C/svg%3E")}
 /* the recolour sweep — colour travels from the top of the window downward */
@@ -576,8 +337,6 @@ html[data-theme=amoled] #veil::before{
 .lg-sm::after{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;
   filter:blur(4px);opacity:.75;
   background:linear-gradient(45deg,var(--lg-sheen) 0%,transparent 26px,transparent calc(100% - 26px),var(--lg-sheen) 100%)}
-html[data-theme=minimal] .lg-fx,html[data-theme=minimal] .lg-sm::after,
-html[data-theme=minimal2] .lg-fx,html[data-theme=minimal2] .lg-sm::after{display:none}
 /* The source component's contrast(3) wrapper. Kept for decorative,
    text-free groups only — over live UI it destroys colour and type. */
 .fx-layer{filter:contrast(3)}
@@ -589,7 +348,7 @@ html[data-theme=minimal2] .lg-fx,html[data-theme=minimal2] .lg-sm::after{display
 /* grain — fffuel.co fractalNoise, embedded as a data URI, on every card face */
 .grain::after{content:"";position:absolute;inset:0;z-index:2;border-radius:inherit;pointer-events:none;opacity:.05;mix-blend-mode:soft-light;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23g)' opacity='0.9'/%3E%3C/svg%3E")}
-html[data-theme=dark] .grain::after,html[data-theme=amoled] .grain::after{opacity:.075;mix-blend-mode:overlay}
+html[data-theme=amoled] .grain::after{display:none}
 
 /* CHANGE 3 — the refraction sheen rides every pane's top edge */
 /* a slow travelling glint over the top edge, on top of the bevel */
@@ -701,20 +460,6 @@ html[data-theme=dark] .grain::after,html[data-theme=amoled] .grain::after{opacit
   content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;
   filter:blur(4px);opacity:.7;
   background:linear-gradient(45deg,var(--lg-sheen) 0%,transparent 26px,transparent calc(100% - 26px),var(--lg-sheen) 100%)}
-html[data-theme=minimal] .pill::after,html[data-theme=minimal] .btn-glass::after,
-html[data-theme=minimal] .bell::after,html[data-theme=minimal] .tglbtn::after,
-html[data-theme=minimal] .burger::after,html[data-theme=minimal] .seg::after,
-html[data-theme=minimal] .sb-foot::after,html[data-theme=minimal] .navpill::after,
-html[data-theme=minimal] .toast::after,html[data-theme=minimal] .tip::after,
-html[data-theme=minimal] .ava::after,html[data-theme=minimal] .aico::after,
-html[data-theme=minimal] .autosw::after,html[data-theme=minimal] .bolt::after,
-html[data-theme=minimal2] .pill::after,html[data-theme=minimal2] .btn-glass::after,
-html[data-theme=minimal2] .bell::after,html[data-theme=minimal2] .tglbtn::after,
-html[data-theme=minimal2] .burger::after,html[data-theme=minimal2] .seg::after,
-html[data-theme=minimal2] .sb-foot::after,html[data-theme=minimal2] .navpill::after,
-html[data-theme=minimal2] .toast::after,html[data-theme=minimal2] .tip::after,
-html[data-theme=minimal2] .ava::after,html[data-theme=minimal2] .aico::after,
-html[data-theme=minimal2] .autosw::after,html[data-theme=minimal2] .bolt::after{display:none}
 
 /* ── 8. REVEAL SYSTEM — verbatim .rv choreography ────────────── */
 .rv{--ry:16px; --rb:6px; --rs:1; --dur:.8s;
@@ -798,7 +543,7 @@ html[data-theme=minimal2] .autosw::after,html[data-theme=minimal2] .bolt::after{
 .aurora .a1{width:82%;height:44%;left:-6%;top:4%;background:radial-gradient(circle,rgb(var(--accC)/.30),transparent 68%);animation:auroraA 26s ease-in-out infinite}
 .aurora .a2{width:74%;height:40%;right:-10%;top:38%;background:radial-gradient(circle,rgb(var(--posC)/.20),transparent 68%);animation:auroraB 34s ease-in-out infinite}
 .aurora .a3{width:90%;height:36%;left:-14%;bottom:2%;background:radial-gradient(circle,rgb(var(--cc)/.55),transparent 70%);animation:auroraA 42s ease-in-out infinite reverse}
-html[data-theme=dark] .aurora,html[data-theme=amoled] .aurora{opacity:.42}
+html[data-theme=amoled] .aurora{opacity:.26}
 
 .sb-brand{display:flex;align-items:center;gap:10px;padding:4px 10px 2px;position:relative}
 .bmark{width:26px;height:26px;flex:none;border-radius:9px;overflow:hidden;transition:transform .5s var(--spring)}
@@ -829,7 +574,7 @@ html[data-theme=dark] .aurora,html[data-theme=amoled] .aurora{opacity:.42}
 .navlist a .nbadge{margin-left:auto;font-family:var(--f-mono);font-size:10px;font-weight:600;line-height:1;
   min-width:19px;height:19px;padding:0 5px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;
   color:#fff;background:var(--neg);box-shadow:0 0 0 3px rgb(var(--negC)/.14)}
-html[data-theme=dark] .navlist a .nbadge,html[data-theme=amoled] .navlist a .nbadge{color:#1d1b18}
+html[data-theme=amoled] .navlist a .nbadge{color:#00140C}
 .navsep{height:1px;margin:10px 12px;background:var(--line-soft);border:0}
 .navlab{display:block;padding:0 12px 7px;font-family:var(--f-mono);font-weight:600;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint)}
 
@@ -879,7 +624,7 @@ button.pill:active{transform:translateY(0) scale(.975)}
 .btn:active{transform:translateY(1px) scale(.977)}
 .btn-pri{background:var(--btnA);color:var(--btnAtx);box-shadow:inset 0 1px 0 rgb(var(--cc)/.16),0 16px 30px -18px rgba(64,48,26,.55)}
 .btn-pri:hover{transform:translateY(-1px);filter:brightness(1.07);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 20px 36px -18px rgba(64,48,26,.5)}
-html[data-theme=dark] .btn-pri:hover,html[data-theme=amoled] .btn-pri:hover{filter:brightness(.94)}
+html[data-theme=amoled] .btn-pri:hover{filter:brightness(.94)}
 .btn-glass{background:rgb(var(--cc)/.56);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
   border:1px solid var(--edge);box-shadow:var(--sh-sm);color:var(--text-primary);font-weight:600}
 .btn-glass:hover{background:var(--hi);transform:translateY(-1px);box-shadow:var(--sh-md)}
@@ -891,7 +636,7 @@ html[data-theme=dark] .btn-pri:hover,html[data-theme=amoled] .btn-pri:hover{filt
 .shimmer::before{content:"";position:absolute;top:0;bottom:0;width:38%;pointer-events:none;
   background:linear-gradient(100deg,transparent,rgba(255,255,255,.42),transparent);
   transform:translateX(-120%);animation:shimmerSweep 3.4s ease-in-out infinite}
-html[data-theme=dark] .shimmer::before,html[data-theme=amoled] .shimmer::before{background:linear-gradient(100deg,transparent,rgba(255,255,255,.22),transparent)}
+html[data-theme=amoled] .shimmer::before{background:linear-gradient(100deg,transparent,rgba(255,255,255,.18),transparent)}
 .shimmer-hover::before{animation:none}
 .shimmer-hover:hover::before{animation:shimmerSweep 1.1s ease-out}
 
@@ -912,12 +657,8 @@ html[data-theme=dark] .shimmer::before,html[data-theme=amoled] .shimmer::before{
 /* preview swatches — shared by the button and the panel options */
 .swatch{width:20px;height:20px;flex:none;border-radius:6px;border:1px solid var(--rfx-border);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.28);background:#000}
-.swatch[data-sw=amoled]{background:#000000;border-color:rgba(255,255,255,.28)}
+.swatch[data-sw=amoled]{background:linear-gradient(135deg,#000000 0%,#000000 54%,#3DDC97 54%,#3DDC97 100%);border-color:rgba(61,220,151,.5)}
 .swatch[data-sw=light]{background:linear-gradient(160deg,#E6F2FF 0%,#B3D9FF 45%,#80B3FF 78%,#6699E6 100%)}
-.swatch[data-sw=minimal]{background:#ffffff;border-color:rgba(0,0,0,.35);
-  background-image:radial-gradient(circle at 50% 50%,#000 0 22%,transparent 23%)}
-.swatch[data-sw=minimal2]{background:#000000;border-color:rgba(255,255,255,.45);
-  background-image:radial-gradient(circle at 50% 50%,#fff 0 22%,transparent 23%)}
 .tpanel .swatch{width:34px;height:26px;border-radius:7px}
 
 .tpanel{position:absolute;top:calc(100% + 10px);right:0;z-index:130;width:258px;padding:9px;
@@ -934,9 +675,7 @@ html[data-theme=dark] .shimmer::before,html[data-theme=amoled] .shimmer::before{
   border:1px solid transparent;background:transparent;
   transition:background-color .28s ease,border-color .28s ease,transform .3s var(--spring)}
 .topt:hover{background:rgb(var(--cc)/.6);border-color:var(--rfx-border)}
-html[data-theme=dark] .topt:hover,html[data-theme=amoled] .topt:hover{background:rgba(255,255,255,.07)}
-html[data-theme=minimal] .topt:hover{background:#f2f2f2;border-color:#000}
-html[data-theme=minimal2] .topt:hover{background:#151515;border-color:#fff}
+html[data-theme=amoled] .topt:hover{background:rgba(255,255,255,.07)}
 .topt:active{transform:scale(.978)}
 .topt .tlbl{min-width:0;line-height:1.3}
 .topt .tlbl b{display:block;font-family:var(--f-mono);font-size:12px;font-weight:600;letter-spacing:.02em;color:var(--text-primary)}
@@ -945,9 +684,7 @@ html[data-theme=minimal2] .topt:hover{background:#151515;border-color:#fff}
   transition:opacity .3s ease,transform .4s var(--ease-back)}
 .topt[aria-checked=true] .tick{opacity:1;transform:scale(1)}
 .topt[aria-checked=true]{background:rgb(var(--cc)/.7);border-color:var(--rfx-border)}
-html[data-theme=dark] .topt[aria-checked=true],html[data-theme=amoled] .topt[aria-checked=true]{background:rgba(255,255,255,.09)}
-html[data-theme=minimal] .topt[aria-checked=true]{background:#f2f2f2;border-color:#000}
-html[data-theme=minimal2] .topt[aria-checked=true]{background:#151515;border-color:#fff}
+html[data-theme=amoled] .topt[aria-checked=true]{background:rgba(255,255,255,.09)}
 .topt:focus-visible{outline:2px solid var(--acc-ink);outline-offset:-2px}
 @media(max-width:480px){.tpanel{width:min(258px,calc(100vw - 24px))}}
 
@@ -972,7 +709,7 @@ html[data-theme=minimal2] .topt[aria-checked=true]{background:#151515;border-col
 .drop .di{display:flex;gap:9px;align-items:flex-start;width:100%;text-align:left;padding:9px 11px;border-radius:14px;font-size:12.5px;
   color:var(--text-secondary);transition:background-color .28s ease,transform .3s var(--spring)}
 .drop .di:hover{background:rgb(var(--cc)/.85);color:var(--text-primary)}
-html[data-theme=dark] .drop .di:hover,html[data-theme=amoled] .drop .di:hover{background:rgba(255,255,255,.07)}
+html[data-theme=amoled] .drop .di:hover{background:rgba(255,255,255,.07)}
 .drop .di:active{transform:scale(.976)}
 .drop .di b{display:block;font-weight:600;color:var(--text-primary);font-size:12.5px}
 .drop .di small{display:block;color:var(--text-muted);font-weight:500;font-size:11px;margin-top:1px}
@@ -1049,7 +786,7 @@ html[data-theme=dark] .drop .di:hover,html[data-theme=amoled] .drop .di:hover{ba
 .kpi .spot{position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;opacity:0;
   background:radial-gradient(340px 200px at var(--mx,50%) var(--my,50%),rgb(var(--cc)/.62),transparent 66%);
   transition:opacity .45s ease}
-html[data-theme=dark] .kpi .spot,html[data-theme=amoled] .kpi .spot{background:radial-gradient(340px 200px at var(--mx,50%) var(--my,50%),rgba(255,255,255,.12),transparent 66%)}
+html[data-theme=amoled] .kpi .spot{background:radial-gradient(340px 200px at var(--mx,50%) var(--my,50%),rgba(61,220,151,.09),transparent 66%)}
 .kpi:hover .spot{opacity:1}
 .kpi:hover{transform:translateY(-4px);box-shadow:var(--rfx-shadow-hi)}
 /* codrops-style micro distortion on hover — a hair of skew, nothing loud */
@@ -1096,10 +833,10 @@ html[data-theme=dark] .kpi .spot,html[data-theme=amoled] .kpi .spot{background:r
 
 /* the at-risk figure — tuned to the active palette */
 .kval-risk{color:var(--warn-ink)}
-html[data-theme=amoled] .kval-risk{color:#F2D8A2}
-html[data-theme=amoled] .kpi-risk .klab i{color:#F2D8A2;opacity:1}
-html[data-theme=amoled] .kpi-risk .t-warn{color:#F2D8A2;background:rgba(203,176,126,.15);border-color:rgba(242,216,162,.34)}
-html[data-theme=amoled] .kpi-risk .dots i:nth-child(3){background:#F2D8A2!important}
+html[data-theme=amoled] .kval-risk{color:#FFD98A}
+html[data-theme=amoled] .kpi-risk .klab i{color:#FFD98A;opacity:1}
+html[data-theme=amoled] .kpi-risk .t-warn{color:#FFD98A;background:rgba(245,184,76,.13);border-color:rgba(245,184,76,.34)}
+html[data-theme=amoled] .kpi-risk .dots i:nth-child(3){background:#FFD98A!important}
 
 /* ── WAVE DIVIDER (haikei) — two layers drifting at different rates ── */
 .wave{position:relative;height:46px;margin:-6px 0 -10px;overflow:hidden;pointer-events:none;opacity:.8;
@@ -1154,16 +891,12 @@ html[data-theme=amoled] .kpi-risk .dots i:nth-child(3){background:#F2D8A2!import
 .autosw[aria-pressed=false] .asw-dot{opacity:0;transform:scale(.4)}
 .autosw[aria-pressed=false] .asw-play{opacity:1;transform:scale(1)}
 .autosw[aria-pressed=false]{color:var(--text-faint)}
-html[data-theme=minimal] .autosw[aria-pressed=true]{color:#000}
-html[data-theme=minimal2] .autosw[aria-pressed=true]{color:#fff}
-html[data-theme=minimal] .asw-ring .ap,html[data-theme=minimal] .asw-dot{stroke:#000;background:#000}
-html[data-theme=minimal2] .asw-ring .ap,html[data-theme=minimal2] .asw-dot{stroke:#fff;background:#fff}
 @media (prefers-reduced-motion: reduce){.autosw[aria-pressed=true] .asw-dot{animation:none}}
 .seg{position:relative;display:inline-flex;gap:2px;padding:3px;border-radius:999px;border:1px solid var(--edge);
   background:rgb(var(--cc)/.4);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
 .seg .ind{position:absolute;top:3px;bottom:3px;left:0;width:0;border-radius:999px;background:rgb(var(--cc)/.92);
   box-shadow:var(--sh-sm);transition:transform .5s var(--spring),width .4s var(--spring);z-index:0}
-html[data-theme=dark] .seg .ind,html[data-theme=amoled] .seg .ind{background:rgba(255,255,255,.12)}
+html[data-theme=amoled] .seg .ind{background:rgba(255,255,255,.10)}
 .seg button{position:relative;z-index:1;padding:5px 13px;border-radius:999px;font-size:11.5px;font-weight:600;color:var(--text-muted);
   transition:color .3s ease}
 .seg button[aria-selected=true]{color:var(--text-primary)}
@@ -1186,10 +919,6 @@ html[data-theme=dark] .seg .ind,html[data-theme=amoled] .seg .ind{background:rgb
   filter:drop-shadow(0 0 6px var(--bar-lost-glow)) drop-shadow(0 2px 3px rgba(0,0,0,.20))}
 .bargrp:hover .b-rec{filter:drop-shadow(0 0 14px var(--bar-rec-glow)) brightness(1.15) saturate(1.12)}
 .bargrp:hover .b-lost{filter:drop-shadow(0 0 14px var(--bar-lost-glow)) brightness(1.15) saturate(1.12)}
-/* the two flat themes get unbroken, full-strength reference lines */
-html[data-theme=minimal] .grid line,html[data-theme=minimal2] .grid line{
-  stroke-dasharray:none;stroke-width:1;opacity:.55}
-html[data-theme=minimal] .axis.xlab,html[data-theme=minimal2] .axis.xlab{opacity:1}
 .bargrp{cursor:pointer}
 .bar-hit{fill:transparent}
 .tip{position:absolute;z-index:20;min-width:150px;padding:10px 12px;border-radius:13px;pointer-events:none;
@@ -1386,34 +1115,32 @@ tr.collapsing{transition:all .5s var(--spring)}
 /* ── NO BACKDROP-FILTER FALLBACK ─────────────────────────────── */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))){
   .glass,.sb,.tb{background:rgba(252,249,241,.9)}
-  html[data-theme=dark] .glass,html[data-theme=dark] .sb,html[data-theme=dark] .tb{background:rgba(32,30,26,.95)}
-  html[data-theme=amoled] .glass,html[data-theme=amoled] .sb,html[data-theme=amoled] .tb{background:rgba(8,15,27,.94)}
+  html[data-theme=amoled] .glass,html[data-theme=amoled] .sb,html[data-theme=amoled] .tb{background:rgba(6,9,8,.94)}
 }
 
 
-/* Nocturne revision — pitch-black surfaces, no glass-card transparency */
+/* Eclipse revision — true-black surfaces, no glass transparency */
 html[data-theme=amoled]{
-  --canvas:#07111f; --page:#050914;
   --cc:0 0 0;
   --glass1:#000000; --glass2:#000000; --glass3:#000000; --glass-hi:rgba(255,255,255,.035);
   --rfx-bg:#000000;
   --rfx-pop:#000000;
-  --rfx-border:rgba(255,248,233,.14);
+  --rfx-border:rgba(255,255,255,.12);
   --rfx-blur:blur(0) saturate(1);
-  --rfx-shadow:inset 0 0 0 1px rgba(255,248,233,.10),0 18px 46px rgba(0,0,0,.86);
-  --rfx-shadow-hi:inset 0 0 0 1px rgba(255,248,233,.16),0 24px 58px rgba(0,0,0,.92);
+  --rfx-shadow:inset 0 0 0 1px rgba(255,255,255,.09),0 18px 46px rgba(0,0,0,.86);
+  --rfx-shadow-hi:inset 0 0 0 1px rgba(61,220,151,.22),0 24px 58px rgba(0,0,0,.92);
   --lg-blur:0px;
-  --lg-edge:rgba(255,248,233,.14);
-  --lg-r1:rgba(255,248,233,.10);
-  --lg-r2:rgba(255,248,233,.045);
-  --lg-sheen:rgba(255,248,233,0);
-  --lg-hair:rgba(255,248,233,.08);
+  --lg-edge:rgba(255,255,255,.12);
+  --lg-r1:rgba(255,255,255,.08);
+  --lg-r2:rgba(255,255,255,.04);
+  --lg-sheen:rgba(255,255,255,0);
+  --lg-hair:rgba(255,255,255,.07);
 }
-html[data-theme=amoled] body{background:#050914!important}
-html[data-theme=amoled] #gradbg{opacity:1!important;background:radial-gradient(900px 620px at 12% -10%,rgba(203,176,126,.18),transparent 66%),radial-gradient(740px 520px at 88% 14%,rgba(143,184,232,.13),transparent 70%),linear-gradient(180deg,#07111f,#050914 56%,#030611)!important}
+html[data-theme=amoled] body{background:#000000!important}
+html[data-theme=amoled] #gradbg{opacity:1!important;background:radial-gradient(900px 620px at 12% -10%,rgba(61,220,151,.08),transparent 66%),radial-gradient(740px 520px at 88% 14%,rgba(107,184,255,.05),transparent 70%),linear-gradient(180deg,#000000,#000000 56%,#000000)!important}
 html[data-theme=amoled] #bluesky{opacity:0!important}
-html[data-theme=amoled] #veil::before{background:radial-gradient(150% 120% at 50% 50%, transparent 58%, rgba(1,4,10,.64) 100%)!important}
-html[data-theme=amoled] #veil::after{opacity:.018!important}
+html[data-theme=amoled] #veil::before{background:radial-gradient(150% 120% at 50% 50%, transparent 62%, rgba(0,0,0,.42) 100%)!important}
+html[data-theme=amoled] #veil::after{opacity:.014!important}
 html[data-theme=amoled] .glass,
 html[data-theme=amoled] .card,
 html[data-theme=amoled] .kpi,
@@ -1441,8 +1168,8 @@ html[data-theme=amoled] .toast{
   background-color:#000000!important;
   -webkit-backdrop-filter:none!important;
   backdrop-filter:none!important;
-  border-color:rgba(255,248,233,.14)!important;
-  box-shadow:inset 0 0 0 1px rgba(255,248,233,.045),0 16px 42px rgba(0,0,0,.72)!important;
+  border-color:rgba(255,255,255,.12)!important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.04),0 16px 42px rgba(0,0,0,.72)!important;
 }
 html[data-theme=amoled] .lg-fx,
 html[data-theme=amoled] .lg-sm::after,
@@ -1462,18 +1189,18 @@ html[data-theme=amoled] .afeed li,
 html[data-theme=amoled] .url-output,
 html[data-theme=amoled] pre{
   background:#000000!important;
-  border-color:rgba(255,248,233,.12)!important;
-  box-shadow:inset 0 0 0 1px rgba(255,248,233,.035)!important;
+  border-color:rgba(255,255,255,.10)!important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.03)!important;
 }
-html[data-theme=amoled] .connect.ok{box-shadow:inset 0 0 0 1px rgba(129,185,155,.28),0 18px 48px rgba(0,0,0,.78)!important}
+html[data-theme=amoled] .connect.ok{box-shadow:inset 0 0 0 1px rgba(61,220,151,.30),0 18px 48px rgba(0,0,0,.78)!important}
 html[data-theme=amoled] .navlist a:hover,
 html[data-theme=amoled] .drop .di:hover,
 html[data-theme=amoled] .topt:hover,
 html[data-theme=amoled] tbody tr:hover,
-html[data-theme=amoled] .afeed li:hover{background:#050505!important}
+html[data-theme=amoled] .afeed li:hover{background:rgba(61,220,151,.05)!important}
 html[data-theme=amoled] .navlist a.on,
 html[data-theme=amoled] .topt[aria-checked=true],
-html[data-theme=amoled] .seg .ind{background:#070707!important;border-color:rgba(242,216,162,.24)!important}
+html[data-theme=amoled] .seg .ind{background:#0A1210!important;border-color:rgba(61,220,151,.28)!important}
 
 
 /* Revessent global heavy-blur motion layer — seamless animated ambience */
@@ -1521,7 +1248,6 @@ html[data-theme=amoled] .seg .ind{background:#070707!important;border-color:rgba
 }
 .rv-heavy-blur .rvb-sweep.s2{animation-duration:34s;animation-delay:-15s;top:-28vmax;opacity:.20;transform:rotate(-13deg)}
 .shell,.app,.boot,.full-error,#appShell{position:relative;z-index:2}
-html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur{opacity:.22;mix-blend-mode:normal}
 @keyframes rvBlurFloatA{0%{transform:translate3d(0,0,0) scale(.92)}45%{transform:translate3d(18vw,8vh,0) scale(1.12)}100%{transform:translate3d(8vw,26vh,0) scale(.98)}}
 @keyframes rvBlurFloatB{0%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(-20vw,16vh,0) scale(1.18)}100%{transform:translate3d(-8vw,34vh,0) scale(.94)}}
 @keyframes rvBlurFloatC{0%{transform:translate3d(0,0,0) scale(.96)}50%{transform:translate3d(16vw,-18vh,0) scale(1.16)}100%{transform:translate3d(-12vw,-30vh,0) scale(1)}}
@@ -1657,31 +1383,21 @@ html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur
 
     <div class="menuwrap">
       <button class="tglbtn" id="themebtn" aria-expanded="false" aria-haspopup="dialog" aria-controls="themepanel" aria-label="Appearance">
-        <span class="swatch" id="themeSwatch" data-sw="light" aria-hidden="true"></span>
-        <span class="tname" id="themeName">Nocturne</span>
+        <span class="swatch" id="themeSwatch" data-sw="amoled" aria-hidden="true"></span>
+        <span class="tname" id="themeName">Eclipse</span>
         <svg class="chev" aria-hidden="true"><use href="#i-chev"/></svg>
       </button>
       <div class="tpanel" id="themepanel" role="dialog" aria-modal="false" aria-label="Appearance">
         <h4>Appearance</h4>
         <div role="radiogroup" aria-label="Theme">
-          <button class="topt" role="radio" aria-checked="false" data-theme-set="amoled">
+          <button class="topt" role="radio" aria-checked="true" data-theme-set="amoled">
             <span class="swatch" data-sw="amoled" aria-hidden="true"></span>
-            <span class="tlbl"><b>Nocturne</b><small>Navy backdrop · Black cards</small></span>
+            <span class="tlbl"><b>Eclipse</b><small>Pure black · Electric mint</small></span>
             <svg class="tick" aria-hidden="true"><use href="#i-check"/></svg>
           </button>
-          <button class="topt" role="radio" aria-checked="true" data-theme-set="light">
+          <button class="topt" role="radio" aria-checked="false" data-theme-set="light">
             <span class="swatch" data-sw="light" aria-hidden="true"></span>
-            <span class="tlbl"><b>Blue Sky</b><small>Bright · Airy · Glass</small></span>
-            <svg class="tick" aria-hidden="true"><use href="#i-check"/></svg>
-          </button>
-          <button class="topt" role="radio" aria-checked="false" data-theme-set="minimal">
-            <span class="swatch" data-sw="minimal" aria-hidden="true"></span>
-            <span class="tlbl"><b>Minimal</b><small>Clean · High contrast</small></span>
-            <svg class="tick" aria-hidden="true"><use href="#i-check"/></svg>
-          </button>
-          <button class="topt" role="radio" aria-checked="false" data-theme-set="minimal2">
-            <span class="swatch" data-sw="minimal2" aria-hidden="true"></span>
-            <span class="tlbl"><b>Minimal II</b><small>Inverted · Ink on black</small></span>
+            <span class="tlbl"><b>Daylight</b><small>Bright · Airy · Glass</small></span>
             <svg class="tick" aria-hidden="true"><use href="#i-check"/></svg>
           </button>
         </div>
@@ -2168,7 +1884,7 @@ function skyDraw(){
   gl.uniform1f(f.t,skyT);
   gl.drawArrays(gl.TRIANGLES,0,3);
 }
-function skyWants(){ var t=currentTheme(); return skyOK && (t==='light'||t==='dark') && !document.hidden; }
+function skyWants(){ var t=currentTheme(); return skyOK && t==='light' && !document.hidden; }
 function skyFrame(now){
   skyRaf=0;
   if(!skyWants()||isEco()) return;
@@ -2194,25 +1910,25 @@ new MutationObserver(function(){ skySyncRamp(); skyKick(); }).observe(document.d
    ════════════════════════════════════════════════════════════ */
 /* The three appearances offered in the panel (plus legacy 'dark',
    kept working for anyone whose localStorage still holds it). */
+/* ECLIPSE + DAYLIGHT — the two shared themes. Every page reads the same
+   rv.theme key, so the choice follows you across the whole app. */
 var THEMES={
-  amoled : {name:'Nocturne', desc:'Navy backdrop · Black cards', scheme:'dark', tone:'#07111f', wash:'#101827'},
-  light  : {name:'Blue Sky', desc:'Bright · Airy · Glass',     scheme:'light', tone:'#f3ead6', wash:'#a9cdf3'},
-  minimal: {name:'Minimal',  desc:'Clean · High contrast',     scheme:'light', tone:'#ffffff', wash:'#ffffff'},
-  minimal2:{name:'Minimal II',desc:'Inverted · Ink on black',   scheme:'dark',  tone:'#000000', wash:'#000000'},
-  dark   : {name:'Evening',  desc:'Dim · Warm grey',           scheme:'dark',  tone:'#5A544B', wash:'#4b463f'}
+  amoled : {name:'Eclipse',  desc:'Pure black · Electric mint', scheme:'dark',  tone:'#000000', wash:'#000000'},
+  light  : {name:'Daylight', desc:'Bright · Airy · Glass',      scheme:'light', tone:'#f3ead6', wash:'#a9cdf3'}
 };
+/* Nocturne-era values map by intent: dark picks stay dark. */
+function mapTheme(t){ return (t==='light'||t==='minimal')?'light':'amoled'; }
 /* Hoist-safe: the sky module calls this before THEMES is assigned. */
 function currentTheme(){ var t=document.documentElement.getAttribute('data-theme');
-  return (t==='light'||t==='dark'||t==='amoled'||t==='minimal'||t==='minimal2')?t:'light'; }
-var savedTheme=null; try{ savedTheme=localStorage.getItem('rv.theme'); }catch(e){}
-if(!THEMES[savedTheme]) savedTheme='amoled';
+  return (t==='light'||t==='amoled')?t:'amoled'; }
+var savedTheme='amoled'; try{ savedTheme=mapTheme(localStorage.getItem('rv.theme')); }catch(e){}
 document.documentElement.setAttribute('data-theme', savedTheme);
 /** Sync the panel button, the radio ticks and color-scheme to the live theme. */
 function updateThemeUI(){
   var cur=currentTheme(), meta=THEMES[cur];
   var nameEl=$('#themeName'), swEl=$('#themeSwatch'), btn=$('#themebtn');
   if(nameEl) nameEl.textContent=meta.name;
-  if(swEl) swEl.setAttribute('data-sw', cur==='dark'?'amoled':cur);
+  if(swEl) swEl.setAttribute('data-sw', cur);
   if(btn) btn.setAttribute('aria-label','Appearance — currently '+meta.name);
   $$('[data-theme-set]').forEach(function(b){
     b.setAttribute('aria-checked', b.getAttribute('data-theme-set')===cur ? 'true':'false');
@@ -2220,6 +1936,12 @@ function updateThemeUI(){
   var m=$('meta[name=color-scheme]'); if(m) m.setAttribute('content', meta.scheme);
 }
 function swapTheme(){ updateThemeUI(); try{ localStorage.setItem('rv.theme', currentTheme()); }catch(e){} }
+/* One choice, every page — other tabs follow a theme change instantly. */
+addEventListener('storage',function(e){
+  if(e.key!=='rv.theme'||!e.newValue) return;
+  var t=mapTheme(e.newValue);
+  if(t!==currentTheme()&&!themeBusy) commitTheme(t);
+});
 var themeBusy=false;
 var REVEAL_MS=520, REVEAL_EASE='cubic-bezier(.25,1,.5,1)';
 

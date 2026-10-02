@@ -7,7 +7,13 @@
 <meta content="Revessent settings — connect Razorpay, configure brand sender details, and choose the recovery email tone." name="description"/>
 <meta content="light dark" name="color-scheme"/>
 <title>Settings — Revessent</title>
-<link href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23fff8e9'/%3E%3Cstop offset='1' stop-color='%23ecdcc0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='url(%23g)'/%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='none' stroke='%23ffffff' stroke-opacity='.55'/%3E%3Cpath d='M9 21h3l2-7 3 10 2.4-8 2.6 5H24' fill='none' stroke='%2335608f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" rel="icon"/>
+<link href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='%23000000'/%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='none' stroke='%233DDC97' stroke-opacity='.45' stroke-width='1.5'/%3E%3Cpath d='M9 21h3l2-7 3 10 2.4-8 2.6 5H24' fill='none' stroke='%233DDC97' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" rel="icon"/>
+<script>
+/* ECLIPSE — apply the shared theme choice before first paint. */
+(function(){var t='amoled';try{var s=localStorage.getItem('rv.theme')||localStorage.getItem('revessent-theme')||'';
+if(s==='light'||s==='minimal')t='light';}catch(_){}
+document.documentElement.dataset.theme=t;})();
+</script>
 <style>
     /* ════════════════════════════════════════════════════════════
        REVESSENT SETTINGS · shared dashboard tokens, self-contained
@@ -150,17 +156,17 @@
       --edge:rgba(255,255,255,.13);
       --hi:rgba(255,255,255,.09);
       --icB:rgba(255,255,255,.11);
-      --accC:37 99 235;
-      --acc:#2563eb; --acc-ink:#7EA8F8;
-      --btnA:#2563eb; --btnAtx:#ffffff;
-      --ok:#61956f; --okTx:#cde8c2; --err:#e5947c;
+      --accC:61 220 151;
+      --acc:#3DDC97; --acc-ink:#8CF0C4;
+      --btnA:#3DDC97; --btnAtx:#00140C;
+      --ok:#3DDC97; --okTx:#8CF0C4; --err:#F87B6C;
       --line:rgb(120 134 160 / .20);
       --line-soft:rgb(120 134 160 / .12);
-      --pos:#7FA98B; --pos-ink:#9FC4A8;
-      --warn:#C5A46C; --warn-ink:#DCBE8B;
-      --neg:#E5947C; --neg-ink:#F0AE99;
-      --info:#7FB0E5; --info-ink:#A2C8F0;
-      --posC:127 169 139; --warnC:197 164 108; --negC:229 148 124; --infoC:127 176 229;
+      --pos:#3DDC97; --pos-ink:#8CF0C4;
+      --warn:#F5B84C; --warn-ink:#FFD98A;
+      --neg:#F87B6C; --neg-ink:#FFA99E;
+      --info:#6BB8FF; --info-ink:#A8D4FF;
+      --posC:61 220 151; --warnC:245 184 76; --negC:248 123 108; --infoC:107 184 255;
       --rfx-bg:rgba(255,255,255,0.05);
       --rfx-border:rgba(255,255,255,0.15);
       --rfx-shadow:inset 0 1px 0 rgba(255,255,255,0.20), inset 0 0 2px 0 rgba(255,255,255,0.12), 0 8px 32px rgba(0,0,0,0.60);
@@ -843,18 +849,22 @@
       reloadBtn: $('#reloadBtn')
     };
 
+    /* ECLIPSE + DAYLIGHT — the two shared themes, read from the same
+       rv.theme key every page uses. Default: Eclipse (AMOLED black).
+       Nocturne-era values map by intent. */
     function applyStoredTheme(){
       let saved = "";
       try { saved = localStorage.getItem('rv.theme') || localStorage.getItem('revessent-theme') || ""; } catch (_) {}
-      const allowed = ['light','dark','amoled','minimal','minimal2'];
-      if(!allowed.includes(saved)){
-        saved = matchMedia('(prefers-color-scheme: dark)').matches ? 'amoled' : 'light';
-      }
+      saved = (saved === 'light' || saved === 'minimal') ? 'light' : 'amoled';
       document.documentElement.dataset.theme = saved;
-      const darkScheme = saved === 'dark' || saved === 'amoled' || saved === 'minimal2';
       const meta = document.querySelector('meta[name="color-scheme"]');
-      if(meta) meta.setAttribute('content', darkScheme ? 'dark light' : 'light dark');
+      if(meta) meta.setAttribute('content', saved === 'amoled' ? 'dark light' : 'light dark');
     }
+    /* A theme picked on any other page follows here instantly. */
+    addEventListener('storage', function(e){
+      if(e.key !== 'rv.theme' || !e.newValue) return;
+      applyStoredTheme();
+    });
 
     function showAppLoading(){
       els.boot.hidden = true;

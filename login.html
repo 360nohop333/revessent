@@ -1,9 +1,19 @@
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
+<script>
+/* ECLIPSE — the theme choice (rv.theme) is shared by EVERY page, so the
+   mode you picked on the landing page is the mode you land on here.
+   Default: Eclipse (AMOLED black). */
+(function(){var t='amoled';try{var s=localStorage.getItem('rv.theme')||localStorage.getItem('revessent-theme')||'';
+if(s==='light'||s==='minimal')t='light';}catch(_){t='amoled';}
+document.documentElement.dataset.theme=(t==='light')?'light':'dark';})();
+addEventListener('storage',function(e){if(e.key==='rv.theme'&&e.newValue){
+document.documentElement.dataset.theme=(e.newValue==='light'||e.newValue==='minimal')?'light':'dark';}});
+</script>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#f1e8d4" />
+    <meta name="theme-color" content="#000000" />
     <title>Welcome to Revessent</title>
     <style>
       /* Revessent shared design tokens, matched to dashboard.html. */
@@ -88,44 +98,45 @@
         --button-2-surface: var(--acc);
       }
 
+      /* ECLIPSE — true #000000 AMOLED black, electric mint accent. */
       html[data-theme="dark"] {
         color-scheme: dark;
-        --canvas: #1c1a17;
-        --page: #161512;
-        --text-primary: #EFECE4;
-        --text-secondary: #C4C6C9;
-        --text-muted: #96938C;
-        --text-inverse: #161512;
-        --text-faint: #7E7B74;
-        --glass1: rgba(34, 32, 28, .50);
-        --glass2: rgba(39, 37, 33, .64);
-        --glass3: rgba(45, 43, 38, .78);
-        --glass-hi: rgba(255, 255, 255, .10);
-        --cc: 42 40 36;
-        --lc: 196 198 201;
-        --edge: rgba(224, 222, 214, .20);
-        --hi: rgba(255, 255, 255, .13);
-        --icB: rgba(255, 255, 255, .15);
-        --accC: 196 198 201;
-        --acc: #C4C6C9;
-        --acc-ink: #EFECE4;
-        --btnA: #C4C6C9;
-        --btnAtx: #1d1b18;
-        --ok: #8FA089;
-        --okTx: #d5dfc9;
-        --err: #D79A82;
-        --line: rgb(196 198 201 / .16);
-        --line-soft: rgb(196 198 201 / .10);
-        --pos: #8FA089;
-        --pos-ink: #A9BBA2;
-        --warn: #C2A472;
-        --warn-ink: #D6BC8E;
-        --neg: #D79A82;
-        --neg-ink: #E4B29D;
-        --rfx-bg: rgba(255, 255, 255, .05);
-        --rfx-border: rgba(255, 255, 255, .15);
-        --rfx-shadow: inset 0 1px 0 rgba(255, 255, 255, .20), inset 0 0 2px 0 rgba(255, 255, 255, .15), 0 8px 32px rgba(0, 0, 0, .30);
-        --rfx-shadow-hi: inset 0 1px 0 rgba(255, 255, 255, .26), inset 0 0 2px 0 rgba(255, 255, 255, .18), 0 18px 52px rgba(0, 0, 0, .42);
+        --canvas: #000000;
+        --page: #000000;
+        --text-primary: #F2F5F7;
+        --text-secondary: #C3CBD6;
+        --text-muted: #8B94A3;
+        --text-inverse: #000000;
+        --text-faint: #6B7482;
+        --glass1: rgba(255, 255, 255, .030);
+        --glass2: rgba(255, 255, 255, .055);
+        --glass3: rgba(10, 13, 15, .92);
+        --glass-hi: rgba(255, 255, 255, .065);
+        --cc: 10 13 15;
+        --lc: 139 148 163;
+        --edge: rgba(255, 255, 255, .10);
+        --hi: rgba(255, 255, 255, .06);
+        --icB: rgba(255, 255, 255, .10);
+        --accC: 61 220 151;
+        --acc: #3DDC97;
+        --acc-ink: #8CF0C4;
+        --btnA: #3DDC97;
+        --btnAtx: #00140C;
+        --ok: #3DDC97;
+        --okTx: #8CF0C4;
+        --err: #F87B6C;
+        --line: rgb(140 244 196 / .13);
+        --line-soft: rgb(140 244 196 / .07);
+        --pos: #3DDC97;
+        --pos-ink: #8CF0C4;
+        --warn: #F5B84C;
+        --warn-ink: #FFD98A;
+        --neg: #F87B6C;
+        --neg-ink: #FFA99E;
+        --rfx-bg: rgba(6, 10, 8, .72);
+        --rfx-border: rgba(255, 255, 255, .10);
+        --rfx-shadow: inset 0 0 0 1px rgba(255, 255, 255, .09), 0 8px 32px rgba(0, 0, 0, .58);
+        --rfx-shadow-hi: inset 0 0 0 1px rgba(61, 220, 151, .22), 0 18px 52px rgba(0, 0, 0, .72);
       }
 
       * {
@@ -238,8 +249,8 @@
         width: 22px;
         height: 22px;
         border-radius: 7px;
-        background: linear-gradient(135deg, #6d9fd6, #35639a);
-        box-shadow: 0 4px 10px rgba(53, 99, 154, .25);
+        background: linear-gradient(135deg, #3DDC97, #0E8C63);
+        box-shadow: 0 4px 10px rgba(61, 220, 151, .25);
       }
 
       .brand-dot {
@@ -980,30 +991,39 @@
           });
         });
 
+        /* Eclipse (dark) ⇄ Daylight (light), stored in the SAME rv.theme
+           key every other page reads — the choice follows you everywhere. */
         function applyTheme(theme) {
           const isLight = theme === "light";
           document.documentElement.dataset.theme = isLight ? "light" : "dark";
           themeToggle.setAttribute("aria-pressed", String(isLight));
-          themeToggle.setAttribute("aria-label", isLight ? "Switch to dark theme" : "Switch to light theme");
-          themeToggle.querySelector(".theme-toggle-label").textContent = isLight ? "Dark mode" : "Light mode";
+          themeToggle.setAttribute("aria-label", isLight ? "Switch to Eclipse theme" : "Switch to Daylight theme");
+          themeToggle.querySelector(".theme-toggle-label").textContent = isLight ? "Eclipse" : "Daylight";
           themeIcon.innerHTML = isLight
             ? '<path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.7 6.7 0 0 0 21 12.8Z"></path>'
             : '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"></path>';
           try {
-            localStorage.setItem("revessent-theme", isLight ? "light" : "dark");
+            localStorage.setItem("rv.theme", isLight ? "light" : "amoled");
           } catch (error) {
             // Storage can be unavailable in privacy-focused browser modes.
           }
         }
 
-        let savedTheme = "light";
+        let savedTheme = "amoled";
         try {
-          savedTheme = localStorage.getItem("revessent-theme") || "light";
+          const saved = localStorage.getItem("rv.theme") || localStorage.getItem("revessent-theme") || "";
+          savedTheme = (saved === "light" || saved === "minimal") ? "light" : "amoled";
         } catch (error) {
-          savedTheme = "light";
+          savedTheme = "amoled";
         }
         applyTheme(savedTheme);
         themeToggle.addEventListener("click", () => applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"));
+        /* A theme picked on any other page follows here instantly. */
+        addEventListener("storage", function(e) {
+          if (e.key === "rv.theme" && e.newValue) {
+            applyTheme(e.newValue === "light" ? "light" : "amoled");
+          }
+        });
 
         function setLoading(form, isLoading, label) {
           const button = form.querySelector("button[type='submit']");

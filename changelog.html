@@ -5,7 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Changelog — Revessent</title>
 <meta name="description" content="What's new on Revessent — recovery improvements, alerts, exports and everything else we ship, newest first.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23fff8e9'/%3E%3Cstop offset='1' stop-color='%23ecdcc0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='url(%23g)'/%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='none' stroke='%23ffffff' stroke-opacity='.55'/%3E%3Cpath d='M9 21h3l2-7 3 10 2.4-8 2.6 5H24' fill='none' stroke='%2335608f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='%23000000'/%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='none' stroke='%233DDC97' stroke-opacity='.45' stroke-width='1.5'/%3E%3Cpath d='M9 21h3l2-7 3 10 2.4-8 2.6 5H24' fill='none' stroke='%233DDC97' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<script>
+/* ECLIPSE — apply the shared theme choice before first paint. */
+(function(){var t='amoled';try{var s=localStorage.getItem('rv.theme')||localStorage.getItem('revessent-theme')||'';
+if(s==='light'||s==='minimal')t='light';}catch(_){t='amoled';}
+document.documentElement.dataset.theme=t;})();
+</script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap');
 :root{
@@ -51,15 +57,18 @@ html[data-theme=dark]{
   --sh-sm:inset 0 1px 0 rgba(255,255,255,.10),0 1px 1px rgba(0,0,0,.35),0 10px 28px -20px rgba(0,0,0,.62);
   --sh-md:inset 0 1px 0 rgba(255,255,255,.12),0 1px 1px rgba(0,0,0,.4),0 22px 46px -22px rgba(0,0,0,.7);
 }
+/* ECLIPSE — true #000000 AMOLED black, electric mint accent. */
 html[data-theme=amoled]{
   --canvas:#000000; --page:#000000;
-  --text-primary:#E9E9ED; --text-secondary:#A0A6B2; --text-muted:#7A808C; --text-inverse:#FDFCF8;
-  --glass1:rgba(255,255,255,.030); --glass2:rgba(255,255,255,.055); --glass3:rgba(255,255,255,.085); --glass-hi:rgba(255,255,255,.06);
-  --cc:22 25 33; --lc:96 108 130; --edge:rgba(255,255,255,.13); --hi:rgba(255,255,255,.09); --icB:rgba(255,255,255,.11);
-  --btnA:#69a6e8; --btnAtx:#02131f;
-  --ok:#61956f; --okTx:#cde8c2; --err:#e5947c;
-  --sh-sm:inset 0 1px 0 rgba(255,255,255,.07),0 1px 1px rgba(0,0,0,.6),0 12px 30px -14px rgba(0,0,0,.9);
-  --sh-md:inset 0 1px 0 rgba(255,255,255,.09),0 1px 1px rgba(0,0,0,.65),0 24px 52px -18px rgba(0,0,0,.95);
+  --text-primary:#F2F5F7; --text-secondary:#C3CBD6; --text-muted:#8B94A3; --text-inverse:#000000;
+  --text-faint:#6B7482;
+  --glass1:rgba(255,255,255,.030); --glass2:rgba(255,255,255,.055); --glass3:rgba(10,13,15,.92); --glass-hi:rgba(255,255,255,.065);
+  --cc:10 13 15; --lc:139 148 163; --edge:rgba(255,255,255,.10); --hi:rgba(255,255,255,.06); --icB:rgba(255,255,255,.10);
+  --accC:61 220 151; --acc:#3DDC97; --acc-ink:#8CF0C4;
+  --btnA:#3DDC97; --btnAtx:#00140C;
+  --ok:#3DDC97; --okTx:#8CF0C4; --err:#F87B6C;
+  --sh-sm:inset 0 1px 0 rgba(255,255,255,.05),0 1px 1px rgba(0,0,0,.6),0 12px 30px -14px rgba(0,0,0,.9);
+  --sh-md:inset 0 1px 0 rgba(255,255,255,.06),0 1px 1px rgba(0,0,0,.65),0 24px 52px -18px rgba(0,0,0,.95);
 }
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
 body{
@@ -254,17 +263,20 @@ footer{border-top:1px solid rgb(var(--lc)/.08);padding:60px 0 30px;margin-top:0}
 (function () {
   'use strict';
 
-  /* Theme — same storage keys as the app pages (rv.theme), same palettes as
-     the marketing site: light / dark / amoled. */
+  /* Theme — ECLIPSE (amoled, default) + DAYLIGHT (light), read from the
+     same rv.theme key every page uses; the choice follows you everywhere. */
   (function applyTheme() {
     var saved = '';
     try { saved = localStorage.getItem('rv.theme') || localStorage.getItem('revessent-theme') || ''; } catch (_) {}
-    var allowed = ['light', 'dark', 'amoled'];
-    if (!allowed.includes(saved)) {
-      saved = matchMedia('(prefers-color-scheme: dark)').matches ? 'amoled' : 'light';
-    }
+    saved = (saved === 'light' || saved === 'minimal') ? 'light' : 'amoled';
     document.documentElement.dataset.theme = saved;
   })();
+  /* A theme picked on any other page follows here instantly. */
+  addEventListener('storage', function(e) {
+    if (e.key === 'rv.theme' && e.newValue) {
+      document.documentElement.dataset.theme = (e.newValue === 'light' || e.newValue === 'minimal') ? 'light' : 'amoled';
+    }
+  });
 
   /* Header glass on scroll. */
   var hd = document.getElementById('hd');

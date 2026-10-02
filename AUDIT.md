@@ -305,3 +305,46 @@ counsel sign-off on recovery-message language.
   lockfile + `npm ci`, Twilio docs, and 14 frontend source checks.
 - The suite caught **one real bug** this batch: `send-note`'s error
   whitelist dropped the new 409, turning it into a 500.
+
+---
+
+## ECLIPSE — new AMOLED theme, one synced theme system (Nocturne retired)
+
+**Eclipse** is the app's new dark identity, designed in-house: a true
+`#000000` AMOLED canvas, near-black panes with hairline white borders, and
+one vivid **electric-mint accent** (`#3DDC97`, ink `#8CF0C4`). Amber
+(`#F5B84C`) marks at-risk money, muted coral (`#F87B6C`) marks losses,
+ice-blue info — no champagne, no navy, nothing glowing. The light companion
+is **Daylight** (the previous light look, relabelled).
+
+**One choice, every page.** The whole app now runs a single two-theme
+system on the shared `rv.theme` key:
+
+- **Default is Eclipse (dark) everywhere** — landing, login, dashboard, all.
+- Every page applies the choice **before first paint** (no flash) and
+  listens for the `storage` event, so a theme picked anywhere updates
+  already-open tabs instantly.
+- The old inconsistency is gone: login used to keep its own
+  `revessent-theme` key and default to light — landing dark → login light.
+  It now reads/writes `rv.theme` (legacy key honoured as a read fallback),
+  so **landing dark → login dark**, everywhere.
+- The dashboard's five-theme picker (Nocturne / Blue Sky / Minimal /
+  Minimal II / Evening) and the landing page's three-option menu are
+  consolidated to **Eclipse + Daylight**; legacy stored values map by
+  intent (dark picks → Eclipse, light picks → Daylight).
+- members / weekly-digest / case-detail were hard-coded dark — they now
+  follow the shared choice and gained a proper Daylight variant
+  (token-driven; panels, inputs, tables, toasts all theme-aware).
+  reset-password.html (was hard-coded light) gained an Eclipse variant.
+
+Scope: visual/theme layer only — no routes, data, or interaction changes.
+Favicons across the app are the new Eclipse mark (black tile, mint pulse).
+The dashboard's sky/aurora machinery stays wired: sky renders only under
+Daylight; Eclipse gets a whisper-subtle mint bloom on black. The circular
+theme-reveal animation is kept.
+
+Verification: inline scripts parse on all 11 pages; CSS brace-balanced;
+`npm test` → **190/190** (9 new Eclipse checks: palette purge, black+mint
+tokens on every page, rv.theme + storage listener + pre-paint bootstrap
+everywhere, dark default, picker contents, login shared key, landing trim,
+mint favicons).
