@@ -1,12 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>
-/* Minimal Finance — apply the shared theme choice (rv.theme) before paint. */
-(function(){var t='finance';try{var s=localStorage.getItem('rv.theme');
-if(s==='slate'||s==='dark'||s==='amoled'||s==='minimal2')t='slate';}catch(_){}
-document.documentElement.setAttribute('data-theme',t);})();
-</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Revessent — Never lose another member to a failed card</title>
@@ -19,62 +13,52 @@ document.documentElement.setAttribute('data-theme',t);})();
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Revessent — never lose another member to a failed card">
 <meta name="twitter:description" content="Revenue recovery for subscription businesses. Razorpay-native.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='%23FFFFFF'/%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='none' stroke='%23E2E8F0' stroke-width='1.5'/%3E%3Cpath d='M9 21h3l2-7 3 10 2.4-8 2.6 5H24' fill='none' stroke='%2310B981' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23fff8e9'/%3E%3Cstop offset='1' stop-color='%23ecdcc0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='url(%23g)'/%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='none' stroke='%23ffffff' stroke-opacity='.55'/%3E%3Cpath d='M9 21h3l2-7 3 10 2.4-8 2.6 5H24' fill='none' stroke='%2335608f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap');
 :root{
-  --canvas:#F8FAFC;            /* base ivory — fallback & under-canvas */
-  --page:#F8FAFC;
+  --canvas:#f9f4ea;            /* base ivory — fallback & under-canvas */
+  --page:#f1e8d4;
   /* ── Contrast system — LIGHT MODE tuned for the brightest sky ──
      primary ~16.8:1 vs white ( #1D1C1A ) — not pure black, warm charcoal
      secondary ~10.4:1 vs white ( #3C3B37 ) — body / descriptions
      muted ~5.6:1 vs white ( #6B6860 ) — labels / metadata, still subtle but AA-passing
      inverse #FDFCF8 — text on dark buttons/toasts */
-  --text-primary:#1E293B;
-  --text-secondary:#475569;
-  --text-muted:#64748B;
-  --text-inverse:#FFFFFF;
+  --text-primary:#1D1C1A;
+  --text-secondary:#3C3B37;
+  --text-muted:#6B6860;
+  --text-inverse:#FDFCF8;
   --text-faint:#8E8C86;
   /* legacy aliases — keep --ink vars working for any external/JS refs */
   --ink:var(--text-primary);
   --ink2:var(--text-secondary);
   --ink3:var(--text-muted);
-  --glass1:rgba(255,255,255,.72);   /* far frosted — +12% opacity for legibility */
-  --glass2:rgba(255,255,255,.88);   /* mid frosted — +12% */
-  --glass3:#FFFFFF;   /* near / clearer — +10% */
-  --glass-hi:rgba(255,255,255,.9);
+  --glass1:rgba(255,253,247,.42);   /* far frosted — +12% opacity for legibility */
+  --glass2:rgba(255,253,248,.58);   /* mid frosted — +12% */
+  --glass3:rgba(255,254,250,.74);   /* near / clearer — +10% */
+  --glass-hi:rgba(255,255,255,.68);
   /* theme-aware channels & edges */
-  --cc:255 255 255;             /* interior surface tint (chips, wells) */
-  --lc:15 23 42;               /* quiet line tint */
-  --edge:#E2E8F0;
-  --hi:#F1F5F9;
+  --cc:255 253 247;             /* interior surface tint (chips, wells) */
+  --lc:112 90 55;               /* quiet line tint */
+  --edge:rgba(255,255,255,.68);
+  --hi:rgba(255,255,255,.84);
   --icB:rgba(255,255,255,.78);
   /* action + success + avatar/mark tints (light values) */
   --btnA:#35639a; --btnAtx:#fbf6ec;
-  --ok:#16A34A; --okTx:#5f7450; --err:#DC2626;
+  --ok:#8ba889; --okTx:#5f7450; --err:#c06a52;
   --avaA:#e9f1f9; --avaB:#bdd6ee; --avaTx:#335f8e;
   --mkA:#eef5fc; --mkB:#afcdf0; --mkC:#6d9fd8;
   --accC:109 159 214;           /* accent channels — set per palette by JS */
-  --acc:#10B981;
-  --acc-ink:#047857;
+  --acc:#6d9fd6;
+  --acc-ink:#35608f;
   --acc-line:rgb(var(--accC)/.35);
   --acc-wash:rgb(var(--accC)/.10);
   --r-xl:26px;--r-lg:22px;--r-md:17px;--r-sm:12px;
-  --sh-sm:0 1px 2px rgba(15,23,42,.05),0 6px 16px -8px rgba(15,23,42,.08);
-  --sh-md:0 1px 2px rgba(15,23,42,.05),0 12px 28px -12px rgba(15,23,42,.12);
+  --sh-sm:inset 0 1px 0 rgba(255,255,255,.6),0 1px 1px rgba(64,48,26,.05),0 10px 28px -20px rgba(64,48,26,.25);
+  --sh-md:inset 0 1px 0 rgba(255,255,255,.72),0 1px 1px rgba(64,48,26,.05),0 22px 46px -22px rgba(64,48,26,.32);
   --f-sans:"Manrope RV",-apple-system,BlinkMacSystemFont,"Segoe UI Variable Text","Segoe UI",Inter,Roboto,"Helvetica Neue",Arial,ui-sans-serif,system-ui,sans-serif;
   --f-serif:"Instrument Serif RV","Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,Cambria,serif;
   --f-mono:"IBM Plex Mono",ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
-}
-/* Slate — the dark half of Minimal Finance. */
-html[data-theme=slate]{
-  --canvas:#0F172A; --page:#0F172A;
-  --text-primary:#F1F5F9; --text-secondary:#CBD5E1; --text-muted:#94A3B8; --text-inverse:#0F172A;
-  --glass1:rgba(30,41,59,.55); --glass2:rgba(30,41,59,.78); --glass3:#1E293B; --glass-hi:rgba(51,65,85,.5);
-  --cc:30 41 59; --lc:148 163 184; --edge:#334155; --hi:rgba(148,163,184,.10);
-  --ok:#34D399; --err:#F87171; --acc:#10B981; --acc-ink:#34D399;
-  --sh-sm:0 1px 2px rgba(0,0,0,.40),0 10px 28px -20px rgba(0,0,0,.62);
-  --sh-md:0 1px 2px rgba(0,0,0,.45),0 22px 46px -22px rgba(0,0,0,.70);
 }
 html{scroll-behavior:smooth;scroll-padding-top:104px;-webkit-text-size-adjust:100%}
 body{
@@ -83,7 +67,7 @@ body{
   font-optical-sizing:auto;
   /* flat base tone — the winter light lives on the sky canvas (a fixed layer),
      so scrolling never repaints a giant gradient background */
-  background:var(--page,#F8FAFC);
+  background:var(--page,#f1e8d4);
   overflow-x:hidden;
 }
 ::selection{background:var(--acc);color:#f4f9ff}
@@ -104,14 +88,14 @@ em.it{font-family:var(--f-serif);font-style:italic;font-weight:400;font-size:1.0
 #sky{width:100%;height:100%;display:block;opacity:1}
 /* Evening aurora — the dark-mode gradient sky (pure CSS, animated). */
 #gradbg{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0;transition:opacity .9s ease;overflow:hidden;background:radial-gradient(120% 90% at 50% 0%,#17263f 0%,#0d1322 48%,#080d16 100%)}
-html[data-theme=slate] #gradbg{opacity:1;background:var(--page)}
+html[data-theme=dark] #gradbg{opacity:1;background:linear-gradient(180deg in oklab,#C4C6C9,#55585E,#5A544B,#5A544B)}
 /* a random FeralUI sky is active — its own ramp owns the fallback + canvas */
 html.randsky #gradbg{opacity:1;background:var(--rand-grad)!important}
 html.randsky #gradbg i{display:none}
 html.randsky #bluesky{opacity:1!important}
 html.randsky #skybox{opacity:0}
 /* Night-sky fallback (no WebGL) — same top-to-bottom stop order. */
-#gradbg i{display:none}
+html[data-theme=dark] #gradbg i{display:none}
 /* Evening aurora — FeralUI-style flow blobs:
    LAPIS #1E50A2 · ANCIENT PURPLE #895B8A · PEACH PINK #F09199 · MOON WHITE #EAF4FC */
 #gradbg i{position:absolute;border-radius:50%;filter:blur(70px);will-change:transform}
@@ -124,14 +108,14 @@ html.randsky #skybox{opacity:0}
 @keyframes drift3{from{transform:translate(0,0) scale(.95)}to{transform:translate(-6vmax,5vmax) scale(1.08)}}
 html.eco #gradbg i{animation:none}
 /* Blue-sky fallback (no WebGL) — FeralUI's own SKY fallback grammar. */
-html[data-theme=finance] #gradbg,html[data-theme=light] #gradbg{opacity:1;background:var(--page)}
-html[data-theme=finance] #skybox,html[data-theme=light] #skybox,html[data-theme=slate] #skybox{opacity:0}
-
+html[data-theme=light] #gradbg{opacity:1;background:linear-gradient(180deg in oklab,#E6F2FF,#B3D9FF,#80B3FF,#6699E6)}
+html[data-theme=light] #skybox{opacity:0}
+html[data-theme=light] #gradbg i{display:none}
 /* exact-sky canvas — day + night, above the CSS fallback */
 #bluesky{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:0;transition:opacity .9s ease}
-
+html[data-theme=light] #bluesky,html[data-theme=dark] #bluesky{opacity:1}
 html.nosky #bluesky{display:none!important}
-
+html[data-theme=dark] #skybox{opacity:0}
 #veil{position:fixed;inset:0;z-index:1;pointer-events:none}
 #veil::before{ /* vignette + morning falloff — the glass shading */
   content:"";position:absolute;inset:0;
@@ -154,10 +138,10 @@ main{position:relative;z-index:2}
    ============================================================ */
 .hd{position:fixed;top:0;left:0;right:0;z-index:40;transition:background-color .6s ease,box-shadow .6s ease,border-color .6s ease;border-bottom:1px solid transparent}
 .hd.scrolled{
-  background:rgba(255,255,255,.72);
+  background:rgba(250,245,235,.64);
   -webkit-backdrop-filter:blur(22px) saturate(1.25);backdrop-filter:blur(22px) saturate(1.25);
   border-bottom-color:rgb(var(--lc)/.08);
-  box-shadow:0 12px 30px -26px rgba(15,23,42,.35);
+  box-shadow:0 12px 30px -26px rgba(64,48,26,.35);
 }
 .hd-in{display:flex;align-items:center;gap:26px;height:70px}
 .brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:20.5px;letter-spacing:-.03em}
@@ -173,8 +157,8 @@ main{position:relative;z-index:2}
   padding:12px 24px;white-space:nowrap;letter-spacing:.002em;-webkit-tap-highlight-color:transparent;
   transition:transform .35s var(--spring),box-shadow .45s ease,background-color .4s ease,border-color .4s ease,color .3s ease,filter .4s ease}
 .btn:active{transform:translateY(1px) scale(.977)}
-.btn-pri{background:var(--btnA);color:var(--btnAtx);box-shadow:inset 0 1px 0 rgb(var(--cc)/.16),0 16px 30px -18px rgba(15,23,42,.55)}
-.btn-pri:hover{transform:translateY(-1px);filter:brightness(1.07);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 20px 36px -18px rgba(15,23,42,.5)}
+.btn-pri{background:var(--btnA);color:var(--btnAtx);box-shadow:inset 0 1px 0 rgb(var(--cc)/.16),0 16px 30px -18px rgba(64,48,26,.55)}
+.btn-pri:hover{transform:translateY(-1px);filter:brightness(1.07);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 20px 36px -18px rgba(64,48,26,.5)}
 .btn-glass{
   background:rgb(var(--cc)/.56);
   -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
@@ -195,7 +179,7 @@ main{position:relative;z-index:2}
 .sheet-bg{position:absolute;inset:0;background:rgba(84,64,34,.18);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
 .sheet-panel{position:absolute;top:0;right:0;height:100%;width:min(86vw,400px);display:flex;flex-direction:column;gap:4px;padding:20px 22px;
   background:rgba(249,244,232,.72);-webkit-backdrop-filter:blur(30px) saturate(1.2);backdrop-filter:blur(30px) saturate(1.2);
-  border-left:1px solid var(--edge);box-shadow:-40px 0 80px -40px rgba(15,23,42,.4);
+  border-left:1px solid var(--edge);box-shadow:-40px 0 80px -40px rgba(64,48,26,.4);
   transform:translateX(26px);transition:transform .5s var(--spring)}
 .sheet.open .sheet-panel{transform:none}
 .sheet-head{display:flex;align-items:center;justify-content:space-between;padding:8px 4px 20px}
@@ -448,18 +432,12 @@ footer{border-top:1px solid rgb(var(--lc)/.08);padding:60px 0 30px;position:rela
   align-items:center;justify-content:space-between;font-size:13.5px;color:var(--text-primary);font-weight:500}
 .pal-note b{font-family:var(--f-serif);font-style:italic;font-weight:400;color:var(--acc-ink)}
 /* footer — full-black legibility in light (user request) */
-html[data-theme=finance] footer .f-col p,
 html[data-theme=light] footer .f-col p,
-html[data-theme=finance] footer .f-col h4,
 html[data-theme=light] footer .f-col h4,
-html[data-theme=finance] footer .f-col a,
 html[data-theme=light] footer .f-col a,
-html[data-theme=finance] footer .f-col .fdead,
 html[data-theme=light] footer .f-col .fdead,
-html[data-theme=finance] footer .f-bottom,
-html[data-theme=light] footer .f-bottom{color:#1E293B}
-html[data-theme=finance] footer .f-col .fdead::after,
-html[data-theme=light] footer .f-col .fdead::after{color:#1E293B}
+html[data-theme=light] footer .f-bottom{color:#0A0A0B}
+html[data-theme=light] footer .f-col .fdead::after{color:#0A0A0B}
 
 @media(max-width:860px){.f-grid{grid-template-columns:1fr 1fr}.f-col:first-child{grid-column:1/-1}}
 
@@ -536,7 +514,7 @@ html[data-theme=light] footer .f-col .fdead::after{color:#1E293B}
 .mail-body .m-sub{font-size:14.5px;font-weight:620;color:var(--text-primary);letter-spacing:-.01em;margin-bottom:10px}
 .mail-body p+p{margin-top:9px}
 .mail-cta{display:inline-flex;align-items:center;gap:8px;margin-top:13px;padding:9px 17px;border-radius:999px;
-  background:var(--btnA);color:var(--btnAtx);font-size:12.5px;font-weight:560;box-shadow:inset 0 1px 0 rgba(255,255,255,.15),0 10px 20px -12px rgba(15,23,42,.5)}
+  background:var(--btnA);color:var(--btnAtx);font-size:12.5px;font-weight:560;box-shadow:inset 0 1px 0 rgba(255,255,255,.15),0 10px 20px -12px rgba(64,48,26,.5)}
 .mail.old .mail-body{color:var(--text-muted)}
 .mail.old{background:rgb(var(--cc)/.16)}
 .mail.old .m-sub{color:var(--text-muted)}
@@ -604,7 +582,7 @@ html[data-theme=light] footer .f-col .fdead::after{color:#1E293B}
 .plan.featured .p-name{color:var(--acc-ink)}
 .plan .badge{position:absolute;top:-11px;left:50%;transform:translateX(-50%);z-index:2;font-size:10px;font-weight:660;
   letter-spacing:.14em;text-transform:uppercase;background:var(--btnA);color:var(--btnAtx);padding:5px 13px;border-radius:999px;
-  box-shadow:0 8px 18px -8px rgba(15,23,42,.55);white-space:nowrap}
+  box-shadow:0 8px 18px -8px rgba(64,48,26,.55);white-space:nowrap}
 @media(max-width:960px){.plans{grid-template-columns:1fr;max-width:460px;margin-inline:auto}.plan.featured{order:-1}}
 .guarantee{display:flex;gap:16px;align-items:center;border-radius:var(--r-lg);padding:24px 28px;margin-top:14px;
   background:rgb(var(--cc)/.36);border:1px solid var(--acc-line);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
@@ -759,7 +737,7 @@ svg .vline[stroke-dasharray]{stroke:var(--text-muted)}
 svg .node{stroke:var(--acc)}
 #ag stop,#lg stop{stop-color:var(--acc)}
 .hw-chart svg .vline{stroke:url(#lg)}
-html[data-theme=slate] #ag stop,html[data-theme=slate] #lg stop{stop-color:var(--acc)}
+html[data-theme=dark] #ag stop,html[data-theme=dark] #lg stop{stop-color:var(--acc)}
 
 /* theme toggle — a quiet glass switch between day and night */
 .tgl{width:42px;height:42px;padding:0;border-radius:14px;display:inline-flex;align-items:center;justify-content:center;
@@ -770,11 +748,10 @@ html[data-theme=slate] #ag stop,html[data-theme=slate] #lg stop{stop-color:var(-
 .tgl .ic{width:17px;height:17px;color:var(--text-secondary);transition:color .4s,transform .6s var(--spring)}
 .tgl:hover .ic{color:var(--text-primary)}
 .tgl .ic-moon,.tgl .ic-oled{display:none}
-html[data-theme=slate] .tgl .ic-sun{display:none}
-html[data-theme=slate] .tgl .ic-moon{display:inline-block}
-
-
-html[data-theme=finance] .tgl .ic-moon,html[data-theme=finance] .tgl .ic-oled,
+html[data-theme=dark] .tgl .ic-sun{display:none}
+html[data-theme=dark] .tgl .ic-moon{display:inline-block}
+html[data-theme=amoled] .tgl .ic-sun,html[data-theme=amoled] .tgl .ic-moon{display:none}
+html[data-theme=amoled] .tgl .ic-oled{display:inline-block}
 html[data-theme=light] .tgl .ic-moon,html[data-theme=light] .tgl .ic-oled{display:none}
 
 /* ============================================================
@@ -823,15 +800,15 @@ html[data-theme=light] .tgl .ic-moon,html[data-theme=light] .tgl .ic-oled{displa
   transition:background-color .28s ease, transform .3s var(--spring);
 }
 .tmenu-i:hover{background:rgb(var(--cc)/.85)}
-html[data-theme=slate] .tmenu-i:hover,.tmenu-i:active{transform:scale(.975)}
+html[data-theme=dark] .tmenu-i:hover,html[data-theme=amoled] .tmenu-i:hover{background:rgba(255,255,255,.07)}
+.tmenu-i:active{transform:scale(.975)}
 .tmenu-i .sw{
   flex:0 0 auto;width:22px;height:22px;border-radius:8px;border:1px solid var(--edge);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.4);
 }
-.tmenu-i[data-theme-set=finance] .sw,
-.tmenu-i[data-theme-set=light]  .sw{background:linear-gradient(140deg,#F8FAFC 0%,#F8FAFC 52%,#10B981 52%)}
-.tmenu-i[data-theme-set=slate]  .sw{background:linear-gradient(140deg,#0F172A 0%,#0F172A 52%,#1E293B 52%)}
-
+.tmenu-i[data-theme-set=light]  .sw{background:linear-gradient(140deg,#fffdf7,#ecdcc0)}
+.tmenu-i[data-theme-set=dark]   .sw{background:linear-gradient(140deg,#C4C6C9 0%,#55585E 45%,#5A544B 100%)}
+.tmenu-i[data-theme-set=amoled] .sw{background:linear-gradient(140deg,#1a1a1a,#000)}
 .tmenu-i .lbl{display:flex;flex-direction:column;line-height:1.25;min-width:0}
 .tmenu-i .lbl small{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint);margin-top:2px}
 .tmenu-i .tick{margin-left:auto;width:15px;height:15px;color:var(--acc);opacity:0;transform:scale(.6);transition:opacity .3s ease,transform .4s var(--spring)}
@@ -901,24 +878,95 @@ html[data-theme=slate] .tmenu-i:hover,.tmenu-i:active{transform:scale(.975)}
    EVENING + PURE BLACK — the two dark appearances
    structural surfaces are shared; pure black takes true #000
    ============================================================ */
-html[data-theme=slate] body{background:var(--page)}
-html[data-theme=slate] #veil::before{
+html[data-theme=dark]{
+  /* Sooty Bamboo #5A544B · Quiet Pewter #C4C6C9 · Cloud Grey #55585E */
+  --canvas:#1c1a17; --page:#161512;
+  --text-primary:#EFECE4; --text-secondary:#C4C6C9; --text-muted:#96938C; --text-inverse:#161512;
+  --ink:var(--text-primary); --ink2:var(--text-secondary); --ink3:var(--text-muted);
+  --glass1:rgba(34,32,28,.50);
+  --glass2:rgba(39,37,33,.64);
+  --glass3:rgba(45,43,38,.78);
+  --glass-hi:rgba(255,255,255,.10);
+  --cc:42 40 36;
+  --lc:196 198 201;
+  --edge:rgba(224,222,214,.20);
+  --hi:rgba(255,255,255,.13);
+  --icB:rgba(255,255,255,.15);
+  --accC:196 198 201;
+  --acc:#C4C6C9; --acc-ink:#EFECE4;
+  --btnA:#C4C6C9; --btnAtx:#1d1b18;
+  --ok:#8FA089; --okTx:#d5dfc9; --err:#D79A82;
+  --avaA:#3a3730; --avaB:#55585E; --avaTx:#E2E0D9;
+  --mkA:#4a4740; --mkB:#6b6c6e; --mkC:#9EA0A3;
+  --line:rgb(196 198 201 / .16);
+  --line-soft:rgb(196 198 201 / .10);
+  --sh-sm:inset 0 1px 0 rgba(255,255,255,.10),0 1px 1px rgba(0,0,0,.35),0 10px 28px -20px rgba(0,0,0,.62);
+  --sh-md:inset 0 1px 0 rgba(255,255,255,.12),0 1px 1px rgba(0,0,0,.4),0 22px 46px -22px rgba(0,0,0,.7);
+}
+html[data-theme=amoled]{
+  --canvas:#000000; --page:#000000;
+  --text-primary:#E9E9ED; --text-secondary:#A0A6B2; --text-muted:#7A808C; --text-inverse:#FDFCF8;
+  --ink:var(--text-primary); --ink2:var(--text-secondary); --ink3:var(--text-muted);
+  --glass1:rgba(255,255,255,.030);
+  --glass2:rgba(255,255,255,.055);
+  --glass3:rgba(255,255,255,.085);
+  --glass-hi:rgba(255,255,255,.06);
+  --cc:22 25 33;
+  --lc:96 108 130;
+  --edge:rgba(255,255,255,.13);
+  --hi:rgba(255,255,255,.09);
+  --icB:rgba(255,255,255,.11);
+  --btnA:#69a6e8; --btnAtx:#02131f;
+  --ok:#61956f; --okTx:#cde8c2; --err:#e5947c;
+  --avaA:#0e1622; --avaB:#16263c; --avaTx:#bcd6f0;
+  --mkA:#0c1a2c; --mkB:#163052; --mkC:#2c5c92;
+  --line:rgb(120 134 160 / .20);
+  --line-soft:rgb(120 134 160 / .12);
+  --sh-sm:inset 0 1px 0 rgba(255,255,255,.07),0 1px 1px rgba(0,0,0,.6),0 12px 30px -14px rgba(0,0,0,.9);
+  --sh-md:inset 0 1px 0 rgba(255,255,255,.09),0 1px 1px rgba(0,0,0,.65),0 24px 52px -18px rgba(0,0,0,.95);
+}
+html[data-theme=dark] body{background:#161512}
+html[data-theme=amoled] body{background:#000}
+html[data-theme=dark] #veil::before{
   background:
     radial-gradient(125% 92% at 50% -4%, rgba(226,225,219,.09), transparent 46%),
     radial-gradient(150% 120% at 50% 50%, transparent 52%, rgba(20,18,15,.50) 100%);
 }
-html[data-theme=slate] ::selection{background:var(--acc);color:#0F172A}
-html[data-theme=slate] .hd.scrolled{background:rgba(15,23,42,.72);border-bottom-color:rgb(var(--lc)/.15);box-shadow:0 12px 30px -26px rgba(0,0,0,.65)}
-
-html[data-theme=slate] .nav a:hover,html[data-theme=slate] .btn-pri:hover,html[data-theme=slate] .sheet-bg,html[data-theme=slate] .sheet-panel{background:rgba(30,41,59,.92);border-left-color:var(--edge);box-shadow:-40px 0 80px -40px rgba(0,0,0,.6)}
-html[data-theme=slate] .sgn-bg,html[data-theme=slate] .sgn-card{background:rgba(30,41,59,.94);border-color:var(--edge);box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 40px 90px -40px rgba(0,0,0,.72)}
-html[data-theme=slate] .toast{background:rgba(30,41,59,.95);box-shadow:0 20px 44px -16px rgba(0,0,0,.65)}
-html[data-theme=slate] .sgn-close:hover,html[data-theme=slate] .jump:hover,html[data-theme=slate] .hw .hl,html[data-theme=slate] .plan.featured,html[data-theme=slate] .plan.featured::before,@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))){
-  html[data-theme=slate] .glass{background:rgba(30,41,59,.92)}
-  html[data-theme=slate] .glass.g2{background:rgba(30,41,59,.95)}
-  html[data-theme=slate] .glass.g4{background:rgba(30,41,59,.92)}
-  html[data-theme=slate] .hd.scrolled{background:rgba(15,23,42,.97)}
-      
+html[data-theme=amoled] #veil::before{
+  background:
+    radial-gradient(125% 92% at 50% -4%, rgba(150,180,240,.045), transparent 46%),
+    radial-gradient(150% 120% at 50% 50%, transparent 60%, rgba(0,0,0,.55) 100%);
+}
+html[data-theme=dark] ::selection{background:var(--acc);color:#1d1b18}
+html[data-theme=amoled] ::selection{background:var(--acc);color:#0b1522}
+html[data-theme=dark] .hd.scrolled{background:rgba(26,24,21,.62);border-bottom-color:rgb(var(--lc)/.15);box-shadow:0 12px 30px -26px rgba(0,0,0,.65)}
+html[data-theme=amoled] .hd.scrolled{background:rgba(0,0,0,.72);border-bottom-color:rgb(var(--lc)/.2);box-shadow:0 12px 30px -26px rgba(0,0,0,.9)}
+html[data-theme=dark] .nav a:hover,html[data-theme=amoled] .nav a:hover{background:rgba(255,255,255,.06)}
+html[data-theme=dark] .btn-pri:hover,html[data-theme=amoled] .btn-pri:hover{filter:brightness(.94)}
+html[data-theme=dark] .sheet-bg,html[data-theme=amoled] .sheet-bg{background:rgba(0,0,0,.62)}
+html[data-theme=dark] .sheet-panel{background:rgba(26,24,21,.92);border-left-color:var(--edge);box-shadow:-40px 0 80px -40px rgba(0,0,0,.6)}
+html[data-theme=amoled] .sheet-panel{background:rgba(0,0,0,.9);border-left-color:rgba(255,255,255,.09);box-shadow:-40px 0 80px -40px rgba(0,0,0,.9)}
+html[data-theme=dark] .sgn-bg,html[data-theme=amoled] .sgn-bg{background:rgba(0,0,0,.7)}
+html[data-theme=dark] .sgn-card{background:rgba(29,27,24,.94);border-color:var(--edge);box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 40px 90px -40px rgba(0,0,0,.72)}
+html[data-theme=amoled] .sgn-card{background:rgba(0,0,0,.92);border-color:rgba(255,255,255,.12);box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 40px 90px -40px rgba(0,0,0,.95)}
+html[data-theme=dark] .toast{background:rgba(31,29,25,.95);box-shadow:0 20px 44px -16px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.1)}
+html[data-theme=amoled] .toast{background:rgba(0,0,0,.92);border:1px solid rgba(255,255,255,.1);box-shadow:0 20px 44px -16px rgba(0,0,0,.9),inset 0 1px 0 rgba(255,255,255,.06)}
+html[data-theme=dark] .sgn-close:hover,html[data-theme=amoled] .sgn-close:hover{background:rgb(var(--cc)/.95)}
+html[data-theme=dark] .jump:hover,html[data-theme=amoled] .jump:hover{background:rgb(var(--cc)/.32)}
+html[data-theme=dark] .hw .hl,html[data-theme=amoled] .hw .hl{background:radial-gradient(520px 300px at 30% -20%,rgba(255,255,255,.30),transparent 60%)}
+html[data-theme=dark] .plan.featured,html[data-theme=amoled] .plan.featured{border-color:var(--edge);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 24px 54px -24px rgba(0,0,0,.62)}
+html[data-theme=dark] .plan.featured::before,html[data-theme=amoled] .plan.featured::before{
+  background:radial-gradient(70% 44% at 50% -6%, var(--acc-wash), transparent 70%),
+              radial-gradient(60% 50% at 50% 112%, var(--acc-wash), transparent 75%)}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))){
+  html[data-theme=dark] .glass{background:rgba(32,30,26,.94)}
+  html[data-theme=dark] .glass.g2{background:rgba(37,35,31,.95)}
+  html[data-theme=dark] .glass.g4{background:rgba(28,26,23,.92)}
+  html[data-theme=dark] .hd.scrolled{background:rgba(27,25,22,.97)}
+  html[data-theme=amoled] .glass{background:#000}
+  html[data-theme=amoled] .glass.g2{background:#000}
+  html[data-theme=amoled] .glass.g4{background:#000}
+  html[data-theme=amoled] .hd.scrolled{background:#000}
 }
 
 /* eco — automatic calm for machines that struggle */
@@ -942,7 +990,7 @@ html.eco .btn-glass,html.eco .burger{-webkit-backdrop-filter:none!important;back
   .glass{background:rgba(252,249,241,.86)}
   .glass.g4{background:rgba(252,249,241,.72)}
   .glass.g2{background:rgba(252,249,241,.9)}
-  .hd.scrolled{background:rgba(255,255,255,.96)}
+  .hd.scrolled{background:rgba(250,245,235,.96)}
 }
 
 /* ============================================================
@@ -959,9 +1007,9 @@ html.eco .btn-glass,html.eco .burger{-webkit-backdrop-filter:none!important;back
   /* refined radii — mathematically consistent, slightly tighter than original 26/22 */
   --r-xl:24px; --r-lg:18px; --r-md:14px; --r-sm:11px;
   /* restrained shadows — less inset glare, softer ambient */
-  --sh-sm:inset 0 1px 0 rgba(255,255,255,.58),0 1px 1px rgba(15,23,42,.05),0 10px 24px -18px rgba(15,23,42,.22);
-  --sh-md:inset 0 1px 0 rgba(255,255,255,.66),0 1px 1px rgba(15,23,42,.05),0 18px 36px -20px rgba(15,23,42,.28);
-  --sh-lg:inset 0 1px 0 rgba(255,255,255,.70),0 1px 1px rgba(15,23,42,.05),0 24px 48px -22px rgba(15,23,42,.32);
+  --sh-sm:inset 0 1px 0 rgba(255,255,255,.58),0 1px 1px rgba(64,48,26,.05),0 10px 24px -18px rgba(64,48,26,.22);
+  --sh-md:inset 0 1px 0 rgba(255,255,255,.66),0 1px 1px rgba(64,48,26,.05),0 18px 36px -20px rgba(64,48,26,.28);
+  --sh-lg:inset 0 1px 0 rgba(255,255,255,.70),0 1px 1px rgba(64,48,26,.05),0 24px 48px -22px rgba(64,48,26,.32);
 }
 
 /* ---- Visual noise reduction — calmer atmosphere ---- */
@@ -998,8 +1046,8 @@ body{font-size:16px;line-height:1.66}
 .nav a:hover{background:rgba(90,70,35,.06)}
 .btn{font-weight:600;letter-spacing:.002em;transition:transform .28s var(--ease-spring),box-shadow .32s ease,background-color .28s ease,border-color .28s ease}
 .btn:active{transform:translateY(1px) scale(.98)}
-.btn-pri{box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 12px 24px -16px rgba(15,23,42,.45)}
-.btn-pri:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 16px 28px -16px rgba(15,23,42,.44)}
+.btn-pri{box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 12px 24px -16px rgba(64,48,26,.45)}
+.btn-pri:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 16px 28px -16px rgba(64,48,26,.44)}
 .burger{width:40px;height:40px;border-radius:12px}
 
 /* ---- Hero — what / why / why different in 5 seconds ---- */
@@ -1092,7 +1140,7 @@ body{font-size:16px;line-height:1.66}
 .plan .btn{padding:12px 18px;font-size:14.2px}
 .plan.featured{border:1px solid var(--acc-line);box-shadow:inset 0 1px 0 rgba(255,255,255,.78),0 20px 44px -20px rgba(96,70,30,.30);transform:translateY(-2px)}
 .plan.featured::before{opacity:.9}
-.plan.featured .badge{top:-10px;padding:5px 12px;font-size:9.5px;letter-spacing:.14em;box-shadow:0 6px 14px -6px rgba(15,23,42,.45)}
+.plan.featured .badge{top:-10px;padding:5px 12px;font-size:9.5px;letter-spacing:.14em;box-shadow:0 6px 14px -6px rgba(64,48,26,.45)}
 .pricing-sw{margin:6px 0 36px;gap:12px}
 .sw{width:52px;height:28px}
 .sw i{width:21px;height:21px;top:2.5px;left:2.5px}
@@ -1221,9 +1269,10 @@ svg .vline{stroke-width:2.2}
 
       <div class="tmenu" id="tmenu" role="menu" aria-label="Theme">
         <span class="tmenu-h" style="--d:40ms">Appearance</span>
-        <button type="button" role="menuitemradio" class="tmenu-i" data-theme-set="finance" aria-checked="false" style="--d:90ms"><span class="sw" aria-hidden="true"></span><span class="lbl">Minimal Finance<small>light · emerald</small></span><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></button>
-        <button type="button" role="menuitemradio" class="tmenu-i" data-theme-set="slate" aria-checked="false" style="--d:150ms"><span class="sw" aria-hidden="true"></span><span class="lbl">Slate<small>dark · same minimal</small></span><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></button>
-                <hr class="tmenu-sep" aria-hidden="true">
+        <button type="button" role="menuitemradio" class="tmenu-i" data-theme-set="light"  aria-checked="false" style="--d:90ms"><span class="sw" aria-hidden="true"></span><span class="lbl">Light theme<small>ivory</small></span><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></button>
+        <button type="button" role="menuitemradio" class="tmenu-i" data-theme-set="dark"   aria-checked="false" style="--d:150ms"><span class="sw" aria-hidden="true"></span><span class="lbl">Dark theme<small>pewter</small></span><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></button>
+        <button type="button" role="menuitemradio" class="tmenu-i" data-theme-set="amoled" aria-checked="false" style="--d:210ms"><span class="sw" aria-hidden="true"></span><span class="lbl">Amoled theme<small>pure black</small></span><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></button>
+        <hr class="tmenu-sep" aria-hidden="true">
         <button type="button" role="menuitem" class="tmenu-i rnd" data-theme-random style="--d:265ms"><span class="sw" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg></span><span class="lbl">Random theme<small>surprise me</small></span></button>
         <div class="tmenu-sky" id="tskynow" hidden><span class="meta"><b data-sky-name></b><small data-sky-en></small></span><span class="dots" data-sky-dots aria-hidden="true"></span></div>
       </div>
@@ -1248,9 +1297,10 @@ svg .vline{stroke-width:2.2}
           <div class="m-app">
         <span class="m-app-l">Appearance</span>
         <div class="m-seg" role="group" aria-label="Appearance">
-          <button type="button" class="m-topt" data-theme-set="finance" aria-pressed="true">Light<small>minimal finance</small></button>
-          <button type="button" class="m-topt" data-theme-set="slate" aria-pressed="false">Dark<small>slate</small></button>
-                    <button type="button" class="m-topt" data-theme-random>Random<small>surprise me</small></button>
+          <button type="button" class="m-topt" data-theme-set="light" aria-pressed="true">Daylight<small>ivory</small></button>
+          <button type="button" class="m-topt" data-theme-set="dark" aria-pressed="false">Evening<small>pewter</small></button>
+          <button type="button" class="m-topt" data-theme-set="amoled" aria-pressed="false">Pure black<small>AMOLED</small></button>
+          <button type="button" class="m-topt" data-theme-random>Random<small>surprise me</small></button>
         </div>
       </div>
     <div class="m-cta">
@@ -2325,7 +2375,8 @@ function setAccent(pal){
   curPal = pal;
   var th=currentTheme();
   var s = pal.s, l = pal.l, ink, v1, v2;
-  if(th==='slate'){ s=Math.round(pal.s*.8); l=Math.min(80, pal.l+19); ink=Math.min(88, l+10); v1=.04; v2=.02; }
+  if(th==='amoled'){ s=Math.round(pal.s*.8); l=Math.min(80, pal.l+19); ink=Math.min(88, l+10); v1=.04; v2=.02; }
+  else if(th==='dark'){ s=Math.round(pal.s*.82); l=Math.min(76, pal.l+17); ink=Math.min(88, l+11); v1=.10; v2=.06; }
   else { ink = Math.max(28, pal.l-14); v1=.26; v2=.14; }
   accent = hsl(pal.a, s, l);
   var rs = document.documentElement.style;
@@ -2352,15 +2403,12 @@ $$('[data-skip]').forEach(function(b){
   });
 });
 /* ---------- appearance engine: daylight / evening / pure black ---------- */
-function currentTheme(){ var t=document.documentElement.getAttribute('data-theme'); return (t==='finance'||t==='slate')?t:'finance'; }
+function currentTheme(){ var t=document.documentElement.getAttribute('data-theme'); return (t==='dark'||t==='amoled')?t:'light'; }
 var savedTheme=null; try{ savedTheme=localStorage.getItem('rv.theme'); }catch(e){}
-/* Minimal Finance — Nocturne-era values map by intent; default light. */
-savedTheme=(savedTheme==='slate'||savedTheme==='dark'||savedTheme==='amoled'||savedTheme==='minimal2')?'slate':'finance';
+if(savedTheme!=='dark' && savedTheme!=='light' && savedTheme!=='amoled') savedTheme=(matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
 document.documentElement.setAttribute('data-theme', savedTheme);
-/* A theme picked on any other page follows here instantly. */
-addEventListener('storage',function(e){ if(e.key==='rv.theme'&&e.newValue){ setTheme(e.newValue==='slate'?'slate':'finance'); } });
-function nextTheme(t){ return t==='finance'?'slate':'finance'; }
-function themeWord(t){ return t==='slate'?'dark theme':'light theme'; }
+function nextTheme(t){ return t==='light'?'dark':(t==='dark'?'amoled':'light'); }
+function themeWord(t){ return t==='light'?'light theme':(t==='dark'?'dark theme':'amoled theme'); }
 var pendingPal=null;
 function rethemePalette(){
   if(pendingPal){ var p=pendingPal; pendingPal=null; setAccent(p); return; }
@@ -2371,7 +2419,7 @@ function updateThemeUI(){
   $$('[data-theme-toggle]').forEach(function(b){
     b.setAttribute('aria-label','Switch to '+themeWord(nxt));
     b.setAttribute('aria-pressed', cur!=='light'?'true':'false');
-    b.title='Light · Dark';
+    b.title='Daylight · Evening · Pure black';
   });
   $$('[data-theme-set]').forEach(function(b){
     var on = b.getAttribute('data-theme-set')===cur;
@@ -2388,7 +2436,7 @@ function swapTheme(){
   try{ localStorage.setItem('rv.theme', currentTheme()); }catch(e){}
 }
 var themeBusy=false;
-var LEAVE_TONE={finance:'#F8FAFC',slate:'#0F172A'};
+var LEAVE_TONE={light:'#f3ead6',dark:'#5A544B',amoled:'#000000'};
 function setTheme(t){
   if(themeBusy || t===currentTheme()) return;
   var tsw=document.getElementById('tsw');
@@ -2425,7 +2473,7 @@ $$('[data-theme-set]').forEach(function(b){
 });
 
 /* ---------- random theme — a different mode plus a fresh accent ---------- */
-var THEME_IDS=['finance','slate'];
+var THEME_IDS=['light','dark','amoled'];
 function hex2hsl(h){
   var v=parseInt(h.slice(1),16), r=(v>>16&255)/255, g=(v>>8&255)/255, b=(v&255)/255;
   var mx=Math.max(r,g,b), mn=Math.min(r,g,b), d=mx-mn, H=0, L=(mx+mn)/2;
