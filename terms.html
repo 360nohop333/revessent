@@ -68,9 +68,9 @@ h1{font-size:clamp(34px,5vw,46px);letter-spacing:-.02em;line-height:1.1;margin:1
   <p class="foot">Last updated: October 2026 · <a href="/privacy.html">Privacy policy</a> · <a href="/index.html">revessent.</a></p>
 </div>
 <script>
-try{var t=localStorage.getItem('rv.theme')||localStorage.getItem('revessent-theme')||'';t=(t==='light'||t==='minimal'||t==='minimal2')?t:'amoled';document.documentElement.dataset.theme=t;}catch(_){document.documentElement.dataset.theme='amoled';}
+try{var t=localStorage.getItem('rv.theme')||localStorage.getItem('revessent-theme')||'';t=(t==='light'||t==='amoled'||t==='minimal'||t==='minimal2')?t:'light';document.documentElement.dataset.theme=t;}catch(_){document.documentElement.dataset.theme='light';}
 /* A theme picked on any other page follows here instantly. */
-addEventListener('storage',function(e){if(e.key==='rv.theme'&&e.newValue){var v=e.newValue;document.documentElement.dataset.theme=(v==='light'||v==='minimal'||v==='minimal2')?v:'amoled';}});
+addEventListener('storage',function(e){if(e.key==='rv.theme'&&e.newValue){var v=e.newValue;document.documentElement.dataset.theme=(v==='light'||v==='amoled'||v==='minimal'||v==='minimal2')?v:'light';}});
 </script>
 </body>
 </html>

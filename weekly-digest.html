@@ -6,11 +6,11 @@
 /* ECLIPSE — the theme choice (rv.theme) is shared by every page and applied
    before first paint. Default: Eclipse (AMOLED black). Nocturne-era values
    map by intent. */
-(function(){var t='amoled';try{var s=localStorage.getItem('rv.theme');
-if(s==='light'||s==='minimal'||s==='minimal2')t=s;}catch(_){}
+(function(){var t='light';try{var s=localStorage.getItem('rv.theme');
+if(s==='light'||s==='amoled'||s==='minimal'||s==='minimal2')t=s;}catch(_){}
 document.documentElement.dataset.theme=t;})();
 addEventListener('storage',function(e){if(e.key==='rv.theme'&&e.newValue){
-var v=e.newValue;document.documentElement.dataset.theme=(v==='light'||v==='minimal'||v==='minimal2')?v:'amoled';}});
+var v=e.newValue;document.documentElement.dataset.theme=(v==='light'||v==='amoled'||v==='minimal'||v==='minimal2')?v:'light';}});
 </script>
 <style>
 :root{color-scheme:dark;--page:#000000;--panel:#000000;--text:#F2F5F7;--text2:#C3CBD6;--muted:#8B94A3;--faint:#6B7482;--champ:#3DDC97;--champC:61 220 151;--blueC:107 184 255;--mint:#3DDC97;--mintC:61 220 151;--neg:#F87B6C;--negC:248 123 108;--info:#6BB8FF;--infoC:107 184 255;--line:rgba(140,244,196,.12);--line2:rgba(255,255,255,.13);--spring:cubic-bezier(.16,1,.3,1);--f-sans:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;--f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;--sbw:260px;--tbh:68px}

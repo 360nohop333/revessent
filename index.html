@@ -4,7 +4,7 @@
 <script>
 /* ECLIPSE — the theme choice (rv.theme) is shared by EVERY page, so the
    mode picked here is the mode you get on login, dashboard, and beyond.
-   Default: Eclipse (AMOLED black). */
+   Default: Daylight (light). */
 (function(){var t='amoled';try{var s=localStorage.getItem('rv.theme');
 if(s==='light'||s==='minimal'||s==='minimal2')t=s;}catch(_){t='amoled';}
 document.documentElement.setAttribute('data-theme',t);})();
@@ -2484,13 +2484,13 @@ $$('[data-skip]').forEach(function(b){
   });
 });
 /* ---------- appearance engine: daylight / evening / pure black ---------- */
-function currentTheme(){ var t=document.documentElement.getAttribute('data-theme'); return (t==='light'||t==='amoled'||t==='minimal'||t==='minimal2')?t:'amoled'; }
+function currentTheme(){ var t=document.documentElement.getAttribute('data-theme'); return (t==='light'||t==='amoled'||t==='minimal'||t==='minimal2')?t:'light'; }
 var savedTheme=null; try{ savedTheme=localStorage.getItem('rv.theme'); }catch(e){}
 /* ECLIPSE is the default; Minimal I/II pass through, dark picks stay dark. */
-savedTheme=(savedTheme==='light'||savedTheme==='minimal'||savedTheme==='minimal2')?savedTheme:'amoled';
+savedTheme=(savedTheme==='light'||savedTheme==='amoled'||savedTheme==='minimal'||savedTheme==='minimal2')?savedTheme:'light';
 document.documentElement.setAttribute('data-theme', savedTheme);
 /* One choice, every page — other tabs follow a theme change instantly. */
-addEventListener('storage',function(e){ if(e.key==='rv.theme'&&e.newValue){ var v=e.newValue; setTheme((v==='light'||v==='amoled'||v==='minimal'||v==='minimal2')?v:'amoled'); } });
+addEventListener('storage',function(e){ if(e.key==='rv.theme'&&e.newValue){ var v=e.newValue; setTheme((v==='light'||v==='amoled'||v==='minimal'||v==='minimal2')?v:'light'); } });
 function nextTheme(t){ var T=['light','amoled','minimal','minimal2']; return T[(T.indexOf(t)+1)%T.length]||'light'; }
 function themeWord(t){ return t==='light'?'Daylight theme':(t==='minimal'?'Minimal theme':(t==='minimal2'?'Minimal II theme':'Eclipse theme')); }
 var pendingPal=null;

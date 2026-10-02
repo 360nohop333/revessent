@@ -10,8 +10,8 @@
 <script>
 /* ECLIPSE — apply the shared theme choice (rv.theme, used by every page)
    before first paint. Default: Eclipse (AMOLED black). */
-(function(){var t='amoled';try{var s=localStorage.getItem('rv.theme');
-if(s==='light'||s==='minimal'||s==='minimal2')t=s;}catch(_){}
+(function(){var t='light';try{var s=localStorage.getItem('rv.theme');
+if(s==='light'||s==='amoled'||s==='minimal'||s==='minimal2')t=s;}catch(_){}
 document.documentElement.setAttribute('data-theme',t);})();
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2152,11 +2152,11 @@ var THEMES={
   minimal2:{name:'Minimal II',desc:'Inverted · Ink on black',    scheme:'dark',  tone:'#000000', wash:'#000000'}
 };
 /* Nocturne-era values map by intent; Minimal I/II pass through. */
-function mapTheme(t){ return (t==='light'||t==='minimal'||t==='minimal2')?t:'amoled'; }
+function mapTheme(t){ return (t==='light'||t==='amoled'||t==='minimal'||t==='minimal2')?t:'light'; }
 /* Hoist-safe: the sky module calls this before THEMES is assigned. */
 function currentTheme(){ var t=document.documentElement.getAttribute('data-theme');
-  return (t==='light'||t==='amoled'||t==='minimal'||t==='minimal2')?t:'amoled'; }
-var savedTheme='amoled'; try{ savedTheme=mapTheme(localStorage.getItem('rv.theme')); }catch(e){}
+  return (t==='light'||t==='amoled'||t==='minimal'||t==='minimal2')?t:'light'; }
+var savedTheme='light'; try{ savedTheme=mapTheme(localStorage.getItem('rv.theme')); }catch(e){}
 document.documentElement.setAttribute('data-theme', savedTheme);
 /** Sync the panel button, the radio ticks and color-scheme to the live theme. */
 function updateThemeUI(){

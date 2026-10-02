@@ -8,8 +8,8 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='%23000000'/%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='none' stroke='%233DDC97' stroke-opacity='.45' stroke-width='1.5'/%3E%3Cpath d='M9 21h3l2-7 3 10 2.4-8 2.6 5H24' fill='none' stroke='%233DDC97' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <script>
 /* ECLIPSE — apply the shared theme choice before first paint. */
-(function(){var t='amoled';try{var s=localStorage.getItem('rv.theme')||localStorage.getItem('revessent-theme')||'';
-if(s==='light'||s==='minimal'||s==='minimal2')t=s;}catch(_){t='amoled';}
+(function(){var t='light';try{var s=localStorage.getItem('rv.theme')||localStorage.getItem('revessent-theme')||'';
+if(s==='light'||s==='amoled'||s==='minimal'||s==='minimal2')t=s;}catch(_){t='light';}
 document.documentElement.dataset.theme=t;})();
 </script>
 <style>
@@ -296,18 +296,18 @@ footer{border-top:1px solid rgb(var(--lc)/.08);padding:60px 0 30px;margin-top:0}
 (function () {
   'use strict';
 
-  /* Theme — ECLIPSE (amoled, default) + DAYLIGHT (light), read from the
+  /* Theme — DAYLIGHT (light, default) + ECLIPSE (amoled), read from the
      same rv.theme key every page uses; the choice follows you everywhere. */
   (function applyTheme() {
     var saved = '';
     try { saved = localStorage.getItem('rv.theme') || localStorage.getItem('revessent-theme') || ''; } catch (_) {}
-    saved = ['light', 'minimal', 'minimal2'].includes(saved) ? saved : 'amoled';
+    saved = ['light', 'amoled', 'minimal', 'minimal2'].includes(saved) ? saved : 'light';
     document.documentElement.dataset.theme = saved;
   })();
   /* A theme picked on any other page follows here instantly. */
   addEventListener('storage', function(e) {
     if (e.key === 'rv.theme' && e.newValue) {
-      var v = e.newValue; document.documentElement.dataset.theme = ['light', 'minimal', 'minimal2'].includes(v) ? v : 'amoled';
+      var v = e.newValue; document.documentElement.dataset.theme = ['light', 'amoled', 'minimal', 'minimal2'].includes(v) ? v : 'light';
     }
   });
 

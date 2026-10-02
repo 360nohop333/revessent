@@ -4,11 +4,11 @@
 /* ECLIPSE — the theme choice (rv.theme) is shared by EVERY page, so the
    mode you picked on the landing page is the mode you land on here.
    Default: Eclipse (AMOLED black). */
-(function(){var t='amoled';try{var s=localStorage.getItem('rv.theme')||localStorage.getItem('revessent-theme')||'';
-if(s==='light'||s==='minimal'||s==='minimal2')t=s;}catch(_){t='amoled';}
+(function(){var t='light';try{var s=localStorage.getItem('rv.theme')||localStorage.getItem('revessent-theme')||'';
+if(s==='light'||s==='amoled'||s==='minimal'||s==='minimal2')t=s;}catch(_){t='light';}
 document.documentElement.dataset.theme=(t==='amoled')?'dark':t;})();
 addEventListener('storage',function(e){if(e.key==='rv.theme'&&e.newValue){
-var v=e.newValue;if(v!=='light'&&v!=='minimal'&&v!=='minimal2')v='amoled';
+var v=e.newValue;if(v!=='light'&&v!=='amoled'&&v!=='minimal'&&v!=='minimal2')v='light';
 document.documentElement.dataset.theme=(v==='amoled')?'dark':v;}});
 </script>
   <head>
@@ -1040,7 +1040,7 @@ document.documentElement.dataset.theme=(v==='amoled')?'dark':v;}});
         const domTheme = (t) => (t === "amoled" ? "dark" : t);
         const nextLoginTheme = (t) => LOGIN_THEMES[(LOGIN_THEMES.indexOf(t) + 1) % LOGIN_THEMES.length] || "amoled";
         function applyTheme(theme) {
-          const t = LOGIN_THEMES.includes(theme) ? theme : "amoled";
+          const t = LOGIN_THEMES.includes(theme) ? theme : "light";
           document.documentElement.dataset.theme = domTheme(t);
           const nxt = nextLoginTheme(t);
           const darkish = t === "amoled" || t === "minimal2";
@@ -1057,12 +1057,12 @@ document.documentElement.dataset.theme=(v==='amoled')?'dark':v;}});
           }
         }
 
-        let savedTheme = "amoled";
+        let savedTheme = "light";
         try {
           const saved = localStorage.getItem("rv.theme") || localStorage.getItem("revessent-theme") || "";
-          savedTheme = LOGIN_THEMES.includes(saved) ? saved : "amoled";
+          savedTheme = LOGIN_THEMES.includes(saved) ? saved : "light";
         } catch (error) {
-          savedTheme = "amoled";
+          savedTheme = "light";
         }
         applyTheme(savedTheme);
         themeToggle.addEventListener("click", () => {

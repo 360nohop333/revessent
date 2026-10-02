@@ -633,18 +633,18 @@ function testSources() {
   check('supabase-auth: loud prod warning on default fallback (2nd-opinion #20)', read('server/_lib/supabase-auth.js').includes('VERCEL_ENV') && read('server/_lib/supabase-auth.js').includes('HARD-CODED'));
   check('digest copy: auto-generated, not "added later" (2nd-opinion #14)', !read('weekly-digest.html').toLowerCase().includes('added later'));
 
-  // ── ECLIPSE theme system (Nocturne retired, AMOLED black default) ──
+  // ── ECLIPSE theme system (Nocturne retired; Daylight is the default, user choice persists) ──
   const ECL_PAGES = ['dashboard.html', 'members.html', 'weekly-digest.html', 'case-detail.html', 'settings.html', 'login.html', 'reset-password.html', 'changelog.html', 'index.html', 'privacy.html', 'terms.html'];
   check('eclipse: Nocturne palette (champagne/navy/cream) gone from every page', ECL_PAGES.every((p) => !/f2d8a2|cbb07e|242,216,162|242 216 162|fff8e9|07111f|050914|255,248,233/i.test(read(p))));
   check('eclipse: true-black canvas + electric mint accent on every page', ECL_PAGES.every((p) => read(p).includes('#000000') && read(p).includes('#3DDC97')));
   check('eclipse: one shared choice — rv.theme read + storage listener on every page', ECL_PAGES.every((p) => read(p).includes('rv.theme') && /addEventListener\((['"])storage\1/.test(read(p))));
   check('eclipse: pre-paint theme bootstrap on every page (no flash)', ECL_PAGES.every((p) => /dataset\.theme|data-theme',t|setAttribute\('data-theme'/.test(read(p))));
-  check('eclipse: default is the AMOLED dark theme everywhere', read('dashboard.html').includes("savedTheme='amoled'") && read('index.html').includes("?savedTheme:'amoled'") && read('login.html').includes('savedTheme = "amoled"'));
+  check('eclipse: default is the Daylight (light) theme everywhere', read('dashboard.html').includes("savedTheme='light'") && read('index.html').includes("?savedTheme:'light'") && read('login.html').includes('savedTheme = "light"'));
   check('eclipse: dashboard picker offers Eclipse, Daylight, Minimal, Minimal II', (() => { const d = read('dashboard.html'); return ['amoled', 'light', 'minimal', 'minimal2'].every((t) => d.includes('data-theme-set="' + t + '"')) && d.includes('>Eclipse<') && d.includes('>Daylight<') && d.includes('>Minimal<') && d.includes('>Minimal II<') && !d.includes('data-theme-set="dark"') && !d.includes('>Nocturne<'); })());
   check('eclipse: login uses the shared rv.theme key (landing dark → login dark)', read('login.html').includes('localStorage.setItem(\"rv.theme\"') && !read('login.html').includes('setItem(\"revessent-theme\"'));
   check('eclipse: landing page offers all four themes (no Evening)', (() => { const i = read('index.html'); return ['light', 'amoled', 'minimal', 'minimal2'].every((t) => i.includes('data-theme-set="' + t + '"')) && !i.includes('data-theme-set="dark"') && i.includes('>Eclipse<') && i.includes('>Minimal<'); })());
   check('minimal I & II available on every page', ECL_PAGES.every((p) => /data-theme=(["']?)minimal\1[,{\] ]/.test(read(p)) && /data-theme=(["']?)minimal2\1[,{\] ]/.test(read(p))));
-  check('minimal: dashboard registry carries all four + passthrough mapping', read('dashboard.html').includes("minimal2:{name:'Minimal II'") && read('dashboard.html').includes("(t==='light'||t==='minimal'||t==='minimal2')?t:'amoled'"));
+  check('minimal: dashboard registry carries all four + passthrough mapping', read('dashboard.html').includes("minimal2:{name:'Minimal II'") && read('dashboard.html').includes("(t==='light'||t==='amoled'||t==='minimal'||t==='minimal2')?t:'light'"));
 
   check('eclipse: mint favicons across the app', ['dashboard.html', 'members.html', 'weekly-digest.html', 'case-detail.html', 'changelog.html', 'index.html', 'privacy.html', 'terms.html', 'settings.html'].every((p) => read(p).includes('%233DDC97')));
 
