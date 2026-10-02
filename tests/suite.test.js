@@ -1408,7 +1408,7 @@ function testGlassKit() {
   check('glass-kit: chroma upgrade is feature-detected, frost fallback kept',
     kitJs.includes("CSS.supports('backdrop-filter', 'url(#gk-glass-filter)')") &&
     kitJs.includes('lg-chroma') &&
-    /backdrop-filter:\s*blur\(10px\)/.test(kitCss) && kitCss.includes('var(--gk-filter, blur(10px))'));
+    /backdrop-filter:\s*blur\(14px\)/.test(kitCss) && kitCss.includes('var(--gk-filter, blur(14px))'));
 
   // one signature liquid-glass surface per showcase page, plus a pill CTA or
   // (on settings) the liquid switches

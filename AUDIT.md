@@ -451,3 +451,27 @@ Minimal gating unchanged: under Minimal I/II the card treatment is
 graph canvas. Verification: scripts parse, CSS balanced,
 `npm test` → **202/202** (every-card scan, graph carrier + Minimal-II
 exclusion checks).
+
+## Glass Kit v3 — the refractive pane (new card design, dashboard first)
+
+The v2 stamp made every card glassy but kept the original card faces.
+v3 replaces the card design itself: `[data-liquidglass]` now renders as
+a **refractive pane** —
+
+- **lit glass edge** — 1px theme-tuned border (bright on Daylight,
+  faint on Eclipse) plus a rim light along the top inner edge;
+- **diagonal tint wash** — a white gradient that fades across the pane
+  over the frost base;
+- **inner glow + shaded heel** — a soft interior light with a darker
+  lower lip, so the pane reads as a thick glass slab, not a flat fill;
+- **stronger refraction** — backdrop blur 10→14px with saturate 1.2→1.4,
+  and the chromatic-displacement filter (Chromium) on top.
+
+Because the dashboard carries ten of these panes (cards, KPI tiles,
+connect, pilot) it transforms most; every other page's cards get the
+same design for consistency. The kit deliberately still never sets
+`transition` on cards (reveal animations own that property), and pages
+keep their radius, padding, and hover motion. Minimal I/II: unchanged
+gating — flat ink cards over the graph canvas.
+
+`npm test` → **202/202** (frost-fallback assertions updated to 14px).

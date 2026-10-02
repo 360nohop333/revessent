@@ -9,8 +9,9 @@
                     Login's .glassy-button keeps its own surface
                     choreography (::after is its fill layer), so the
                     sheen rides ::before there.
-   2. LIQUID GLASS CARD — [data-liquidglass]: frosted surface with
-                    inset light plays; .lg-chroma adds the SVG
+   2. LIQUID GLASS CARD — [data-liquidglass]: the v3 refractive
+                    pane (lit edge, tint wash, rim light, inner
+                    glow, shaded heel); .lg-chroma adds the SVG
                     chromatic-displacement filter where supported.
    3. LIQUID SWITCH — the settings role="switch" toggles as glass
                     switches with glossy, press-stretchy knobs.
@@ -37,14 +38,23 @@
   --gk-drop: rgba(15, 23, 42, .22);
   --gk-sheen: rgba(255, 255, 255, .55);
   --gk-frost: .055;
+  /* card (v3 refractive pane) */
+  --gk-edge: rgba(255, 255, 255, .24);
+  --gk-tint: .07;
+  --gk-rim: .40;
+  --gk-inner: .10;
+  --gk-shade: .14;
 }
 /* theme: Eclipse & the login dark mode — dimmer glass, deeper core */
 html[data-theme="amoled"]{ --gk-hi1:rgba(255,255,255,.30); --gk-hi2:rgba(255,255,255,.16);
-  --gk-core:rgba(0,0,0,.75); --gk-drop:rgba(0,0,0,.55); --gk-sheen:rgba(255,255,255,.30); --gk-frost:.045; }
+  --gk-core:rgba(0,0,0,.75); --gk-drop:rgba(0,0,0,.55); --gk-sheen:rgba(255,255,255,.30); --gk-frost:.045;
+  --gk-edge:rgba(255,255,255,.14); --gk-tint:.05; --gk-rim:.30; --gk-inner:.07; --gk-shade:.22; }
 html[data-theme="dark"]{ --gk-hi1:rgba(255,255,255,.30); --gk-hi2:rgba(255,255,255,.16);
-  --gk-core:rgba(0,0,0,.75); --gk-drop:rgba(0,0,0,.55); --gk-sheen:rgba(255,255,255,.30); --gk-frost:.045; }
+  --gk-core:rgba(0,0,0,.75); --gk-drop:rgba(0,0,0,.55); --gk-sheen:rgba(255,255,255,.30); --gk-frost:.045;
+  --gk-edge:rgba(255,255,255,.14); --gk-tint:.05; --gk-rim:.30; --gk-inner:.07; --gk-shade:.22; }
 html[data-theme="light"]{ --gk-hi1:rgba(255,255,255,.85); --gk-hi2:rgba(255,255,255,.55);
-  --gk-core:rgba(0,0,0,.42); --gk-drop:rgba(64,48,26,.26); --gk-sheen:rgba(255,255,255,.75); --gk-frost:.30; }
+  --gk-core:rgba(0,0,0,.42); --gk-drop:rgba(64,48,26,.26); --gk-sheen:rgba(255,255,255,.75); --gk-frost:.30;
+  --gk-edge:rgba(255,255,255,.80); --gk-tint:.12; --gk-rim:.95; --gk-inner:.22; --gk-shade:.06; }
 
 /* ══ 1. GLASS PILL — primary CTAs ══════════════════════════════ */
 
@@ -150,37 +160,39 @@ html[data-theme="minimal2"] .glassy-button.signup-submit::before{
   display: none;
 }
 
-/* ══ 2. LIQUID GLASS CARD ══════════════════════════════════════ */
+/* ══ 2. LIQUID GLASS CARD — v3 refractive pane ═════════════════ */
 /* Glass themes only — gated with :not() so Minimal I / II keep the
-   page's own ink-on-paper cards, untouched by the kit. */
+   page's own ink-on-paper cards, untouched by the kit.
+   The pane: a lit glass edge, a diagonal tint wash, a rim light
+   along the top, a soft inner glow, and a shaded heel — with the
+   backdrop pulled forward through blur + saturation. The page keeps
+   its radius, padding, and hover motion (the kit never sets
+   `transition` here — reveal animations own that property). */
 html:not([data-theme="minimal"]):not([data-theme="minimal2"]) [data-liquidglass]{
-  background: rgb(255 255 255 / var(--gk-frost));
+  border: 1px solid var(--gk-edge);
+  background:
+    linear-gradient(135deg,
+      rgb(255 255 255 / var(--gk-tint)),
+      rgb(255 255 255 / calc(var(--gk-tint) * .25)) 34%,
+      transparent 62%),
+    rgb(255 255 255 / var(--gk-frost));
   box-shadow:
-    inset 0 0 2px 1px rgba(255, 255, 255, .35),
-    inset 0 0 10px 4px rgba(255, 255, 255, .15),
-    inset 0 4px 16px rgba(17, 17, 26, .05),
-    inset 0 8px 24px rgba(17, 17, 26, .05),
-    inset 0 6px 56px rgba(17, 17, 26, .05),
-    0 24px 60px -28px var(--gk-drop);
-  -webkit-backdrop-filter: blur(10px) saturate(1.2);
-  backdrop-filter: blur(10px) saturate(1.2);
+    inset 0 1px 1px rgb(255 255 255 / var(--gk-rim)),
+    inset 0 0 2px 1px rgb(255 255 255 / calc(var(--gk-rim) * .6)),
+    inset 0 0 26px 4px rgb(255 255 255 / var(--gk-inner)),
+    inset 0 -16px 30px -20px rgb(17 17 26 / var(--gk-shade)),
+    0 2px 6px rgb(10 12 16 / .16),
+    0 26px 64px -30px var(--gk-drop);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(14px) saturate(1.4);
 }
 /* chromatic dispersion (Chromium): the plain blur is declared first,
    so browsers that drop the url() reference still keep the frost. */
 html:not([data-theme="minimal"]):not([data-theme="minimal2"]) [data-liquidglass].lg-chroma{
-  -webkit-backdrop-filter: blur(10px) saturate(1.2);
-  backdrop-filter: blur(10px) saturate(1.2);
-  -webkit-backdrop-filter: var(--gk-filter, blur(10px)) saturate(1.2);
-  backdrop-filter: var(--gk-filter, blur(10px)) saturate(1.2);
-}
-html[data-theme="light"] [data-liquidglass]{
-  box-shadow:
-    inset 0 0 2px 1px rgba(255, 255, 255, .65),
-    inset 0 0 10px 4px rgba(255, 255, 255, .30),
-    inset 0 4px 16px rgba(64, 48, 26, .06),
-    inset 0 8px 24px rgba(64, 48, 26, .05),
-    inset 0 6px 56px rgba(64, 48, 26, .04),
-    0 24px 60px -28px var(--gk-drop);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: var(--gk-filter, blur(14px)) saturate(1.4);
+  backdrop-filter: var(--gk-filter, blur(14px)) saturate(1.4);
 }
 
 /* ══ 3. LIQUID SWITCH — settings' role="switch" toggles ════════ */
