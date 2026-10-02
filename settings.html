@@ -560,13 +560,13 @@ document.documentElement.dataset.theme=t;})();
 </head>
 <body>
 <div aria-live="polite" class="boot" id="boot">
-<div class="boot-card glass-card">
+<div class="boot-card glass-card" data-liquidglass>
 <span aria-hidden="true" class="boot-spinner"></span>
 <p class="section-note" style="margin-top:12px">Checking your Revessent session…</p>
 </div>
 </div>
 <div class="full-error" hidden="" id="pageError">
-<div class="glass-card">
+<div class="glass-card" data-liquidglass>
 <span class="eyebrow">Account</span>
 <h1>Couldn't load your account.</h1>
 <p>Please refresh. If the problem continues, sign in again from the login page.</p>
@@ -591,7 +591,7 @@ document.documentElement.dataset.theme=t;})();
 <h1 id="settingsTitle">Recovery settings</h1>
 <p class="lead">Connect Razorpay, choose the sender your members will see, and set the tone Revessent uses when it writes recovery emails in your name.</p>
 </section>
-<form class="settings-card glass-card" id="settingsForm" novalidate="">
+<form class="settings-card glass-card" id="settingsForm" novalidate="" data-liquidglass>
 <div class="loading-overlay" id="formOverlay"><span aria-hidden="true" class="boot-spinner"></span><span>Loading settings…</span></div>
 <div class="warning" id="loadWarning" role="status"></div>
 <div aria-live="polite" class="message" id="formMessage" role="status"></div>
@@ -706,7 +706,7 @@ document.documentElement.dataset.theme=t;})();
 </div>
 </fieldset>
 </form>
-<section aria-labelledby="apiKeysHeading" class="settings-card glass-card" id="apiKeysCard" style="margin-top:26px">
+<section aria-labelledby="apiKeysHeading" class="settings-card glass-card" id="apiKeysCard" style="margin-top:26px" data-liquidglass>
 <fieldset>
 <div class="section-head">
 <div>
@@ -726,7 +726,7 @@ document.documentElement.dataset.theme=t;})();
 <ul class="key-list" id="keyList"></ul>
 </fieldset>
 </section>
-<section aria-labelledby="inviteHeading" class="settings-card glass-card" id="inviteCard" style="margin-top:26px">
+<section aria-labelledby="inviteHeading" class="settings-card glass-card" id="inviteCard" style="margin-top:26px" data-liquidglass>
 <fieldset>
 <div class="section-head">
 <div>
@@ -742,7 +742,7 @@ document.documentElement.dataset.theme=t;})();
 </fieldset>
 </section>
 
-<section aria-labelledby="auditHeading" class="settings-card glass-card" id="auditCard" style="margin-top:26px">
+<section aria-labelledby="auditHeading" class="settings-card glass-card" id="auditCard" style="margin-top:26px" data-liquidglass>
 <fieldset>
 <div class="section-head">
 <div>
@@ -754,7 +754,7 @@ document.documentElement.dataset.theme=t;})();
 </fieldset>
 </section>
 
-<section aria-labelledby="accountHeading" class="settings-card glass-card" id="accountCard" style="margin-top:26px">
+<section aria-labelledby="accountHeading" class="settings-card glass-card" id="accountCard" style="margin-top:26px" data-liquidglass>
 <fieldset>
 <div class="section-head">
 <div>

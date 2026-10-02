@@ -345,6 +345,7 @@ footer{border-top:1px solid rgb(var(--lc)/.08);padding:60px 0 30px;margin-top:0}
   function entryNode(entry, index) {
     var article = document.createElement('article');
     article.className = 'entry glass';
+    article.setAttribute('data-liquidglass', '');
     article.style.animationDelay = Math.min(index * 70, 420) + 'ms';
     article.innerHTML =
       '<span class="entry-date">' + esc(fmtDate(entry.publishedAt)) + '</span>' +

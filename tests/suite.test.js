@@ -1416,6 +1416,36 @@ function testGlassKit() {
     'members.html', 'weekly-digest.html', 'case-detail.html'];
   check('glass-kit: data-liquidglass surface on the 7 showcase pages',
     GLASS_PAGES.every((p) => read(p).includes('data-liquidglass')));
+
+  // EVERY card is refractive glass now — token-based scan: any element whose
+  // class list carries a card token must carry data-liquidglass too
+  const CARD_TARGETS = {
+    'dashboard.html': ['card', 'kpi', 'connect'],
+    'members.html': ['card'], 'weekly-digest.html': ['card'], 'case-detail.html': ['card'],
+    'settings.html': ['glass-card'],
+    'index.html': ['feat', 'kpi', 'plan', 'panel'],
+    'privacy.html': ['card'], 'terms.html': ['card'],
+  };
+  check('glass-kit: every card on every page is a liquid-glass card',
+    Object.keys(CARD_TARGETS).every((p) => {
+      const tags = read(p).match(/<[a-zA-Z][^>]*>/g) || [];
+      return tags.every((t) => {
+        if (t.includes('data-liquidglass')) return true;
+        const cm = t.match(/class="([^"]*)"/);
+        if (!cm) return true;
+        const toks = cm[1].split(' ').filter(Boolean);
+        return !toks.some((tk) => CARD_TARGETS[p].includes(tk));
+      });
+    }) && read('changelog.html').includes("setAttribute('data-liquidglass'")
+      && read('login.html').includes('auth-card" data-liquidglass'));
+
+  // white Minimal I gets the graph-paper canvas: fine grid + a ghosted
+  // recovery line chart, on every page's background carrier (body, #gradbg,
+  // or body::before); Minimal II stays pure black paper
+  check('glass-kit: graph-paper canvas behind white Minimal I',
+    kitCss.includes('html[data-theme="minimal"] body,html[data-theme="minimal"] #gradbg,html[data-theme="minimal"] body::before') &&
+    (kitCss.match(/data:image\/svg\+xml/g) || []).length >= 2 &&
+    !/minimal2[^{]*\{[^}]*data:image\/svg/.test(kitCss));
   const PILL_PAGES = { 'dashboard.html': 'btn-pri', 'index.html': 'btn-pri', 'changelog.html': 'btn-pri',
     'login.html': 'glassy-button', 'reset-password.html': 'id="resetBtn"', 'case-detail.html': 'btn primary' };
   check('glass-kit: pill CTA present on every page with a primary action',

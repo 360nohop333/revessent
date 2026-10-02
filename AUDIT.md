@@ -420,3 +420,34 @@ Verification: scripts parse on all 11 pages, CSS brace-balanced,
 `npm test` → **200/200** (kit linked everywhere, Minimal gating, 3×
 displacement + 20-value matrices, feature-detected chroma, showcase
 surfaces, pill coverage).
+
+## Glass Kit v2 — every card refractive + the Minimal graph canvas
+
+Two upgrades on top of the shared glass layer:
+
+- **Every card is now a liquid-glass card.** The one-signature-surface-per-
+  page approach was too timid: all 61 card surfaces across the app now
+  carry `data-liquidglass` — dashboard (4 card sections, 4 KPI tiles incl.
+  the risk tile, connect panel, pilot), landing (6 feature cards, 4 KPI
+  tiles, 7 panels, all 3 plans), settings (5 settings-cards, boot card,
+  error card), members / weekly-digest / case-detail cards, privacy and
+  terms (7 each), login auth-card, reset card — plus changelog entries,
+  which are JS-rendered and stamped by their `entryNode()` renderer.
+  Frost + inset light plays everywhere; Chromium upgrades each to the
+  chromatic-displacement refraction filter (feature-detected, plain frost
+  fallback elsewhere).
+- **White Minimal I gets a graph background** (per reference image): a
+  fine engineering grid (44 px cells, major line every 220 px) with a
+  ghosted recovery line chart — dip, then climb past the dashed target —
+  drawn as pure black ink at low opacity, fixed to the viewport behind
+  content. Carriers differ per page (plain `body`, the fixed `#gradbg`
+  layer on dashboard/index/changelog, the fixed `body::before` wash on
+  the members family, login and settings), so the kit styles all three;
+  each page ends up with exactly one visible graph layer. Minimal II
+  stays pure black paper.
+
+Minimal gating unchanged: under Minimal I/II the card treatment is
+`:not()`-gated off entirely — cards stay ink-on-paper over the new
+graph canvas. Verification: scripts parse, CSS balanced,
+`npm test` → **202/202** (every-card scan, graph carrier + Minimal-II
+exclusion checks).

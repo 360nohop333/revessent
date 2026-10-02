@@ -14,6 +14,9 @@
                     chromatic-displacement filter where supported.
    3. LIQUID SWITCH — the settings role="switch" toggles as glass
                     switches with glossy, press-stretchy knobs.
+   4. MINIMAL CANVAS — white Minimal I gets a graph-paper
+                    background: fine grid + a ghosted recovery
+                    line chart, ink at low opacity.
 
    Theme contract: Eclipse/Daylight get the full glass treatment;
    Minimal I / II stay strictly ink-on-paper — the card treatment is
@@ -251,6 +254,23 @@ html[data-theme="minimal2"] .switch::after{
 html[data-theme="minimal"] .switch[aria-checked="true"]::after,
 html[data-theme="minimal2"] .switch[aria-checked="true"]::after{
   background: var(--btnAtx, #fff);
+}
+
+
+/* ══ 4. MINIMAL I — GRAPH-PAPER CANVAS ═════════════════════════ */
+/* White minimal mode gets the reference graph background: a fine
+   engineering grid with a recovery line chart ghosted across the
+   lower viewport — pure black ink at low opacity, behind content.
+   Carriers differ per page (body, the fixed #gradbg layer, or the
+   fixed body::before wash), so all three are covered. Minimal II
+   stays pure black paper. */
+html[data-theme="minimal"] body,html[data-theme="minimal"] #gradbg,html[data-theme="minimal"] body::before{
+  background-color:#ffffff;
+  background-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='620' viewBox='0 0 1200 620'><path d='M40 150H1160' stroke='%23000' stroke-opacity='.10' stroke-dasharray='7 9'/><path d='M40 560H1160' stroke='%23000' stroke-opacity='.16'/><path d='M40 560V150' stroke='%23000' stroke-opacity='.10'/><path d='M180 552v8M320 552v8M460 552v8M600 552v8M740 552v8M880 552v8M1020 552v8' stroke='%23000' stroke-opacity='.14'/><path d='M60 430 200 470 340 390 480 505 620 445 760 355 900 300 1040 320 1140 175V560H60Z' fill='%23000' fill-opacity='.03'/><path d='M60 430 200 470 340 390 480 505 620 445 760 355 900 300 1040 320 1140 175' fill='none' stroke='%23000' stroke-opacity='.17' stroke-width='2.5' stroke-linejoin='round' stroke-linecap='round'/><g fill='%23ffffff' stroke='%23000' stroke-opacity='.22' stroke-width='1.5'><circle cx='60' cy='430' r='5'/><circle cx='200' cy='470' r='5'/><circle cx='340' cy='390' r='5'/><circle cx='480' cy='505' r='5'/><circle cx='620' cy='445' r='5'/><circle cx='760' cy='355' r='5'/><circle cx='900' cy='300' r='5'/><circle cx='1040' cy='320' r='5'/><circle cx='1140' cy='175' r='5'/></g></svg>"),url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><path d='M44.5 0V220M88.5 0V220M132.5 0V220M176.5 0V220M0 44.5H220M0 88.5H220M0 132.5H220M0 176.5H220' stroke='%23000' stroke-opacity='.05'/><path d='M.5 0V220M0 .5H220' stroke='%23000' stroke-opacity='.09'/></svg>");
+  background-repeat:no-repeat,repeat;
+  background-position:50% 96%,0 0;
+  background-size:min(1240px,94vw) auto,220px 220px;
+  background-attachment:fixed,fixed;
 }
 
 /* ══ responsiveness & motion ═══════════════════════════════════ */
