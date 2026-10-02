@@ -1,9 +1,20 @@
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
+<script>
+/* ECLIPSE — the theme choice (rv.theme) is shared by EVERY page, so the
+   mode you picked on the landing page is the mode you land on here.
+   Default: Eclipse (AMOLED black). */
+(function(){var t='light';try{var s=localStorage.getItem('rv.theme')||localStorage.getItem('revessent-theme')||'';
+if(s==='light'||s==='amoled'||s==='minimal'||s==='minimal2')t=s;}catch(_){t='light';}
+document.documentElement.dataset.theme=(t==='amoled')?'dark':t;})();
+addEventListener('storage',function(e){if(e.key==='rv.theme'&&e.newValue){
+var v=e.newValue;if(v!=='light'&&v!=='amoled'&&v!=='minimal'&&v!=='minimal2')v='light';
+document.documentElement.dataset.theme=(v==='amoled')?'dark':v;}});
+</script>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#f1e8d4" />
+    <meta name="theme-color" content="#000000" />
     <title>Welcome to Revessent</title>
     <style>
       /* Revessent shared design tokens, matched to dashboard.html. */
@@ -88,45 +99,83 @@
         --button-2-surface: var(--acc);
       }
 
+      /* ECLIPSE — true #000000 AMOLED black, electric mint accent. */
       html[data-theme="dark"] {
         color-scheme: dark;
-        --canvas: #1c1a17;
-        --page: #161512;
-        --text-primary: #EFECE4;
-        --text-secondary: #C4C6C9;
-        --text-muted: #96938C;
-        --text-inverse: #161512;
-        --text-faint: #7E7B74;
-        --glass1: rgba(34, 32, 28, .50);
-        --glass2: rgba(39, 37, 33, .64);
-        --glass3: rgba(45, 43, 38, .78);
-        --glass-hi: rgba(255, 255, 255, .10);
-        --cc: 42 40 36;
-        --lc: 196 198 201;
-        --edge: rgba(224, 222, 214, .20);
-        --hi: rgba(255, 255, 255, .13);
-        --icB: rgba(255, 255, 255, .15);
-        --accC: 196 198 201;
-        --acc: #C4C6C9;
-        --acc-ink: #EFECE4;
-        --btnA: #C4C6C9;
-        --btnAtx: #1d1b18;
-        --ok: #8FA089;
-        --okTx: #d5dfc9;
-        --err: #D79A82;
-        --line: rgb(196 198 201 / .16);
-        --line-soft: rgb(196 198 201 / .10);
-        --pos: #8FA089;
-        --pos-ink: #A9BBA2;
-        --warn: #C2A472;
-        --warn-ink: #D6BC8E;
-        --neg: #D79A82;
-        --neg-ink: #E4B29D;
-        --rfx-bg: rgba(255, 255, 255, .05);
-        --rfx-border: rgba(255, 255, 255, .15);
-        --rfx-shadow: inset 0 1px 0 rgba(255, 255, 255, .20), inset 0 0 2px 0 rgba(255, 255, 255, .15), 0 8px 32px rgba(0, 0, 0, .30);
-        --rfx-shadow-hi: inset 0 1px 0 rgba(255, 255, 255, .26), inset 0 0 2px 0 rgba(255, 255, 255, .18), 0 18px 52px rgba(0, 0, 0, .42);
+        --canvas: #000000;
+        --page: #000000;
+        --text-primary: #F2F5F7;
+        --text-secondary: #C3CBD6;
+        --text-muted: #8B94A3;
+        --text-inverse: #000000;
+        --text-faint: #6B7482;
+        --glass1: rgba(255, 255, 255, .030);
+        --glass2: rgba(255, 255, 255, .055);
+        --glass3: rgba(10, 13, 15, .92);
+        --glass-hi: rgba(255, 255, 255, .065);
+        --cc: 10 13 15;
+        --lc: 139 148 163;
+        --edge: rgba(255, 255, 255, .10);
+        --hi: rgba(255, 255, 255, .06);
+        --icB: rgba(255, 255, 255, .10);
+        --accC: 61 220 151;
+        --acc: #3DDC97;
+        --acc-ink: #8CF0C4;
+        --btnA: #3DDC97;
+        --btnAtx: #00140C;
+        --ok: #3DDC97;
+        --okTx: #8CF0C4;
+        --err: #F87B6C;
+        --line: rgb(140 244 196 / .13);
+        --line-soft: rgb(140 244 196 / .07);
+        --pos: #3DDC97;
+        --pos-ink: #8CF0C4;
+        --warn: #F5B84C;
+        --warn-ink: #FFD98A;
+        --neg: #F87B6C;
+        --neg-ink: #FFA99E;
+        --rfx-bg: rgba(6, 10, 8, .72);
+        --rfx-border: rgba(255, 255, 255, .10);
+        --rfx-shadow: inset 0 0 0 1px rgba(255, 255, 255, .09), 0 8px 32px rgba(0, 0, 0, .58);
+        --rfx-shadow-hi: inset 0 0 0 1px rgba(61, 220, 151, .22), 0 18px 52px rgba(0, 0, 0, .72);
       }
+
+      /* MINIMAL — white paper, black ink. */
+      html[data-theme="minimal"] {
+        color-scheme: light;
+        --canvas: #ffffff; --page: #ffffff;
+        --text-primary: #000000; --text-secondary: #1a1a1a; --text-muted: #5a5a5a; --text-inverse: #ffffff; --text-faint: #767676;
+        --glass1: rgba(255, 255, 255, .86); --glass2: rgba(255, 255, 255, .92); --glass3: rgba(255, 255, 255, .96); --glass-hi: rgba(0, 0, 0, .04);
+        --cc: 255 255 255; --lc: 0 0 0; --edge: rgba(0, 0, 0, .16); --hi: rgba(0, 0, 0, .05); --icB: rgba(0, 0, 0, .06);
+        --accC: 0 0 0; --acc: #000000; --acc-ink: #000000;
+        --btnA: #000000; --btnAtx: #ffffff;
+        --ok: #000000; --okTx: #000000; --err: #000000;
+        --line: rgb(0 0 0 / .18); --line-soft: rgb(0 0 0 / .10);
+        --pos: #000000; --pos-ink: #000000; --warn: #000000; --warn-ink: #000000; --neg: #000000; --neg-ink: #000000;
+        --rfx-bg: rgba(255, 255, 255, .96); --rfx-border: rgba(0, 0, 0, .16);
+        --rfx-shadow: 0 1px 2px rgba(0, 0, 0, .08), 0 8px 24px -12px rgba(0, 0, 0, .16);
+        --rfx-shadow-hi: 0 2px 4px rgba(0, 0, 0, .10), 0 16px 32px -16px rgba(0, 0, 0, .20);
+      }
+      html[data-theme="minimal"] body { background: var(--page); }
+      html[data-theme="minimal"] body::before { background: none; }
+      /* MINIMAL II — the inverse: white ink on black. */
+      html[data-theme="minimal2"] {
+        color-scheme: dark;
+        --canvas: #000000; --page: #000000;
+        --text-primary: #ffffff; --text-secondary: #e4e4e4; --text-muted: #8f8f8f; --text-inverse: #000000; --text-faint: #6f6f6f;
+        --glass1: rgba(255, 255, 255, .05); --glass2: rgba(255, 255, 255, .08); --glass3: rgba(255, 255, 255, .12); --glass-hi: rgba(255, 255, 255, .06);
+        --cc: 0 0 0; --lc: 255 255 255; --edge: rgba(255, 255, 255, .16); --hi: rgba(255, 255, 255, .07); --icB: rgba(255, 255, 255, .10);
+        --accC: 255 255 255; --acc: #ffffff; --acc-ink: #ffffff;
+        --btnA: #ffffff; --btnAtx: #000000;
+        --ok: #ffffff; --okTx: #ffffff; --err: #ffffff;
+        --line: rgb(255 255 255 / .18); --line-soft: rgb(255 255 255 / .10);
+        --pos: #ffffff; --pos-ink: #ffffff; --warn: #ffffff; --warn-ink: #ffffff; --neg: #ffffff; --neg-ink: #ffffff;
+        --rfx-bg: rgba(0, 0, 0, .92); --rfx-border: rgba(255, 255, 255, .16);
+        --rfx-shadow: 0 1px 2px rgba(0, 0, 0, .60), 0 8px 24px -12px rgba(0, 0, 0, .80);
+        --rfx-shadow-hi: 0 2px 4px rgba(0, 0, 0, .70), 0 16px 32px -16px rgba(0, 0, 0, .90);
+      }
+      html[data-theme="minimal2"] body { background: var(--page); }
+      html[data-theme="minimal2"] body::before { background: none; }
 
       * {
         box-sizing: border-box;
@@ -238,8 +287,8 @@
         width: 22px;
         height: 22px;
         border-radius: 7px;
-        background: linear-gradient(135deg, #6d9fd6, #35639a);
-        box-shadow: 0 4px 10px rgba(53, 99, 154, .25);
+        background: linear-gradient(135deg, #3DDC97, #0E8C63);
+        box-shadow: 0 4px 10px rgba(61, 220, 151, .25);
       }
 
       .brand-dot {
@@ -800,6 +849,9 @@
         }
       }
     </style>
+<!-- Glass Kit: shared liquid-glass UI layer (pill CTAs, glass cards, switches) -->
+<link rel="stylesheet" href="/glass-kit.css">
+<script src="/glass-kit.js" defer></script>
   </head>
   <body>
     <div class="page-shell">
@@ -823,7 +875,7 @@
 
       <main>
         <div class="login-layout">
-          <section class="auth-card" aria-labelledby="authTitle">
+          <section class="auth-card" data-liquidglass aria-labelledby="authTitle">
             <div class="card-heading">
               <h2 id="authTitle">Welcome back</h2>
               <p>Sign in to your workspace or create a new account.</p>
@@ -907,6 +959,7 @@
     </div>
 
     <!-- Override window.REVESSENT_SUPABASE_CONFIG before this script if you use another project. -->
+    <script src="/api/config.js"></script> <!-- audit #66: Supabase project from env, inline fallback below -->
     <script>
       window.REVESSENT_SUPABASE_CONFIG = window.REVESSENT_SUPABASE_CONFIG || {
         url: "https://zujmouzzqiovgbnanrvv.supabase.co",
@@ -979,17 +1032,26 @@
           });
         });
 
+        /* ECLIPSE · DAYLIGHT · MINIMAL · MINIMAL II — four themes in the
+           SAME rv.theme key every page reads; the choice follows you
+           everywhere. The toggle cycles through all four. */
+        const LOGIN_THEMES = ["amoled", "light", "minimal", "minimal2"];
+        const themeName = (t) => (t === "light" ? "Daylight" : t === "minimal" ? "Minimal" : t === "minimal2" ? "Minimal II" : "Eclipse");
+        const domTheme = (t) => (t === "amoled" ? "dark" : t);
+        const nextLoginTheme = (t) => LOGIN_THEMES[(LOGIN_THEMES.indexOf(t) + 1) % LOGIN_THEMES.length] || "amoled";
         function applyTheme(theme) {
-          const isLight = theme === "light";
-          document.documentElement.dataset.theme = isLight ? "light" : "dark";
-          themeToggle.setAttribute("aria-pressed", String(isLight));
-          themeToggle.setAttribute("aria-label", isLight ? "Switch to dark theme" : "Switch to light theme");
-          themeToggle.querySelector(".theme-toggle-label").textContent = isLight ? "Dark mode" : "Light mode";
-          themeIcon.innerHTML = isLight
+          const t = LOGIN_THEMES.includes(theme) ? theme : "light";
+          document.documentElement.dataset.theme = domTheme(t);
+          const nxt = nextLoginTheme(t);
+          const darkish = t === "amoled" || t === "minimal2";
+          themeToggle.setAttribute("aria-pressed", String(darkish));
+          themeToggle.setAttribute("aria-label", "Switch to " + themeName(nxt) + " theme");
+          themeToggle.querySelector(".theme-toggle-label").textContent = themeName(nxt);
+          themeIcon.innerHTML = darkish
             ? '<path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.7 6.7 0 0 0 21 12.8Z"></path>'
             : '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"></path>';
           try {
-            localStorage.setItem("revessent-theme", isLight ? "light" : "dark");
+            localStorage.setItem("rv.theme", t);
           } catch (error) {
             // Storage can be unavailable in privacy-focused browser modes.
           }
@@ -997,12 +1059,22 @@
 
         let savedTheme = "light";
         try {
-          savedTheme = localStorage.getItem("revessent-theme") || "light";
+          const saved = localStorage.getItem("rv.theme") || localStorage.getItem("revessent-theme") || "";
+          savedTheme = LOGIN_THEMES.includes(saved) ? saved : "light";
         } catch (error) {
           savedTheme = "light";
         }
         applyTheme(savedTheme);
-        themeToggle.addEventListener("click", () => applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"));
+        themeToggle.addEventListener("click", () => {
+          const cur = document.documentElement.dataset.theme === "dark" ? "amoled" : document.documentElement.dataset.theme;
+          applyTheme(nextLoginTheme(cur));
+        });
+        /* A theme picked on any other page follows here instantly. */
+        addEventListener("storage", function(e) {
+          if (e.key === "rv.theme" && e.newValue) {
+            applyTheme(e.newValue);
+          }
+        });
 
         function setLoading(form, isLoading, label) {
           const button = form.querySelector("button[type='submit']");
@@ -1040,12 +1112,21 @@
           return { email, password };
         }
 
-        async function syncUser(supabaseUserId, email) {
+        async function syncUser(accessToken, refCode) {
           try {
+            // SECURITY (audit #1): the API now derives identity from the
+            // verified Supabase session token — we never send email/user id
+            // in the body. Only the optional referral code travels in body.
+            const payload = {};
+            if (refCode) payload.ref = refCode;
+
             const response = await fetch("/api/onboard", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ supabaseUserId, email }),
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${accessToken}`
+              },
+              body: JSON.stringify(payload),
               keepalive: true
             });
 
@@ -1056,6 +1137,16 @@
             console.warn("Revessent onboarding sync failed; continuing to dashboard.", error);
           }
         }
+
+        // Referral system: capture ?ref=CODE from the URL on page load and
+        // keep it in sessionStorage so it survives the sign-up form
+        // submission, then send it to /api/onboard with the signup.
+        try {
+          const refParam = new URLSearchParams(window.location.search).get("ref");
+          if (refParam && /^[A-Za-z0-9]{3,24}$/.test(refParam)) {
+            sessionStorage.setItem("rv.ref", refParam.toUpperCase());
+          }
+        } catch (_) { /* private mode / disabled storage — referral is optional */ }
 
         function redirectToDashboard() {
           window.setTimeout(() => {
@@ -1077,7 +1168,11 @@
             if (error) throw error;
             if (!data.user) throw new Error("No authenticated user was returned.");
 
-            void syncUser(data.user.id, data.user.email || values.email);
+            // Audit #57: await the sync so the dashboard never loads before
+            // the Neon user/org exists.
+            if (data.session && data.session.access_token) {
+              await syncUser(data.session.access_token);
+            }
             setMessage(signinMessage, "Signed in successfully. Taking you to your dashboard…", "success");
             redirectToDashboard();
           } catch (error) {
@@ -1101,7 +1196,28 @@
             if (error) throw error;
             if (!data.user) throw new Error("No user was returned. Please try again.");
 
-            void syncUser(data.user.id, data.user.email || values.email);
+            // Audit #55: with Supabase "Confirm email" ON there is no session
+            // after signup — show a check-your-email state instead of
+            // pretending to redirect to a dashboard that would 401.
+            if (!data.session || !data.session.access_token) {
+              setLoading(signupForm, false, "Create account");
+              setMessage(
+                signupMessage,
+                "Account created — check your inbox and confirm your email to continue.",
+                "success"
+              );
+              return;
+            }
+
+            // Fresh signup only — pass the stashed referral code (if any)
+            // through to /api/onboard, then clear it so a later sign-in can
+            // never re-attribute the referral. Audit #57: awaited, not
+            // fire-and-forget, so the org exists before the dashboard loads.
+            let stashedRef = "";
+            try { stashedRef = sessionStorage.getItem("rv.ref") || ""; } catch (_) {}
+            await syncUser(data.session.access_token, stashedRef);
+            if (stashedRef) { try { sessionStorage.removeItem("rv.ref"); } catch (_) {} }
+
             setMessage(signupMessage, "Account created successfully. Taking you to your dashboard…", "success");
             redirectToDashboard();
           } catch (error) {
@@ -1139,7 +1255,7 @@
           forgotButton.textContent = "Sending…";
 
           try {
-            const { error } = await supabaseClient.auth.resetPasswordForEmail(email);
+            const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/reset-password.html` });
             if (error) throw error;
             setMessage(signinMessage, "If an account exists for that email, you'll receive a password reset link shortly.", "success");
           } catch (error) {

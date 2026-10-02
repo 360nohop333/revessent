@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard.html
+Disallow: /settings.html
+Disallow: /members.html
+Disallow: /case-detail.html
+Disallow: /weekly-digest.html
+Disallow: /reset-password.html
+Disallow: /api/

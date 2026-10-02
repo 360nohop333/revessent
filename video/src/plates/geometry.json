@@ -1,0 +1,539 @@
+{
+  "viewport": {
+    "width": 1600,
+    "height": 1000
+  },
+  "dash-queue": {
+    "geom": {
+      "#queue": [
+        {
+          "x": 288,
+          "y": 85,
+          "w": 1284,
+          "h": 437
+        }
+      ],
+      "#queue tbody tr": [
+        {
+          "x": 309,
+          "y": 199,
+          "w": 1242,
+          "h": 61
+        },
+        {
+          "x": 309,
+          "y": 260,
+          "w": 1242,
+          "h": 61
+        },
+        {
+          "x": 309,
+          "y": 321,
+          "w": 1242,
+          "h": 61
+        },
+        {
+          "x": 309,
+          "y": 383,
+          "w": 1242,
+          "h": 61
+        },
+        {
+          "x": 309,
+          "y": 444,
+          "w": 1242,
+          "h": 61
+        }
+      ],
+      "#approveAllBtn": [
+        {
+          "x": 1393,
+          "y": 110,
+          "w": 158,
+          "h": 35
+        }
+      ]
+    },
+    "text": {
+      "#qbadge": "5",
+      "#queue tbody tr td:nth-child(1)": "ASAnanya Sharmaananya.sharma@gmail.com"
+    },
+    "meta": {
+      "scrollY": 1113,
+      "interLoaded": true,
+      "monoLoaded": true,
+      "theme": "amoled"
+    }
+  },
+  "landing-hero": {
+    "geom": {
+      ".hero-copy h1": [
+        {
+          "x": 210,
+          "y": 362,
+          "w": 576,
+          "h": 87
+        }
+      ],
+      ".hw": [
+        {
+          "x": 858,
+          "y": 297,
+          "w": 532,
+          "h": 512
+        }
+      ],
+      ".btn-pri": [
+        {
+          "x": 1262,
+          "y": 14,
+          "w": 128,
+          "h": 40
+        },
+        {
+          "x": 1204,
+          "y": 910,
+          "w": 400,
+          "h": 50
+        },
+        {
+          "x": 210,
+          "y": 616,
+          "w": 186,
+          "h": 50
+        },
+        {
+          "x": 931,
+          "y": 3881,
+          "w": 151,
+          "h": 53
+        }
+      ]
+    },
+    "text": {},
+    "meta": {
+      "scrollY": 0,
+      "interLoaded": true,
+      "monoLoaded": true,
+      "theme": "amoled"
+    }
+  },
+  "dash-hero": {
+    "geom": {
+      "#revRecoveredVal": [
+        {
+          "x": 307,
+          "y": 234,
+          "w": 271,
+          "h": 33
+        }
+      ],
+      "#revRiskVal": [
+        {
+          "x": 632,
+          "y": 234,
+          "w": 271,
+          "h": 33
+        }
+      ],
+      "#recoveryRateLbl": [
+        {
+          "x": 980,
+          "y": 255,
+          "w": 37,
+          "h": 35
+        }
+      ],
+      "#queue": [
+        {
+          "x": 288,
+          "y": 1198,
+          "w": 1284,
+          "h": 437
+        }
+      ],
+      ".kpi": [
+        {
+          "x": 288,
+          "y": 190,
+          "w": 309,
+          "h": 172
+        },
+        {
+          "x": 613,
+          "y": 190,
+          "w": 309,
+          "h": 172
+        },
+        {
+          "x": 938,
+          "y": 190,
+          "w": 309,
+          "h": 172
+        },
+        {
+          "x": 1263,
+          "y": 190,
+          "w": 309,
+          "h": 172
+        }
+      ],
+      "#chart": [
+        {
+          "x": 309,
+          "y": 461,
+          "w": 1242,
+          "h": 474
+        }
+      ]
+    },
+    "text": {
+      "#revRecoveredVal": "18,240",
+      "#revRiskVal": "4,830",
+      "#recoveryRateLbl": "64%",
+      "#pilotDays": "9 / 14 days used",
+      "#qbadge": "5"
+    },
+    "meta": {
+      "scrollY": 0,
+      "interLoaded": true,
+      "monoLoaded": true,
+      "theme": "amoled"
+    }
+  },
+  "case-before": {
+    "geom": {
+      "#caseHero": [
+        {
+          "x": 294,
+          "y": 100,
+          "w": 1272,
+          "h": 194
+        }
+      ],
+      "#retryBtn": [
+        {
+          "x": 315,
+          "y": 335,
+          "w": 96,
+          "h": 40
+        }
+      ],
+      "#draftBtn": [
+        {
+          "x": 420,
+          "y": 335,
+          "w": 164,
+          "h": 40
+        }
+      ],
+      "#timeline": [
+        {
+          "x": 1023,
+          "y": 371,
+          "w": 522,
+          "h": 242
+        }
+      ]
+    },
+    "text": {
+      "#caseHero h1": "Ananya Sharma",
+      "#caseHero .sub": "ananya.sharma@gmail.com · ₹899 · retrying"
+    },
+    "meta": {
+      "scrollY": 0,
+      "interLoaded": true,
+      "monoLoaded": true,
+      "theme": "amoled"
+    }
+  },
+  "case-after": {
+    "geom": {
+      "#caseHero": [
+        {
+          "x": 294,
+          "y": 100,
+          "w": 1272,
+          "h": 194
+        }
+      ],
+      "#retryBtn": [
+        {
+          "x": 315,
+          "y": 335,
+          "w": 96,
+          "h": 40
+        }
+      ],
+      "#toast": [
+        {
+          "x": 1463,
+          "y": 950,
+          "w": 119,
+          "h": 44
+        }
+      ],
+      ".sb-brand": [
+        {
+          "x": 29,
+          "y": 29,
+          "w": 222,
+          "h": 34
+        }
+      ]
+    },
+    "text": {
+      "#caseHero h1": "Ananya Sharma",
+      "#caseHero .sub": "ananya.sharma@gmail.com · ₹899 · succeeded",
+      "#toast": "Retry started."
+    },
+    "meta": {
+      "scrollY": 0,
+      "interLoaded": true,
+      "monoLoaded": true,
+      "theme": "amoled"
+    }
+  },
+  "case-draft": {
+    "geom": {
+      "#caseHero": [
+        {
+          "x": 294,
+          "y": 100,
+          "w": 1272,
+          "h": 194
+        }
+      ],
+      "#draftBtn": [
+        {
+          "x": 420,
+          "y": 334,
+          "w": 164,
+          "h": 40
+        }
+      ],
+      "#draftBox": [
+        {
+          "x": 315,
+          "y": 391,
+          "w": 648,
+          "h": 412
+        }
+      ],
+      "#draftSubject": [
+        {
+          "x": 315,
+          "y": 474,
+          "w": 648,
+          "h": 48
+        }
+      ],
+      "#sendDraftBtn": [
+        {
+          "x": 315,
+          "y": 763,
+          "w": 129,
+          "h": 40
+        }
+      ],
+      "#toast": [
+        {
+          "x": 1411,
+          "y": 950,
+          "w": 171,
+          "h": 44
+        }
+      ]
+    },
+    "text": {
+      "#caseHero h1": "Rohit Verma",
+      "#draftSubject": "Rohit, your card expired — 30 seconds to fix it",
+      "#toast": "Draft ready to review."
+    },
+    "meta": {
+      "scrollY": 0,
+      "interLoaded": true,
+      "monoLoaded": true,
+      "theme": "amoled"
+    }
+  },
+  "case-sent": {
+    "geom": {
+      "#caseHero": [
+        {
+          "x": 294,
+          "y": 100,
+          "w": 1272,
+          "h": 194
+        }
+      ],
+      "#toast": [
+        {
+          "x": 1419,
+          "y": 950,
+          "w": 163,
+          "h": 44
+        }
+      ],
+      "#timeline .event": [
+        {
+          "x": 1023,
+          "y": 371,
+          "w": 522,
+          "h": 136
+        },
+        {
+          "x": 1023,
+          "y": 518,
+          "w": 522,
+          "h": 115
+        }
+      ]
+    },
+    "text": {
+      "#caseHero h1": "Rohit Verma",
+      "#toast": "Recovery email sent."
+    },
+    "meta": {
+      "scrollY": 0,
+      "interLoaded": true,
+      "monoLoaded": true,
+      "theme": "amoled"
+    }
+  },
+  "digest": {
+    "geom": {
+      "#digestList .event": [
+        {
+          "x": 315,
+          "y": 308,
+          "w": 1230,
+          "h": 122
+        },
+        {
+          "x": 315,
+          "y": 441,
+          "w": 1230,
+          "h": 122
+        }
+      ],
+      ".hero.card": [
+        {
+          "x": 294,
+          "y": 100,
+          "w": 1272,
+          "h": 167
+        }
+      ]
+    },
+    "text": {
+      "#digestList .event h3": "22 Sept 2026, 12:00 am – 29 Sept 2026, 12:00 am",
+      "#digestList .event .meta span": "Recovered ₹6,100"
+    },
+    "meta": {
+      "scrollY": 0,
+      "interLoaded": true,
+      "monoLoaded": true,
+      "theme": "amoled"
+    }
+  },
+  "members": {
+    "geom": {
+      "#membersBody tr": [
+        {
+          "x": 316,
+          "y": 407,
+          "w": 1228,
+          "h": 56
+        },
+        {
+          "x": 316,
+          "y": 463,
+          "w": 1228,
+          "h": 56
+        },
+        {
+          "x": 316,
+          "y": 519,
+          "w": 1228,
+          "h": 56
+        },
+        {
+          "x": 316,
+          "y": 575,
+          "w": 1228,
+          "h": 56
+        },
+        {
+          "x": 316,
+          "y": 631,
+          "w": 1228,
+          "h": 56
+        },
+        {
+          "x": 316,
+          "y": 687,
+          "w": 1228,
+          "h": 56
+        }
+      ],
+      ".hero.card": [
+        {
+          "x": 294,
+          "y": 100,
+          "w": 1272,
+          "h": 167
+        }
+      ]
+    },
+    "text": {
+      "#membersBody tr td:nth-child(1)": "Ananya Sharma"
+    },
+    "meta": {
+      "scrollY": 0,
+      "interLoaded": true,
+      "monoLoaded": true,
+      "theme": "amoled"
+    }
+  },
+  "dash-hero-v2": {
+    "geom": {
+      "#revRecoveredVal": [
+        {
+          "x": 307,
+          "y": 234,
+          "w": 271,
+          "h": 33
+        }
+      ],
+      "#revRiskVal": [
+        {
+          "x": 632,
+          "y": 234,
+          "w": 271,
+          "h": 33
+        }
+      ],
+      "#recoveryRateLbl": [
+        {
+          "x": 980,
+          "y": 255,
+          "w": 37,
+          "h": 35
+        }
+      ]
+    },
+    "text": {
+      "#revRecoveredVal": "24,860",
+      "#revRiskVal": "2,170",
+      "#recoveryRateLbl": "71%",
+      "#qbadge": "3"
+    },
+    "meta": {
+      "scrollY": 0,
+      "interLoaded": true,
+      "monoLoaded": true,
+      "theme": "amoled"
+    }
+  }
+}

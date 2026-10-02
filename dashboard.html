@@ -6,7 +6,14 @@
 <title>Revessent — Overview</title>
 <meta name="description" content="Revessent dashboard — revenue recovery for subscription businesses. Detect failed payments, retry at the best moment, recover quietly.">
 <meta name="color-scheme" content="light dark">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23fff8e9'/%3E%3Cstop offset='1' stop-color='%23ecdcc0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='url(%23g)'/%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='none' stroke='%23ffffff' stroke-opacity='.55'/%3E%3Cpath d='M9 21h3l2-7 3 10 2.4-8 2.6 5H24' fill='none' stroke='%2335608f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='%23000000'/%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='none' stroke='%233DDC97' stroke-opacity='.45' stroke-width='1.5'/%3E%3Cpath d='M9 21h3l2-7 3 10 2.4-8 2.6 5H24' fill='none' stroke='%233DDC97' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<script>
+/* ECLIPSE — apply the shared theme choice (rv.theme, used by every page)
+   before first paint. Default: Eclipse (AMOLED black). */
+(function(){var t='light';try{var s=localStorage.getItem('rv.theme');
+if(s==='light'||s==='amoled'||s==='minimal'||s==='minimal2')t=s;}catch(_){}
+document.documentElement.setAttribute('data-theme',t);})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -77,7 +84,7 @@
   /* ── refractive glass (ui.glass/generator + glassmorphism.com) ──
         one recipe, every surface. Light mode needs a denser pane and a
         warmer ambient shadow than the spec's dark-tuned numbers. */
-  --rfx-bg:rgba(253,251,247,0.96);   /* Blue Sky panes are opaque */
+  --rfx-bg:rgba(253,251,247,0.96);   /* Daylight panes are opaque */
   --rfx-border:rgba(255,255,255,0.55);
   --rfx-blur:blur(24px) saturate(1.4);
   --rfx-shadow:
@@ -110,118 +117,69 @@
   /* chart reference lines + their $ labels */
   --grid:rgba(0,0,0,.26); --grid-num:#15140f;
 }
-/* ── 2. THEME: EVENING (dark) — verbatim token block ─────────── */
-html[data-theme=dark]{
-  --canvas:#1c1a17; --page:#161512;
-  --text-primary:#EFECE4; --text-secondary:#C4C6C9; --text-muted:#96938C; --text-inverse:#161512;
-  --text-faint:#7E7B74;
-  --glass1:rgba(34,32,28,.50);
-  --glass2:rgba(39,37,33,.64);
-  --glass3:rgba(45,43,38,.78);
-  --glass-hi:rgba(255,255,255,.10);
-  --cc:42 40 36;
-  --lc:196 198 201;
-  --edge:rgba(224,222,214,.20);
-  --hi:rgba(255,255,255,.13);
-  --icB:rgba(255,255,255,.15);
-  --accC:196 198 201;
-  --acc:#C4C6C9; --acc-ink:#EFECE4;
-  --btnA:#C4C6C9; --btnAtx:#1d1b18;
-  --ok:#8FA089; --okTx:#d5dfc9; --err:#D79A82;
-  --avaA:#3a3730; --avaB:#55585E; --avaTx:#E2E0D9;
-  --mkA:#4a4740; --mkB:#6b6c6e; --mkC:#9EA0A3;
-  --line:rgb(196 198 201 / .16);
-  --line-soft:rgb(196 198 201 / .10);
-  --sh-sm:inset 0 1px 0 rgba(255,255,255,.10),0 1px 1px rgba(0,0,0,.35),0 10px 28px -20px rgba(0,0,0,.62);
-  --sh-md:inset 0 1px 0 rgba(255,255,255,.12),0 1px 1px rgba(0,0,0,.4),0 22px 46px -22px rgba(0,0,0,.7);
-  --sh-lg:inset 0 1px 0 rgba(255,255,255,.12),0 1px 1px rgba(0,0,0,.45),0 30px 60px -24px rgba(0,0,0,.78);
-  --pos:#8FA089;  --pos-ink:#A9BBA2;
-  --warn:#C2A472; --warn-ink:#D6BC8E;
-  --neg:#D79A82;  --neg-ink:#E4B29D;
-  --info:#9BB4D2; --info-ink:#B6C9E0;
-  --alt:#AFA2C4;  --alt-ink:#C3B8D5;
-  --neu:#9A968E;  --neu-ink:#B0ACA4;
-  --posC:143 160 137; --warnC:194 164 114; --negC:215 154 130; --infoC:155 180 210; --altC:175 162 196; --neuC:154 150 142;
-  --rfx-bg:rgba(255,255,255,0.05);
-  --rfx-border:rgba(255,255,255,0.15);
-  --rfx-shadow:
-      inset 0 1px 0 rgba(255,255,255,0.20),\n      inset 0 0 2px 0 rgba(255,255,255,0.15),\n      0 8px 32px rgba(0,0,0,0.30);
-  --rfx-shadow-hi:
-      inset 0 1px 0 rgba(255,255,255,0.26),\n      inset 0 0 2px 0 rgba(255,255,255,0.18),\n      0 18px 52px rgba(0,0,0,0.42);
-  --rfx-pop:rgba(28,26,23,0.94);
-  --rfx-sheen:rgba(255,255,255,0.45);
-  --lg-r1:rgba(255,255,255,.26);
-  --lg-r2:rgba(255,255,255,.13);
-  --lg-core:rgba(0,0,0,.85);
-  --lg-drop:rgba(0,0,0,.50);
-  --lg-edge:rgba(255,255,255,.11);
-  --lg-ring:rgba(0,0,0,.95);
-  --lg-ring-o:.40;
-  --lg-sheen:rgba(255,255,255,.34);
-  --lg-hair:rgba(255,255,255,.10);
-  --bar-rec:#3ee38c;  --bar-rec-glow:rgba(62,227,140,.55);
-  --bar-lost:#ff7d5c; --bar-lost-glow:rgba(255,125,92,.50);
-  --grid:rgba(255,255,255,.26); --grid-num:#F4F2EC;
-}
-/* ── 3. THEME: NOCTURNE (replaces AMOLED) — deep navy glass ───── */
+/* ── 2. THEME: ECLIPSE — true black, electric mint ────────────── */
 html[data-theme=amoled]{
-  /* Nocturne — premium Revessent dark: deep navy, champagne glass, soft mint success. */
-  --canvas:#07111f; --page:#050914;
-  --text-primary:#FFF8E9; --text-secondary:#D9DEE8; --text-muted:#9AA4B6; --text-inverse:#07111f;
-  --text-faint:#747F93;
-  --glass1:rgba(255,248,233,.050);
-  --glass2:rgba(255,248,233,.078);
-  --glass3:rgba(255,248,233,.115);
-  --glass-hi:rgba(255,255,255,.075);
-  --cc:18 27 43;
-  --lc:174 186 205;
-  --edge:rgba(255,248,233,.16);
-  --hi:rgba(255,255,255,.105);
-  --icB:rgba(255,255,255,.12);
-  --accC:203 176 126;
-  --acc:#CBB07E; --acc-ink:#F2D8A2;
-  --btnA:#F2D8A2; --btnAtx:#08111f;
-  --ok:#81B99B; --okTx:#C9E8D4; --err:#E7A083;
-  --avaA:#101a2b; --avaB:#1a2b45; --avaTx:#F2D8A2;
-  --mkA:#0b1728; --mkB:#172945; --mkC:#CBB07E;
-  --line:rgb(203 176 126 / .18);
-  --line-soft:rgb(203 176 126 / .10);
-  --sh-sm:inset 0 1px 0 rgba(255,248,233,.09),0 1px 1px rgba(0,0,0,.55),0 12px 30px -14px rgba(0,0,0,.88);
-  --sh-md:inset 0 1px 0 rgba(255,248,233,.11),0 1px 1px rgba(0,0,0,.62),0 24px 52px -18px rgba(0,0,0,.92);
-  --sh-lg:inset 0 1px 0 rgba(255,248,233,.12),0 1px 1px rgba(0,0,0,.68),0 32px 66px -20px rgba(0,0,0,.96);
-  --pos:#81B99B;  --pos-ink:#BFE5CC;
-  --warn:#CBB07E; --warn-ink:#F2D8A2;
-  --neg:#E7A083;  --neg-ink:#F2B9A0;
-  --info:#8FB8E8; --info-ink:#B7D4F6;
-  --alt:#B6A2D8;  --alt-ink:#D2C2EA;
-  --neu:#929AAB;  --neu-ink:#ADB5C4;
-  --posC:129 185 155; --warnC:203 176 126; --negC:231 160 131; --infoC:143 184 232; --altC:182 162 216; --neuC:146 154 171;
-  --rfx-bg:rgba(12,20,34,0.72);
-  --rfx-border:rgba(255,248,233,0.16);
+  /* Eclipse — Revessent's AMOLED theme: a true #000000 canvas, near-black
+     panes with hairline white borders, and one vivid mint accent.
+     Money-in reads mint; at-risk reads amber; losses a muted coral.
+     No champagne, no navy — pure black with electric green. */
+  --canvas:#000000; --page:#000000;
+  --text-primary:#F2F5F7; --text-secondary:#C3CBD6; --text-muted:#8B94A3; --text-inverse:#000000;
+  --text-faint:#6B7482;
+  --glass1:rgba(255,255,255,.030);
+  --glass2:rgba(255,255,255,.055);
+  --glass3:rgba(10,13,15,.92);
+  --glass-hi:rgba(255,255,255,.065);
+  --cc:10 13 15;
+  --lc:139 148 163;
+  --edge:rgba(255,255,255,.10);
+  --hi:rgba(255,255,255,.06);
+  --icB:rgba(255,255,255,.10);
+  --accC:61 220 151;
+  --acc:#3DDC97; --acc-ink:#8CF0C4;
+  --btnA:#3DDC97; --btnAtx:#00140C;
+  --ok:#3DDC97; --okTx:#8CF0C4; --err:#F87B6C;
+  --avaA:#0A1512; --avaB:#12291F; --avaTx:#8CF0C4;
+  --mkA:#050807; --mkB:#122019; --mkC:#3DDC97;
+  --line:rgb(140 244 196 / .13);
+  --line-soft:rgb(140 244 196 / .07);
+  --sh-sm:inset 0 1px 0 rgba(255,255,255,.05),0 1px 1px rgba(0,0,0,.60),0 12px 30px -14px rgba(0,0,0,.85);
+  --sh-md:inset 0 1px 0 rgba(255,255,255,.06),0 1px 1px rgba(0,0,0,.66),0 24px 52px -18px rgba(0,0,0,.90);
+  --sh-lg:inset 0 1px 0 rgba(255,255,255,.07),0 1px 1px rgba(0,0,0,.72),0 32px 66px -20px rgba(0,0,0,.94);
+  --pos:#3DDC97;  --pos-ink:#8CF0C4;
+  --warn:#F5B84C; --warn-ink:#FFD98A;
+  --neg:#F87B6C;  --neg-ink:#FFA99E;
+  --info:#6BB8FF; --info-ink:#A8D4FF;
+  --alt:#A78BFA;  --alt-ink:#CBB6FF;
+  --neu:#8B94A3;  --neu-ink:#A9B1BD;
+  --posC:61 220 151; --warnC:245 184 76; --negC:248 123 108; --infoC:107 184 255; --altC:167 139 250; --neuC:139 148 163;
+  --rfx-bg:rgba(6,10,8,0.72);
+  --rfx-border:rgba(255,255,255,0.10);
   --rfx-shadow:
-      inset 0 1px 0 rgba(255,248,233,0.20),
-      inset 0 0 2px 0 rgba(255,248,233,0.12),
+      inset 0 1px 0 rgba(255,255,255,0.14),
+      inset 0 0 2px 0 rgba(255,255,255,0.08),
       0 8px 32px rgba(0,0,0,0.58);
   --rfx-shadow-hi:
-      inset 0 1px 0 rgba(255,248,233,0.28),
-      inset 0 0 2px 0 rgba(255,248,233,0.18),
+      inset 0 1px 0 rgba(255,255,255,0.20),
+      inset 0 0 2px 0 rgba(255,255,255,0.12),
       0 18px 56px rgba(0,0,0,0.72);
-  --rfx-pop:rgba(8,15,27,0.94);
-  --rfx-sheen:rgba(255,248,233,0.36);
-  --lg-r1:rgba(255,248,233,.24);
-  --lg-r2:rgba(255,248,233,.12);
+  --rfx-pop:rgba(5,9,7,0.94);
+  --rfx-sheen:rgba(255,255,255,0.30);
+  --lg-r1:rgba(255,255,255,.18);
+  --lg-r2:rgba(255,255,255,.09);
   --lg-core:rgba(0,0,0,.92);
   --lg-drop:rgba(0,0,0,.64);
-  --lg-edge:rgba(255,248,233,.13);
+  --lg-edge:rgba(255,255,255,.11);
   --lg-ring:rgba(0,0,0,1);
   --lg-ring-o:.42;
-  --lg-sheen:rgba(255,248,233,.30);
-  --lg-hair:rgba(255,248,233,.09);
-  --bar-rec:#81B99B;  --bar-rec-glow:rgba(129,185,155,.34);
-  --bar-lost:#E7A083; --bar-lost-glow:rgba(231,160,131,.28);
-  --grid:rgba(255,248,233,.24); --grid-num:#FFF8E9;
+  --lg-sheen:rgba(255,255,255,.24);
+  --lg-hair:rgba(255,255,255,.07);
+  --lg-blur:0px;
+  --bar-rec:#3DDC97;  --bar-rec-glow:rgba(61,220,151,.32);
+  --bar-lost:#F87B6C; --bar-lost-glow:rgba(248,123,108,.26);
+  --grid:rgba(255,255,255,.20); --grid-num:#F2F5F7;
 }
-
+html[data-theme=amoled] ::selection{background:var(--acc);color:#00140C}
 /* ── 3b. THEME: MINIMAL — white page, black ink, zero gradient ── */
 html[data-theme=minimal]{
   /* ink = foreground, paper = background. MINIMAL II swaps just these. */
@@ -402,10 +360,10 @@ html[data-theme=minimal2] .bar,html[data-theme=minimal2] .bargrp:hover .bar{filt
 html[data-theme=minimal] .b-rec,html[data-theme=minimal2] .b-rec{fill:var(--mn-ink)}
 html[data-theme=minimal] .b-lost,html[data-theme=minimal2] .b-lost{fill:var(--mn-grey)}
 
+
 /* Retarget the shared surface tokens at the liquid-glass bevel, so every
    rule already consuming them inherits the new component automatically. */
 :root,
-html[data-theme=dark],
 html[data-theme=amoled],
 html[data-theme=minimal],
 html[data-theme=minimal2]{
@@ -435,16 +393,12 @@ body{
   text-rendering:optimizeLegibility;background:var(--page,#f1e8d4);overflow-x:hidden;
   transition:background-color .6s ease,color .6s ease;
 }
-html[data-theme=dark] body{background:#161512}
-html[data-theme=amoled] body{background:#050914}
 img,svg{display:block}
 a{color:inherit;text-decoration:none}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
 input{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--acc-ink);outline-offset:3px;border-radius:8px}
 ::selection{background:var(--acc);color:#f4f9ff}
-html[data-theme=dark] ::selection{background:var(--acc);color:#1d1b18}
-html[data-theme=amoled] ::selection{background:var(--acc);color:#08111f}
 .num,.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 /* EVERY colour/bg/border transitions — the theme change is one slow breath */
@@ -464,11 +418,9 @@ a,button,input,svg,path,circle,rect,line,text,div,span,li,td,th,section,aside,he
 #gradbg{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0;transition:opacity .9s ease;overflow:hidden;
   background:radial-gradient(120% 90% at 50% 0%,#17263f 0%,#0d1322 48%,#080d16 100%)}
 html[data-theme=light] #gradbg{opacity:1;background:linear-gradient(180deg in oklab,#E6F2FF,#B3D9FF,#80B3FF,#6699E6)}
-html[data-theme=dark] #gradbg{opacity:1;background:linear-gradient(180deg in oklab,#C4C6C9,#55585E,#5A544B,#5A544B)}
-html[data-theme=amoled] #gradbg{opacity:1;background:radial-gradient(900px 620px at 12% -10%,rgba(203,176,126,.18),transparent 66%),radial-gradient(740px 520px at 88% 14%,rgba(143,184,232,.13),transparent 70%),linear-gradient(180deg,#07111f,#050914 56%,#030611)}
 /* exact-sky WebGL canvas — day + night, above the CSS fallback */
 #bluesky{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:0;transition:opacity .9s ease}
-html[data-theme=light] #bluesky,html[data-theme=dark] #bluesky{opacity:1}
+html[data-theme=light] #bluesky{opacity:1}
 html.nosky #bluesky{display:none!important}
 /* the veil — vignette + ground-glass micro-noise (fffuel-style fractalNoise) */
 #veil{position:fixed;inset:0;z-index:1;pointer-events:none}
@@ -477,14 +429,6 @@ html.nosky #bluesky{display:none!important}
     radial-gradient(125% 92% at 50% -4%, rgb(var(--cc)/.5), transparent 46%),
     radial-gradient(150% 120% at 50% 50%, transparent 58%, rgba(94,70,34,.07) 100%);
   transition:background .6s ease}
-html[data-theme=dark] #veil::before{
-  background:
-    radial-gradient(125% 92% at 50% -4%, rgba(226,225,219,.09), transparent 46%),
-    radial-gradient(150% 120% at 50% 50%, transparent 52%, rgba(20,18,15,.50) 100%)}
-html[data-theme=amoled] #veil::before{
-  background:
-    radial-gradient(125% 92% at 50% -4%, rgba(150,180,240,.045), transparent 46%),
-    radial-gradient(150% 120% at 50% 50%, transparent 60%, rgba(0,0,0,.55) 100%)}
 #veil::after{content:"";position:absolute;inset:0;opacity:.03;mix-blend-mode:soft-light;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='260' height='260' filter='url(%23n)' opacity='0.85'/%3E%3C/svg%3E")}
 /* the recolour sweep — colour travels from the top of the window downward */
@@ -576,8 +520,6 @@ html[data-theme=amoled] #veil::before{
 .lg-sm::after{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;
   filter:blur(4px);opacity:.75;
   background:linear-gradient(45deg,var(--lg-sheen) 0%,transparent 26px,transparent calc(100% - 26px),var(--lg-sheen) 100%)}
-html[data-theme=minimal] .lg-fx,html[data-theme=minimal] .lg-sm::after,
-html[data-theme=minimal2] .lg-fx,html[data-theme=minimal2] .lg-sm::after{display:none}
 /* The source component's contrast(3) wrapper. Kept for decorative,
    text-free groups only — over live UI it destroys colour and type. */
 .fx-layer{filter:contrast(3)}
@@ -589,7 +531,7 @@ html[data-theme=minimal2] .lg-fx,html[data-theme=minimal2] .lg-sm::after{display
 /* grain — fffuel.co fractalNoise, embedded as a data URI, on every card face */
 .grain::after{content:"";position:absolute;inset:0;z-index:2;border-radius:inherit;pointer-events:none;opacity:.05;mix-blend-mode:soft-light;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23g)' opacity='0.9'/%3E%3C/svg%3E")}
-html[data-theme=dark] .grain::after,html[data-theme=amoled] .grain::after{opacity:.075;mix-blend-mode:overlay}
+html[data-theme=amoled] .grain::after{display:none}
 
 /* CHANGE 3 — the refraction sheen rides every pane's top edge */
 /* a slow travelling glint over the top edge, on top of the bevel */
@@ -701,20 +643,6 @@ html[data-theme=dark] .grain::after,html[data-theme=amoled] .grain::after{opacit
   content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;
   filter:blur(4px);opacity:.7;
   background:linear-gradient(45deg,var(--lg-sheen) 0%,transparent 26px,transparent calc(100% - 26px),var(--lg-sheen) 100%)}
-html[data-theme=minimal] .pill::after,html[data-theme=minimal] .btn-glass::after,
-html[data-theme=minimal] .bell::after,html[data-theme=minimal] .tglbtn::after,
-html[data-theme=minimal] .burger::after,html[data-theme=minimal] .seg::after,
-html[data-theme=minimal] .sb-foot::after,html[data-theme=minimal] .navpill::after,
-html[data-theme=minimal] .toast::after,html[data-theme=minimal] .tip::after,
-html[data-theme=minimal] .ava::after,html[data-theme=minimal] .aico::after,
-html[data-theme=minimal] .autosw::after,html[data-theme=minimal] .bolt::after,
-html[data-theme=minimal2] .pill::after,html[data-theme=minimal2] .btn-glass::after,
-html[data-theme=minimal2] .bell::after,html[data-theme=minimal2] .tglbtn::after,
-html[data-theme=minimal2] .burger::after,html[data-theme=minimal2] .seg::after,
-html[data-theme=minimal2] .sb-foot::after,html[data-theme=minimal2] .navpill::after,
-html[data-theme=minimal2] .toast::after,html[data-theme=minimal2] .tip::after,
-html[data-theme=minimal2] .ava::after,html[data-theme=minimal2] .aico::after,
-html[data-theme=minimal2] .autosw::after,html[data-theme=minimal2] .bolt::after{display:none}
 
 /* ── 8. REVEAL SYSTEM — verbatim .rv choreography ────────────── */
 .rv{--ry:16px; --rb:6px; --rs:1; --dur:.8s;
@@ -798,7 +726,7 @@ html[data-theme=minimal2] .autosw::after,html[data-theme=minimal2] .bolt::after{
 .aurora .a1{width:82%;height:44%;left:-6%;top:4%;background:radial-gradient(circle,rgb(var(--accC)/.30),transparent 68%);animation:auroraA 26s ease-in-out infinite}
 .aurora .a2{width:74%;height:40%;right:-10%;top:38%;background:radial-gradient(circle,rgb(var(--posC)/.20),transparent 68%);animation:auroraB 34s ease-in-out infinite}
 .aurora .a3{width:90%;height:36%;left:-14%;bottom:2%;background:radial-gradient(circle,rgb(var(--cc)/.55),transparent 70%);animation:auroraA 42s ease-in-out infinite reverse}
-html[data-theme=dark] .aurora,html[data-theme=amoled] .aurora{opacity:.42}
+html[data-theme=amoled] .aurora{opacity:.26}
 
 .sb-brand{display:flex;align-items:center;gap:10px;padding:4px 10px 2px;position:relative}
 .bmark{width:26px;height:26px;flex:none;border-radius:9px;overflow:hidden;transition:transform .5s var(--spring)}
@@ -829,7 +757,7 @@ html[data-theme=dark] .aurora,html[data-theme=amoled] .aurora{opacity:.42}
 .navlist a .nbadge{margin-left:auto;font-family:var(--f-mono);font-size:10px;font-weight:600;line-height:1;
   min-width:19px;height:19px;padding:0 5px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;
   color:#fff;background:var(--neg);box-shadow:0 0 0 3px rgb(var(--negC)/.14)}
-html[data-theme=dark] .navlist a .nbadge,html[data-theme=amoled] .navlist a .nbadge{color:#1d1b18}
+html[data-theme=amoled] .navlist a .nbadge{color:#00140C}
 .navsep{height:1px;margin:10px 12px;background:var(--line-soft);border:0}
 .navlab{display:block;padding:0 12px 7px;font-family:var(--f-mono);font-weight:600;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint)}
 
@@ -879,7 +807,7 @@ button.pill:active{transform:translateY(0) scale(.975)}
 .btn:active{transform:translateY(1px) scale(.977)}
 .btn-pri{background:var(--btnA);color:var(--btnAtx);box-shadow:inset 0 1px 0 rgb(var(--cc)/.16),0 16px 30px -18px rgba(64,48,26,.55)}
 .btn-pri:hover{transform:translateY(-1px);filter:brightness(1.07);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 20px 36px -18px rgba(64,48,26,.5)}
-html[data-theme=dark] .btn-pri:hover,html[data-theme=amoled] .btn-pri:hover{filter:brightness(.94)}
+html[data-theme=amoled] .btn-pri:hover{filter:brightness(.94)}
 .btn-glass{background:rgb(var(--cc)/.56);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
   border:1px solid var(--edge);box-shadow:var(--sh-sm);color:var(--text-primary);font-weight:600}
 .btn-glass:hover{background:var(--hi);transform:translateY(-1px);box-shadow:var(--sh-md)}
@@ -891,7 +819,7 @@ html[data-theme=dark] .btn-pri:hover,html[data-theme=amoled] .btn-pri:hover{filt
 .shimmer::before{content:"";position:absolute;top:0;bottom:0;width:38%;pointer-events:none;
   background:linear-gradient(100deg,transparent,rgba(255,255,255,.42),transparent);
   transform:translateX(-120%);animation:shimmerSweep 3.4s ease-in-out infinite}
-html[data-theme=dark] .shimmer::before,html[data-theme=amoled] .shimmer::before{background:linear-gradient(100deg,transparent,rgba(255,255,255,.22),transparent)}
+html[data-theme=amoled] .shimmer::before{background:linear-gradient(100deg,transparent,rgba(255,255,255,.18),transparent)}
 .shimmer-hover::before{animation:none}
 .shimmer-hover:hover::before{animation:shimmerSweep 1.1s ease-out}
 
@@ -912,12 +840,8 @@ html[data-theme=dark] .shimmer::before,html[data-theme=amoled] .shimmer::before{
 /* preview swatches — shared by the button and the panel options */
 .swatch{width:20px;height:20px;flex:none;border-radius:6px;border:1px solid var(--rfx-border);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.28);background:#000}
-.swatch[data-sw=amoled]{background:#000000;border-color:rgba(255,255,255,.28)}
+.swatch[data-sw=amoled]{background:linear-gradient(135deg,#000000 0%,#000000 54%,#3DDC97 54%,#3DDC97 100%);border-color:rgba(61,220,151,.5)}
 .swatch[data-sw=light]{background:linear-gradient(160deg,#E6F2FF 0%,#B3D9FF 45%,#80B3FF 78%,#6699E6 100%)}
-.swatch[data-sw=minimal]{background:#ffffff;border-color:rgba(0,0,0,.35);
-  background-image:radial-gradient(circle at 50% 50%,#000 0 22%,transparent 23%)}
-.swatch[data-sw=minimal2]{background:#000000;border-color:rgba(255,255,255,.45);
-  background-image:radial-gradient(circle at 50% 50%,#fff 0 22%,transparent 23%)}
 .tpanel .swatch{width:34px;height:26px;border-radius:7px}
 
 .tpanel{position:absolute;top:calc(100% + 10px);right:0;z-index:130;width:258px;padding:9px;
@@ -934,9 +858,7 @@ html[data-theme=dark] .shimmer::before,html[data-theme=amoled] .shimmer::before{
   border:1px solid transparent;background:transparent;
   transition:background-color .28s ease,border-color .28s ease,transform .3s var(--spring)}
 .topt:hover{background:rgb(var(--cc)/.6);border-color:var(--rfx-border)}
-html[data-theme=dark] .topt:hover,html[data-theme=amoled] .topt:hover{background:rgba(255,255,255,.07)}
-html[data-theme=minimal] .topt:hover{background:#f2f2f2;border-color:#000}
-html[data-theme=minimal2] .topt:hover{background:#151515;border-color:#fff}
+html[data-theme=amoled] .topt:hover{background:rgba(255,255,255,.07)}
 .topt:active{transform:scale(.978)}
 .topt .tlbl{min-width:0;line-height:1.3}
 .topt .tlbl b{display:block;font-family:var(--f-mono);font-size:12px;font-weight:600;letter-spacing:.02em;color:var(--text-primary)}
@@ -945,9 +867,7 @@ html[data-theme=minimal2] .topt:hover{background:#151515;border-color:#fff}
   transition:opacity .3s ease,transform .4s var(--ease-back)}
 .topt[aria-checked=true] .tick{opacity:1;transform:scale(1)}
 .topt[aria-checked=true]{background:rgb(var(--cc)/.7);border-color:var(--rfx-border)}
-html[data-theme=dark] .topt[aria-checked=true],html[data-theme=amoled] .topt[aria-checked=true]{background:rgba(255,255,255,.09)}
-html[data-theme=minimal] .topt[aria-checked=true]{background:#f2f2f2;border-color:#000}
-html[data-theme=minimal2] .topt[aria-checked=true]{background:#151515;border-color:#fff}
+html[data-theme=amoled] .topt[aria-checked=true]{background:rgba(255,255,255,.09)}
 .topt:focus-visible{outline:2px solid var(--acc-ink);outline-offset:-2px}
 @media(max-width:480px){.tpanel{width:min(258px,calc(100vw - 24px))}}
 
@@ -972,7 +892,7 @@ html[data-theme=minimal2] .topt[aria-checked=true]{background:#151515;border-col
 .drop .di{display:flex;gap:9px;align-items:flex-start;width:100%;text-align:left;padding:9px 11px;border-radius:14px;font-size:12.5px;
   color:var(--text-secondary);transition:background-color .28s ease,transform .3s var(--spring)}
 .drop .di:hover{background:rgb(var(--cc)/.85);color:var(--text-primary)}
-html[data-theme=dark] .drop .di:hover,html[data-theme=amoled] .drop .di:hover{background:rgba(255,255,255,.07)}
+html[data-theme=amoled] .drop .di:hover{background:rgba(255,255,255,.07)}
 .drop .di:active{transform:scale(.976)}
 .drop .di b{display:block;font-weight:600;color:var(--text-primary);font-size:12.5px}
 .drop .di small{display:block;color:var(--text-muted);font-weight:500;font-size:11px;margin-top:1px}
@@ -1049,7 +969,7 @@ html[data-theme=dark] .drop .di:hover,html[data-theme=amoled] .drop .di:hover{ba
 .kpi .spot{position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;opacity:0;
   background:radial-gradient(340px 200px at var(--mx,50%) var(--my,50%),rgb(var(--cc)/.62),transparent 66%);
   transition:opacity .45s ease}
-html[data-theme=dark] .kpi .spot,html[data-theme=amoled] .kpi .spot{background:radial-gradient(340px 200px at var(--mx,50%) var(--my,50%),rgba(255,255,255,.12),transparent 66%)}
+html[data-theme=amoled] .kpi .spot{background:radial-gradient(340px 200px at var(--mx,50%) var(--my,50%),rgba(61,220,151,.09),transparent 66%)}
 .kpi:hover .spot{opacity:1}
 .kpi:hover{transform:translateY(-4px);box-shadow:var(--rfx-shadow-hi)}
 /* codrops-style micro distortion on hover — a hair of skew, nothing loud */
@@ -1096,10 +1016,10 @@ html[data-theme=dark] .kpi .spot,html[data-theme=amoled] .kpi .spot{background:r
 
 /* the at-risk figure — tuned to the active palette */
 .kval-risk{color:var(--warn-ink)}
-html[data-theme=amoled] .kval-risk{color:#F2D8A2}
-html[data-theme=amoled] .kpi-risk .klab i{color:#F2D8A2;opacity:1}
-html[data-theme=amoled] .kpi-risk .t-warn{color:#F2D8A2;background:rgba(203,176,126,.15);border-color:rgba(242,216,162,.34)}
-html[data-theme=amoled] .kpi-risk .dots i:nth-child(3){background:#F2D8A2!important}
+html[data-theme=amoled] .kval-risk{color:#FFD98A}
+html[data-theme=amoled] .kpi-risk .klab i{color:#FFD98A;opacity:1}
+html[data-theme=amoled] .kpi-risk .t-warn{color:#FFD98A;background:rgba(245,184,76,.13);border-color:rgba(245,184,76,.34)}
+html[data-theme=amoled] .kpi-risk .dots i:nth-child(3){background:#FFD98A!important}
 
 /* ── WAVE DIVIDER (haikei) — two layers drifting at different rates ── */
 .wave{position:relative;height:46px;margin:-6px 0 -10px;overflow:hidden;pointer-events:none;opacity:.8;
@@ -1154,16 +1074,12 @@ html[data-theme=amoled] .kpi-risk .dots i:nth-child(3){background:#F2D8A2!import
 .autosw[aria-pressed=false] .asw-dot{opacity:0;transform:scale(.4)}
 .autosw[aria-pressed=false] .asw-play{opacity:1;transform:scale(1)}
 .autosw[aria-pressed=false]{color:var(--text-faint)}
-html[data-theme=minimal] .autosw[aria-pressed=true]{color:#000}
-html[data-theme=minimal2] .autosw[aria-pressed=true]{color:#fff}
-html[data-theme=minimal] .asw-ring .ap,html[data-theme=minimal] .asw-dot{stroke:#000;background:#000}
-html[data-theme=minimal2] .asw-ring .ap,html[data-theme=minimal2] .asw-dot{stroke:#fff;background:#fff}
 @media (prefers-reduced-motion: reduce){.autosw[aria-pressed=true] .asw-dot{animation:none}}
 .seg{position:relative;display:inline-flex;gap:2px;padding:3px;border-radius:999px;border:1px solid var(--edge);
   background:rgb(var(--cc)/.4);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
 .seg .ind{position:absolute;top:3px;bottom:3px;left:0;width:0;border-radius:999px;background:rgb(var(--cc)/.92);
   box-shadow:var(--sh-sm);transition:transform .5s var(--spring),width .4s var(--spring);z-index:0}
-html[data-theme=dark] .seg .ind,html[data-theme=amoled] .seg .ind{background:rgba(255,255,255,.12)}
+html[data-theme=amoled] .seg .ind{background:rgba(255,255,255,.10)}
 .seg button{position:relative;z-index:1;padding:5px 13px;border-radius:999px;font-size:11.5px;font-weight:600;color:var(--text-muted);
   transition:color .3s ease}
 .seg button[aria-selected=true]{color:var(--text-primary)}
@@ -1186,10 +1102,6 @@ html[data-theme=dark] .seg .ind,html[data-theme=amoled] .seg .ind{background:rgb
   filter:drop-shadow(0 0 6px var(--bar-lost-glow)) drop-shadow(0 2px 3px rgba(0,0,0,.20))}
 .bargrp:hover .b-rec{filter:drop-shadow(0 0 14px var(--bar-rec-glow)) brightness(1.15) saturate(1.12)}
 .bargrp:hover .b-lost{filter:drop-shadow(0 0 14px var(--bar-lost-glow)) brightness(1.15) saturate(1.12)}
-/* the two flat themes get unbroken, full-strength reference lines */
-html[data-theme=minimal] .grid line,html[data-theme=minimal2] .grid line{
-  stroke-dasharray:none;stroke-width:1;opacity:.55}
-html[data-theme=minimal] .axis.xlab,html[data-theme=minimal2] .axis.xlab{opacity:1}
 .bargrp{cursor:pointer}
 .bar-hit{fill:transparent}
 .tip{position:absolute;z-index:20;min-width:150px;padding:10px 12px;border-radius:13px;pointer-events:none;
@@ -1215,6 +1127,15 @@ html[data-theme=minimal] .axis.xlab,html[data-theme=minimal2] .axis.xlab{opacity
 .fchip:hover{color:var(--text-primary);background:rgb(var(--cc)/.45)}
 .fchip[aria-pressed=true]{color:var(--acc-ink);background:var(--acc-wash);border-color:var(--acc-line)}
 .tblwrap{margin-top:12px;overflow-x:auto;border-radius:var(--r-md);-webkit-overflow-scrolling:touch}
+/* DECLINE BREAKDOWN — "Why payments are failing" horizontal bar list */
+.dbreak{display:grid;gap:10px;margin-top:12px}
+.drow{display:grid;grid-template-columns:minmax(120px,190px) minmax(0,1fr) auto;gap:12px;align-items:center}
+.drow .dlbl{font-size:12.5px;font-weight:650;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.drow .dbar{height:8px;border-radius:999px;background:rgb(var(--neuC)/.16);overflow:hidden}
+.drow .dbar i{display:block;height:100%;border-radius:inherit;width:0;transition:width .9s var(--spring)}
+.drow .dval{font-family:var(--f-mono);font-size:11px;color:var(--text-muted);white-space:nowrap}
+.dempty{margin:6px 0 0;font-size:12.5px;color:var(--text-muted)}
+@media(max-width:640px){.drow{grid-template-columns:minmax(96px,130px) minmax(0,1fr) auto;gap:8px}}
 table{width:100%;border-collapse:collapse;min-width:720px}
 thead th{text-align:left;padding:9px 8px;font-family:var(--f-mono);font-size:10px;font-weight:700;letter-spacing:.15em;
   text-transform:uppercase;color:var(--text-faint);border-bottom:1px solid var(--line-soft);white-space:nowrap}
@@ -1377,34 +1298,32 @@ tr.collapsing{transition:all .5s var(--spring)}
 /* ── NO BACKDROP-FILTER FALLBACK ─────────────────────────────── */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))){
   .glass,.sb,.tb{background:rgba(252,249,241,.9)}
-  html[data-theme=dark] .glass,html[data-theme=dark] .sb,html[data-theme=dark] .tb{background:rgba(32,30,26,.95)}
-  html[data-theme=amoled] .glass,html[data-theme=amoled] .sb,html[data-theme=amoled] .tb{background:rgba(8,15,27,.94)}
+  html[data-theme=amoled] .glass,html[data-theme=amoled] .sb,html[data-theme=amoled] .tb{background:rgba(6,9,8,.94)}
 }
 
 
-/* Nocturne revision — pitch-black surfaces, no glass-card transparency */
+/* Eclipse revision — true-black surfaces, no glass transparency */
 html[data-theme=amoled]{
-  --canvas:#07111f; --page:#050914;
   --cc:0 0 0;
   --glass1:#000000; --glass2:#000000; --glass3:#000000; --glass-hi:rgba(255,255,255,.035);
   --rfx-bg:#000000;
   --rfx-pop:#000000;
-  --rfx-border:rgba(255,248,233,.14);
+  --rfx-border:rgba(255,255,255,.12);
   --rfx-blur:blur(0) saturate(1);
-  --rfx-shadow:inset 0 0 0 1px rgba(255,248,233,.10),0 18px 46px rgba(0,0,0,.86);
-  --rfx-shadow-hi:inset 0 0 0 1px rgba(255,248,233,.16),0 24px 58px rgba(0,0,0,.92);
+  --rfx-shadow:inset 0 0 0 1px rgba(255,255,255,.09),0 18px 46px rgba(0,0,0,.86);
+  --rfx-shadow-hi:inset 0 0 0 1px rgba(61,220,151,.22),0 24px 58px rgba(0,0,0,.92);
   --lg-blur:0px;
-  --lg-edge:rgba(255,248,233,.14);
-  --lg-r1:rgba(255,248,233,.10);
-  --lg-r2:rgba(255,248,233,.045);
-  --lg-sheen:rgba(255,248,233,0);
-  --lg-hair:rgba(255,248,233,.08);
+  --lg-edge:rgba(255,255,255,.12);
+  --lg-r1:rgba(255,255,255,.08);
+  --lg-r2:rgba(255,255,255,.04);
+  --lg-sheen:rgba(255,255,255,0);
+  --lg-hair:rgba(255,255,255,.07);
 }
-html[data-theme=amoled] body{background:#050914!important}
-html[data-theme=amoled] #gradbg{opacity:1!important;background:radial-gradient(900px 620px at 12% -10%,rgba(203,176,126,.18),transparent 66%),radial-gradient(740px 520px at 88% 14%,rgba(143,184,232,.13),transparent 70%),linear-gradient(180deg,#07111f,#050914 56%,#030611)!important}
+html[data-theme=amoled] body{background:#000000!important}
+html[data-theme=amoled] #gradbg{opacity:1!important;background:radial-gradient(900px 620px at 12% -10%,rgba(61,220,151,.08),transparent 66%),radial-gradient(740px 520px at 88% 14%,rgba(107,184,255,.05),transparent 70%),linear-gradient(180deg,#000000,#000000 56%,#000000)!important}
 html[data-theme=amoled] #bluesky{opacity:0!important}
-html[data-theme=amoled] #veil::before{background:radial-gradient(150% 120% at 50% 50%, transparent 58%, rgba(1,4,10,.64) 100%)!important}
-html[data-theme=amoled] #veil::after{opacity:.018!important}
+html[data-theme=amoled] #veil::before{background:radial-gradient(150% 120% at 50% 50%, transparent 62%, rgba(0,0,0,.42) 100%)!important}
+html[data-theme=amoled] #veil::after{opacity:.014!important}
 html[data-theme=amoled] .glass,
 html[data-theme=amoled] .card,
 html[data-theme=amoled] .kpi,
@@ -1432,8 +1351,8 @@ html[data-theme=amoled] .toast{
   background-color:#000000!important;
   -webkit-backdrop-filter:none!important;
   backdrop-filter:none!important;
-  border-color:rgba(255,248,233,.14)!important;
-  box-shadow:inset 0 0 0 1px rgba(255,248,233,.045),0 16px 42px rgba(0,0,0,.72)!important;
+  border-color:rgba(255,255,255,.12)!important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.04),0 16px 42px rgba(0,0,0,.72)!important;
 }
 html[data-theme=amoled] .lg-fx,
 html[data-theme=amoled] .lg-sm::after,
@@ -1453,18 +1372,18 @@ html[data-theme=amoled] .afeed li,
 html[data-theme=amoled] .url-output,
 html[data-theme=amoled] pre{
   background:#000000!important;
-  border-color:rgba(255,248,233,.12)!important;
-  box-shadow:inset 0 0 0 1px rgba(255,248,233,.035)!important;
+  border-color:rgba(255,255,255,.10)!important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.03)!important;
 }
-html[data-theme=amoled] .connect.ok{box-shadow:inset 0 0 0 1px rgba(129,185,155,.28),0 18px 48px rgba(0,0,0,.78)!important}
+html[data-theme=amoled] .connect.ok{box-shadow:inset 0 0 0 1px rgba(61,220,151,.30),0 18px 48px rgba(0,0,0,.78)!important}
 html[data-theme=amoled] .navlist a:hover,
 html[data-theme=amoled] .drop .di:hover,
 html[data-theme=amoled] .topt:hover,
 html[data-theme=amoled] tbody tr:hover,
-html[data-theme=amoled] .afeed li:hover{background:#050505!important}
+html[data-theme=amoled] .afeed li:hover{background:rgba(61,220,151,.05)!important}
 html[data-theme=amoled] .navlist a.on,
 html[data-theme=amoled] .topt[aria-checked=true],
-html[data-theme=amoled] .seg .ind{background:#070707!important;border-color:rgba(242,216,162,.24)!important}
+html[data-theme=amoled] .seg .ind{background:#0A1210!important;border-color:rgba(61,220,151,.28)!important}
 
 
 /* Revessent global heavy-blur motion layer — seamless animated ambience */
@@ -1512,20 +1431,58 @@ html[data-theme=amoled] .seg .ind{background:#070707!important;border-color:rgba
 }
 .rv-heavy-blur .rvb-sweep.s2{animation-duration:34s;animation-delay:-15s;top:-28vmax;opacity:.20;transform:rotate(-13deg)}
 .shell,.app,.boot,.full-error,#appShell{position:relative;z-index:2}
-html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur{opacity:.22;mix-blend-mode:normal}
 @keyframes rvBlurFloatA{0%{transform:translate3d(0,0,0) scale(.92)}45%{transform:translate3d(18vw,8vh,0) scale(1.12)}100%{transform:translate3d(8vw,26vh,0) scale(.98)}}
 @keyframes rvBlurFloatB{0%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(-20vw,16vh,0) scale(1.18)}100%{transform:translate3d(-8vw,34vh,0) scale(.94)}}
 @keyframes rvBlurFloatC{0%{transform:translate3d(0,0,0) scale(.96)}50%{transform:translate3d(16vw,-18vh,0) scale(1.16)}100%{transform:translate3d(-12vw,-30vh,0) scale(1)}}
 @keyframes rvBlurSweep{0%{transform:translateX(-10vw) rotate(18deg);opacity:0}16%{opacity:.32}56%{opacity:.22}100%{transform:translateX(190vw) rotate(18deg);opacity:0}}
 @media(max-width:768px){.rv-heavy-blur{inset:-30vmax;opacity:.66}.rv-heavy-blur i{filter:blur(72px);opacity:.30}.rv-heavy-blur .rvb-sweep{opacity:.22}}
 @media(prefers-reduced-motion:reduce){.rv-heavy-blur i,.rv-heavy-blur span{animation:none!important}}
+
+/* ════════════════════════════════════════════════════════════
+   MINIMAL I / II — component-level overrides (restored)
+   ════════════════════════════════════════════════════════════ */
+html[data-theme=minimal] .lg-fx,html[data-theme=minimal] .lg-sm::after,
+html[data-theme=minimal2] .lg-fx,html[data-theme=minimal2] .lg-sm::after{display:none}
+html[data-theme=minimal] .pill::after,html[data-theme=minimal] .btn-glass::after,
+html[data-theme=minimal] .bell::after,html[data-theme=minimal] .tglbtn::after,
+html[data-theme=minimal] .burger::after,html[data-theme=minimal] .seg::after,
+html[data-theme=minimal] .sb-foot::after,html[data-theme=minimal] .navpill::after,
+html[data-theme=minimal] .toast::after,html[data-theme=minimal] .tip::after,
+html[data-theme=minimal] .ava::after,html[data-theme=minimal] .aico::after,
+html[data-theme=minimal] .autosw::after,html[data-theme=minimal] .bolt::after,
+html[data-theme=minimal2] .pill::after,html[data-theme=minimal2] .btn-glass::after,
+html[data-theme=minimal2] .bell::after,html[data-theme=minimal2] .tglbtn::after,
+html[data-theme=minimal2] .burger::after,html[data-theme=minimal2] .seg::after,
+html[data-theme=minimal2] .sb-foot::after,html[data-theme=minimal2] .navpill::after,
+html[data-theme=minimal2] .toast::after,html[data-theme=minimal2] .tip::after,
+html[data-theme=minimal2] .ava::after,html[data-theme=minimal2] .aico::after,
+html[data-theme=minimal2] .autosw::after,html[data-theme=minimal2] .bolt::after{display:none}
+html[data-theme=minimal] .topt:hover{background:#f2f2f2;border-color:#000}
+html[data-theme=minimal2] .topt:hover{background:#151515;border-color:#fff}
+html[data-theme=minimal] .topt[aria-checked=true]{background:#f2f2f2;border-color:#000}
+html[data-theme=minimal2] .topt[aria-checked=true]{background:#151515;border-color:#fff}
+html[data-theme=minimal] .autosw[aria-pressed=true]{color:#000}
+html[data-theme=minimal2] .autosw[aria-pressed=true]{color:#fff}
+html[data-theme=minimal] .asw-ring .ap,html[data-theme=minimal] .asw-dot{stroke:#000;background:#000}
+html[data-theme=minimal2] .asw-ring .ap,html[data-theme=minimal2] .asw-dot{stroke:#fff;background:#fff}
+/* the two flat themes get unbroken, full-strength reference lines */
+html[data-theme=minimal] .grid line,html[data-theme=minimal2] .grid line{
+  stroke-dasharray:none;stroke-width:1;opacity:.55}
+html[data-theme=minimal] .axis.xlab,html[data-theme=minimal2] .axis.xlab{opacity:1}
+html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur{opacity:.22;mix-blend-mode:normal}
+.swatch[data-sw=minimal]{background:#ffffff;border-color:rgba(0,0,0,.35);
+  background-image:radial-gradient(circle at 50% 50%,#000 0 22%,transparent 23%)}
+.swatch[data-sw=minimal2]{background:#000000;border-color:rgba(255,255,255,.45);
+  background-image:radial-gradient(circle at 50% 50%,#fff 0 22%,transparent 23%)}
 </style>
+<!-- Glass Kit: shared liquid-glass UI layer (pill CTAs, glass cards, switches) -->
+<link rel="stylesheet" href="/glass-kit.css">
+<script src="/glass-kit.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="/api/config.js"></script> <!-- audit #66: Supabase project from env, fallback below -->
 <script>
-  const supabaseClient = supabase.createClient(
-    'https://zujmouzzqiovgbnanrvv.supabase.co',
-    'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3'
-  );
+  var __rvCfg = window.REVESSENT_SUPABASE_CONFIG || { url: 'https://zujmouzzqiovgbnanrvv.supabase.co', anonKey: 'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3' };
+  const supabaseClient = supabase.createClient(__rvCfg.url, __rvCfg.anonKey);
   window.__rvSession = null;
   window.__rvSessionReady = (async function checkSession() {
     const { data: { session } } = await supabaseClient.auth.getSession();
@@ -1602,11 +1559,10 @@ html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur
       <li><a href="/dashboard.html" class="on" data-nav="overview" aria-current="page"><svg class="ic"><use href="#i-home"/></svg>Overview</a></li>
       <li><a href="/dashboard.html#queue" data-nav="queue"><svg class="ic"><use href="#i-refresh"/></svg>Recovery Queue<span class="nbadge" id="qbadge">0</span></a></li>
       <li><a href="/members.html" data-nav="members"><svg class="ic"><use href="#i-users"/></svg>Members</a></li>
-      <li><a href="#signals" data-nav="signals"><svg class="ic"><use href="#i-trend"/></svg>Expansion Signals</a></li>
       <li><a href="/weekly-digest.html" data-nav="digest"><svg class="ic"><use href="#i-mail"/></svg>Weekly Digest</a></li>
       <li aria-hidden="true"><hr class="navsep"></li>
       <li><a href="/settings.html" data-nav="settings"><svg class="ic"><use href="#i-gear"/></svg>Settings</a></li>
-      <li><a href="#docs" data-nav="docs"><svg class="ic"><use href="#i-book"/></svg>Documentation</a></li>
+      <li><a href="/changelog.html" data-nav="changelog"><svg class="ic"><use href="#i-book"/></svg>What's new</a></li>
       <div class="navpill" id="navpill" aria-hidden="true"></div>
     </ul>
   </div>
@@ -1650,21 +1606,21 @@ html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur
 
     <div class="menuwrap">
       <button class="tglbtn" id="themebtn" aria-expanded="false" aria-haspopup="dialog" aria-controls="themepanel" aria-label="Appearance">
-        <span class="swatch" id="themeSwatch" data-sw="light" aria-hidden="true"></span>
-        <span class="tname" id="themeName">Nocturne</span>
+        <span class="swatch" id="themeSwatch" data-sw="amoled" aria-hidden="true"></span>
+        <span class="tname" id="themeName">Eclipse</span>
         <svg class="chev" aria-hidden="true"><use href="#i-chev"/></svg>
       </button>
       <div class="tpanel" id="themepanel" role="dialog" aria-modal="false" aria-label="Appearance">
         <h4>Appearance</h4>
         <div role="radiogroup" aria-label="Theme">
-          <button class="topt" role="radio" aria-checked="false" data-theme-set="amoled">
+          <button class="topt" role="radio" aria-checked="true" data-theme-set="amoled">
             <span class="swatch" data-sw="amoled" aria-hidden="true"></span>
-            <span class="tlbl"><b>Nocturne</b><small>Navy backdrop · Black cards</small></span>
+            <span class="tlbl"><b>Eclipse</b><small>Pure black · Electric mint</small></span>
             <svg class="tick" aria-hidden="true"><use href="#i-check"/></svg>
           </button>
-          <button class="topt" role="radio" aria-checked="true" data-theme-set="light">
+          <button class="topt" role="radio" aria-checked="false" data-theme-set="light">
             <span class="swatch" data-sw="light" aria-hidden="true"></span>
-            <span class="tlbl"><b>Blue Sky</b><small>Bright · Airy · Glass</small></span>
+            <span class="tlbl"><b>Daylight</b><small>Bright · Airy · Glass</small></span>
             <svg class="tick" aria-hidden="true"><use href="#i-check"/></svg>
           </button>
           <button class="topt" role="radio" aria-checked="false" data-theme-set="minimal">
@@ -1685,11 +1641,11 @@ html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur
       <button class="avabtn" id="avabtn" aria-label="Account menu" aria-expanded="false" aria-haspopup="true"><span class="ava ava-32" aria-hidden="true">EM</span></button>
       <div class="drop" id="avadrop" role="menu" aria-label="Account">
         <h4>Workspace</h4>
-        <button class="di" role="menuitem"><svg class="ic" style="width:15px;height:15px;margin-top:1px" aria-hidden="true"><use href="#i-users"/></svg><span class="atx"><b>Profile</b><small><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f59a8586b5909897908799949786db969a">[email&#160;protected]</a></small></span></button>
-        <button class="di" role="menuitem"><svg class="ic" style="width:15px;height:15px;margin-top:1px" aria-hidden="true"><use href="#i-gear"/></svg><span class="atx"><b>Workspace settings</b></span></button>
+        <a class="di" role="menuitem" href="/settings.html#accountCard" style="text-decoration:none"><svg class="ic" style="width:15px;height:15px;margin-top:1px" aria-hidden="true"><use href="#i-users"/></svg><span class="atx"><b>Profile</b><small id="profileEmail">Signed in account</small></span></a>
+        <a class="di" role="menuitem" href="/settings.html" style="text-decoration:none"><svg class="ic" style="width:15px;height:15px;margin-top:1px" aria-hidden="true"><use href="#i-gear"/></svg><span class="atx"><b>Workspace settings</b></span></a>
         <button class="di" role="menuitem" data-upgrade><svg class="ic" style="width:15px;height:15px;margin-top:1px" aria-hidden="true"><use href="#i-up"/></svg><span class="atx"><b>Upgrade plan</b><small>Plan details</small></span></button>
         <hr class="dsep">
-        <button class="di" role="menuitem"><svg class="ic" style="width:15px;height:15px;margin-top:1px" aria-hidden="true"><use href="#i-logout"/></svg><span class="atx"><b>Sign out</b></span></button>
+        <button class="di" id="signOutBtn" role="menuitem"><svg class="ic" style="width:15px;height:15px;margin-top:1px" aria-hidden="true"><use href="#i-logout"/></svg><span class="atx"><b>Sign out</b></span></button>
       </div>
     </div>
   </div>
@@ -1700,7 +1656,7 @@ html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur
 <div class="stack">
 
   <!-- ── CONNECT BANNER ── -->
-  <section class="connect rv grain" id="connect" aria-label="Connect your payment processor" data-d="0">
+  <section class="connect rv grain" id="connect" aria-label="Connect your payment processor" data-d="0" data-liquidglass>
     <div class="bbeams" aria-hidden="true"><i style="left:12%;animation-delay:0s"></i><i style="left:34%;animation-delay:2.4s"></i><i style="left:58%;animation-delay:4.8s"></i><i style="left:81%;animation-delay:7s"></i></div>
     <button class="xdismiss" id="cdismiss" aria-label="Dismiss banner"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
     <div class="connect-in">
@@ -1708,13 +1664,13 @@ html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur
         <span class="bolt" aria-hidden="true"><svg class="ic"><use href="#i-bolt"/></svg></span>
         <span>
           <b id="cmsg">Connect your payment processor to start recovering revenue</b>
-          <span class="hint">Razorpay credentials stay server-side · no full card numbers ever leave Razorpay. <a href="#docs">How to find your Razorpay Key ID →</a></span>
+          <span class="hint">Razorpay credentials stay server-side · no full card numbers ever leave Razorpay. <a href="/settings.html">connect Razorpay in Settings →</a></span>
         </span>
       </div>
-      <form class="cform" id="cform" novalidate>
+      <form class="cform" id="cform" novalidate action="/settings.html">
         <label class="sr" for="apikey">Razorpay Key ID</label>
-        <span class="field" id="cfield"><input id="apikey" type="text" placeholder="rzp_live_••••••••••••" autocomplete="off" spellcheck="false"><span class="ul" aria-hidden="true"></span></span>
-        <button class="box start-btn sm" id="cbtn" type="submit" style="--w:170px"><span class="text">Get started</span><span class="btn-icon"><svg class="svg" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M779.180132 473.232045 322.354755 16.406668c-21.413706-21.413706-56.121182-21.413706-77.534887 0-21.413706 21.413706-21.413706 56.122205 0 77.534887l418.057421 418.057421L244.819868 930.057421c-21.413706 21.413706-21.413706 56.122205 0 77.534887 10.706853 10.706853 24.759917 16.059767 38.767955 16.059767s28.061103-5.353938 38.767955-16.059767L779.180132 550.767955C800.593837 529.35425 800.593837 494.64575 779.180132 473.232045z"></path></svg></span><span class="circle-overlay" aria-hidden="true"></span></button>
+        <span class="field" id="cfield"><input id="apikey" type="text" placeholder="rzp_live_••••••••••••" autocomplete="off" spellcheck="false" aria-describedby="cmsg"><span class="ul" aria-hidden="true"></span></span>
+        <button class="box start-btn sm" id="cbtn" type="submit" style="--w:170px"><span class="text">Connect in Settings</span><span class="btn-icon"><svg class="svg" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M779.180132 473.232045 322.354755 16.406668c-21.413706-21.413706-56.121182-21.413706-77.534887 0-21.413706 21.413706-21.413706 56.122205 0 77.534887l418.057421 418.057421L244.819868 930.057421c-21.413706 21.413706-21.413706 56.122205 0 77.534887 10.706853 10.706853 24.759917 16.059767 38.767955 16.059767s28.061103-5.353938 38.767955-16.059767L779.180132 550.767955C800.593837 529.35425 800.593837 494.64575 779.180132 473.232045z"></path></svg></span><span class="circle-overlay" aria-hidden="true"></span></button>
       </form>
     </div>
   </section>
@@ -1724,11 +1680,11 @@ html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur
     <div class="kpis" id="kpis">
 
       <!-- 1 · Revenue recovered -->
-      <article class="kpi glass grain rv" data-spot data-d="80">
+      <article class="kpi glass grain rv" data-spot data-d="80" data-liquidglass>
         <span class="spot" aria-hidden="true"></span>
         <div class="kbody" style="display:flex;flex-direction:column;flex:1">
           <div class="klab"><i aria-hidden="true"></i>Revenue recovered · 30d</div>
-          <div class="kval gradtext" id="revRecoveredVal" data-count="0" data-prefix="$" aria-label="0 dollars recovered">$0</div>
+          <div class="kval gradtext" id="revRecoveredVal" data-count="0" data-prefix="" aria-label="0 recovered">₹0</div>
           <svg class="spark" viewBox="0 0 200 36" preserveAspectRatio="none" aria-hidden="true">
             <defs><linearGradient id="sparkG" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0" stop-color="rgb(var(--posC))" stop-opacity=".28"/><stop offset="1" stop-color="rgb(var(--posC))" stop-opacity="0"/>
@@ -1741,11 +1697,11 @@ html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur
       </article>
 
       <!-- 2 · Revenue at risk -->
-      <article class="kpi kpi-risk glass grain rv" data-spot data-d="160">
+      <article class="kpi kpi-risk glass grain rv" data-spot data-d="160" data-liquidglass>
         <span class="spot" aria-hidden="true"></span>
         <div class="kbody" style="display:flex;flex-direction:column;flex:1">
           <div class="klab"><i aria-hidden="true"></i>Revenue at risk · open</div>
-          <div class="kval kval-risk" id="revRiskVal" data-count="0" data-prefix="$" aria-label="0 dollars at risk">$0</div>
+          <div class="kval kval-risk" id="revRiskVal" data-count="0" data-prefix="" aria-label="0 at risk">₹0</div>
           <div id="revRiskOpenCases" style="font-size:12px;color:var(--text-muted);margin-top:6px">0 open cases</div>
           <div class="ksub">
             <span class="dots" id="revRiskDots" aria-hidden="true"></span>
@@ -1755,7 +1711,7 @@ html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur
       </article>
 
       <!-- 3 · Recovery rate -->
-      <article class="kpi glass grain rv" data-spot data-d="240">
+      <article class="kpi glass grain rv" data-spot data-d="240" data-liquidglass>
         <span class="spot" aria-hidden="true"></span>
         <div class="kbody" style="display:flex;flex-direction:column;flex:1">
           <div class="klab"><i aria-hidden="true"></i>Recovery rate</div>
@@ -1776,7 +1732,7 @@ html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur
       </article>
 
       <!-- 4 · Active cases -->
-      <article class="kpi glass grain rv" data-spot data-d="320">
+      <article class="kpi glass grain rv" data-spot data-d="320" data-liquidglass>
         <span class="spot" aria-hidden="true"></span>
         <div class="kbody" style="display:flex;flex-direction:column;flex:1">
           <div class="klab"><i aria-hidden="true"></i>Active cases</div>
@@ -1796,7 +1752,7 @@ html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur
   </div>
 
   <!-- ── WEEKLY CHART ── -->
-  <section class="card glass grain rv" aria-labelledby="chart-h" data-d="0">
+  <section class="card glass grain rv" aria-labelledby="chart-h" data-d="0" data-liquidglass>
     <div class="card-h">
       <div><h2 id="chart-h">Weekly Recovery</h2><span class="sub">Eight weeks · recovered against lost</span></div>
       <div style="margin-left:auto;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
@@ -1831,16 +1787,27 @@ html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur
     </div>
   </section>
 
+  <!-- ── DECLINE BREAKDOWN ── -->
+  <section class="card glass grain rv" aria-labelledby="decline-h" data-d="0" data-liquidglass>
+    <div class="card-h">
+      <div><h2 id="decline-h">Why payments are failing</h2><span class="sub">Failed payments by decline reason · selected range</span></div>
+    </div>
+    <div class="dbreak" id="declineBreakdown" aria-live="polite"></div>
+  </section>
+
   <!-- ── RECOVERY QUEUE (full width) ── -->
     <!-- RECOVERY QUEUE -->
-    <section class="card glass grain rv" id="queue" aria-labelledby="queue-h" data-d="0">
+    <section class="card glass grain rv" id="queue" aria-labelledby="queue-h" data-d="0" data-liquidglass>
       <div class="card-h">
         <div><h2 id="queue-h">Recovery Queue</h2><span class="sub">Who Revessent is acting for, right now</span></div>
-        <div class="filters" style="margin-left:auto" role="group" aria-label="Filter queue">
-          <button class="fchip" aria-pressed="true" data-filter="all">All</button>
-          <button class="fchip" aria-pressed="false" data-filter="retrying">Retrying</button>
-          <button class="fchip" aria-pressed="false" data-filter="awaiting_approval">Awaiting</button>
-          <button class="fchip" aria-pressed="false" data-filter="lost">Lost</button>
+        <div style="margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" id="exportCasesBtn" type="button">Export CSV</button>
+          <div class="filters" role="group" aria-label="Filter queue">
+            <button class="fchip" aria-pressed="true" data-filter="all">All</button>
+            <button class="fchip" aria-pressed="false" data-filter="retrying">Retrying</button>
+            <button class="fchip" aria-pressed="false" data-filter="awaiting_approval">Awaiting</button>
+            <button class="fchip" aria-pressed="false" data-filter="lost">Lost</button>
+          </div>
         </div>
       </div>
       <div class="tblwrap">
@@ -1859,31 +1826,31 @@ html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur
   <!-- ── ACTIVITY + PILOT ── -->
   <div class="grid2">
       <!-- ACTIVITY FEED -->
-      <section class="card glass grain rv" aria-labelledby="act-h" data-d="60">
+      <section class="card glass grain rv" aria-labelledby="act-h" data-d="60" data-liquidglass>
         <div class="meteors" id="meteors" aria-hidden="true"></div>
         <div class="rel">
           <div class="card-h">
             <h2 id="act-h">Activity</h2>
-            <a class="lnk" href="#digest" style="margin-left:auto">View all →</a>
+            <a class="lnk" href="/weekly-digest.html" style="margin-left:auto">View all →</a>
           </div>
           <ul class="afeed" id="afeed"></ul>
         </div>
       </section>
 
       <!-- PILOT STATUS -->
-      <section class="pilot glass grain rv" aria-labelledby="pilot-h" data-d="120">
+      <section class="pilot glass grain rv" data-liquidglass aria-labelledby="pilot-h" data-d="120">
         <div class="grainy" aria-hidden="true"></div>
         <div class="ripple" aria-hidden="true"><i style="animation-delay:0s"></i><i style="animation-delay:1.7s"></i><i style="animation-delay:3.4s"></i></div>
         <div class="ph" id="pilot-h"><span class="pulse" aria-hidden="true"></span>Workspace status</div>
         <div class="prog">
-          <div class="pm"><span>— / — days used</span><span>— left</span></div>
+          <div class="pm"><span id="pilotDays">— / — days used</span><span id="pilotLeft">— left</span></div>
           <div class="ptrack" role="progressbar" aria-valuemin="0" aria-valuemax="14" aria-valuenow="0" aria-label="Pilot days used">
             <div class="pfill" id="pfill"></div>
           </div>
         </div>
-        <p class="risk"><b id="pilotRiskAmount">$0</b> at risk — act before the pilot ends and Revessent stops retrying for you.</p>
+        <p class="risk"><b id="pilotRiskAmount">₹0</b> at risk — act before the pilot ends and Revessent stops retrying for you.</p>
         <button class="box start-btn" style="--w:100%" data-upgrade type="button"><span class="text">Upgrade</span><span class="btn-icon"><svg class="svg" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M779.180132 473.232045 322.354755 16.406668c-21.413706-21.413706-56.121182-21.413706-77.534887 0-21.413706 21.413706-21.413706 56.122205 0 77.534887l418.057421 418.057421L244.819868 930.057421c-21.413706 21.413706-21.413706 56.122205 0 77.534887 10.706853 10.706853 24.759917 16.059767 38.767955 16.059767s28.061103-5.353938 38.767955-16.059767L779.180132 550.767955C800.593837 529.35425 800.593837 494.64575 779.180132 473.232045z"></path></svg></span><span class="circle-overlay" aria-hidden="true"></span></button>
-        <div class="guarantee"><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg>90-day money-back guarantee</div>
+        <div class="guarantee"><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg>Free 14-day pilot · no card required</div>
       </section>
 
   </div>
@@ -1894,16 +1861,16 @@ html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur
 <!-- ══════════════ MOBILE TAB BAR ══════════════ -->
 <nav class="tabbar" aria-label="Mobile navigation">
   <ul>
-    <li><a href="#overview" class="on" data-tab="overview"><svg class="ic" aria-hidden="true"><use href="#i-home"/></svg>Overview</a></li>
+    <li><a href="#kpis" class="on" data-tab="overview"><svg class="ic" aria-hidden="true"><use href="#i-home"/></svg>Overview</a></li>
     <li><a href="#queue" data-tab="queue"><svg class="ic" aria-hidden="true"><use href="#i-refresh"/></svg>Queue<span class="nb">0</span></a></li>
     <li><a href="/members.html" data-tab="members"><svg class="ic" aria-hidden="true"><use href="#i-users"/></svg>Members</a></li>
-    <li><a href="#signals" data-tab="signals"><svg class="ic" aria-hidden="true"><use href="#i-trend"/></svg>Signals</a></li>
+    <li><a href="/weekly-digest.html" data-tab="digest"><svg class="ic" aria-hidden="true"><use href="#i-mail"/></svg>Digest</a></li>
     <li><a href="/settings.html" data-tab="settings"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg>Settings</a></li>
   </ul>
 </nav>
 
 <div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
 (function(){
 "use strict";
 /* ════════════════════════════════════════════════════════════
@@ -1920,12 +1887,14 @@ if((navigator.hardwareConcurrency||8) <= 4 || /Android/i.test(navigator.userAgen
   document.documentElement.classList.add('eco');
 }
 /** Format a number as USD with thousands separators, no cents. */
-function usd(n){ return '$' + Math.round(n).toLocaleString('en-US'); }
-function moneyFromCents(cents){ return usd((Number(cents)||0)/100); }
+var DASH_CURRENCY='INR';
+/* Audit #51: format in the workspace currency (default INR — the product is Razorpay/India-first), not hard-coded $. */
+function usd(n){ try{ return new Intl.NumberFormat('en-IN',{style:'currency',currency:DASH_CURRENCY,maximumFractionDigits:0}).format(Math.round(n)); }catch(_){ return '\u20B9'+Math.round(n).toLocaleString('en-IN'); } }
+function moneyFromCents(cents){ return usd(centsToDisplay(cents)); }
 function axisMoney(n){
   n=Number(n)||0;
-  if(n>=1000000) return '$'+(n/1000000).toFixed(n>=10000000?0:1)+'m';
-  if(n>=1000) return '$'+Math.round(n/1000)+'k';
+  if(n>=1000000) return '\u20B9'+(n/1000000).toFixed(n>=10000000?0:1)+'m';
+  if(n>=1000) return '\u20B9'+Math.round(n/1000)+'k';
   return usd(n);
 }
 function timeAgo(iso){
@@ -2148,7 +2117,7 @@ function skyDraw(){
   gl.uniform1f(f.t,skyT);
   gl.drawArrays(gl.TRIANGLES,0,3);
 }
-function skyWants(){ var t=currentTheme(); return skyOK && (t==='light'||t==='dark') && !document.hidden; }
+function skyWants(){ var t=currentTheme(); return skyOK && t==='light' && !document.hidden; }
 function skyFrame(now){
   skyRaf=0;
   if(!skyWants()||isEco()) return;
@@ -2174,25 +2143,27 @@ new MutationObserver(function(){ skySyncRamp(); skyKick(); }).observe(document.d
    ════════════════════════════════════════════════════════════ */
 /* The three appearances offered in the panel (plus legacy 'dark',
    kept working for anyone whose localStorage still holds it). */
+/* ECLIPSE + DAYLIGHT — the two shared themes. Every page reads the same
+   rv.theme key, so the choice follows you across the whole app. */
 var THEMES={
-  amoled : {name:'Nocturne', desc:'Navy backdrop · Black cards', scheme:'dark', tone:'#07111f', wash:'#101827'},
-  light  : {name:'Blue Sky', desc:'Bright · Airy · Glass',     scheme:'light', tone:'#f3ead6', wash:'#a9cdf3'},
-  minimal: {name:'Minimal',  desc:'Clean · High contrast',     scheme:'light', tone:'#ffffff', wash:'#ffffff'},
-  minimal2:{name:'Minimal II',desc:'Inverted · Ink on black',   scheme:'dark',  tone:'#000000', wash:'#000000'},
-  dark   : {name:'Evening',  desc:'Dim · Warm grey',           scheme:'dark',  tone:'#5A544B', wash:'#4b463f'}
+  amoled : {name:'Eclipse',   desc:'Pure black · Electric mint', scheme:'dark',  tone:'#000000', wash:'#000000'},
+  light  : {name:'Daylight',  desc:'Bright · Airy · Glass',      scheme:'light', tone:'#f3ead6', wash:'#a9cdf3'},
+  minimal: {name:'Minimal',   desc:'Clean · High contrast',      scheme:'light', tone:'#ffffff', wash:'#ffffff'},
+  minimal2:{name:'Minimal II',desc:'Inverted · Ink on black',    scheme:'dark',  tone:'#000000', wash:'#000000'}
 };
+/* Nocturne-era values map by intent; Minimal I/II pass through. */
+function mapTheme(t){ return (t==='light'||t==='amoled'||t==='minimal'||t==='minimal2')?t:'light'; }
 /* Hoist-safe: the sky module calls this before THEMES is assigned. */
 function currentTheme(){ var t=document.documentElement.getAttribute('data-theme');
-  return (t==='light'||t==='dark'||t==='amoled'||t==='minimal'||t==='minimal2')?t:'light'; }
-var savedTheme=null; try{ savedTheme=localStorage.getItem('rv.theme'); }catch(e){}
-if(!THEMES[savedTheme]) savedTheme='amoled';
+  return (t==='light'||t==='amoled'||t==='minimal'||t==='minimal2')?t:'light'; }
+var savedTheme='light'; try{ savedTheme=mapTheme(localStorage.getItem('rv.theme')); }catch(e){}
 document.documentElement.setAttribute('data-theme', savedTheme);
 /** Sync the panel button, the radio ticks and color-scheme to the live theme. */
 function updateThemeUI(){
   var cur=currentTheme(), meta=THEMES[cur];
   var nameEl=$('#themeName'), swEl=$('#themeSwatch'), btn=$('#themebtn');
   if(nameEl) nameEl.textContent=meta.name;
-  if(swEl) swEl.setAttribute('data-sw', cur==='dark'?'amoled':cur);
+  if(swEl) swEl.setAttribute('data-sw', cur);
   if(btn) btn.setAttribute('aria-label','Appearance — currently '+meta.name);
   $$('[data-theme-set]').forEach(function(b){
     b.setAttribute('aria-checked', b.getAttribute('data-theme-set')===cur ? 'true':'false');
@@ -2200,6 +2171,12 @@ function updateThemeUI(){
   var m=$('meta[name=color-scheme]'); if(m) m.setAttribute('content', meta.scheme);
 }
 function swapTheme(){ updateThemeUI(); try{ localStorage.setItem('rv.theme', currentTheme()); }catch(e){} }
+/* One choice, every page — other tabs follow a theme change instantly. */
+addEventListener('storage',function(e){
+  if(e.key!=='rv.theme'||!e.newValue) return;
+  var t=mapTheme(e.newValue);
+  if(t!==currentTheme()&&!themeBusy) commitTheme(t);
+});
 var themeBusy=false;
 var REVEAL_MS=520, REVEAL_EASE='cubic-bezier(.25,1,.5,1)';
 
@@ -2436,10 +2413,10 @@ $('#datepill').addEventListener('click',function(){
   var lbl=$('#daterange'), i=opts.indexOf(lbl.textContent);
   lbl.textContent=opts[(i+1)%opts.length];
   flip(lbl);
-  var map={'Last 7 days':'7d','Last 30 days':'30d','Last 90 days':'90d','Year to date':'90d'};
+  var map={'Last 7 days':'7d','Last 30 days':'30d','Last 90 days':'90d','Year to date':'ytd'};
   if(window.__rvLoadDashboardRange) window.__rvLoadDashboardRange(map[lbl.textContent]||'30d');
 });
-$$('[data-upgrade]').forEach(function(b){ b.addEventListener('click',function(){ toast('Upgrade flow'); }); });
+$$('[data-upgrade]').forEach(function(b){ b.addEventListener('click',function(){ toast('Billing switches on at launch — the pilot is free and needs no card.'); }); });
 
 /* ════════════════════════════════════════════════════════════
    6. TOASTS
@@ -2528,7 +2505,29 @@ window.__rvToast = toast;
 function $(s,r){ return (r||document).querySelector(s); }
 function $$(s,r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); }
 var REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
-function usd(n){ return '$' + Math.round(n).toLocaleString('en-US'); }
+/* Cross-module helpers (audit #51): the first dashboard module (the IIFE
+   above) owns the INR-aware formatters, but its scope ends at its closing
+   parenthesis — these re-declarations keep THIS module self-contained.
+   Without them every /api/dashboard-data apply threw
+   "DASH_CURRENCY is not defined" (strict mode) and the dashboard fell
+   back to empty data. Found while capturing the real UI for the ad. */
+var DASH_CURRENCY='INR';
+function usd(n){ try{ return new Intl.NumberFormat('en-IN',{style:'currency',currency:DASH_CURRENCY,maximumFractionDigits:0}).format(Math.round(n)); }catch(_){ return '\u20B9'+Math.round(n).toLocaleString('en-IN'); } }
+function moneyFromCents(cents){ return usd(centsToDisplay(cents)); }
+function axisMoney(n){
+  n=Number(n)||0;
+  if(n>=1000000) return '\u20B9'+(n/1000000).toFixed(n>=10000000?0:1)+'m';
+  if(n>=1000) return '\u20B9'+Math.round(n/1000)+'k';
+  return usd(n);
+}
+function timeAgo(iso){
+  if(!iso) return '—';
+  var then=new Date(iso).getTime(); if(!then) return '—';
+  var s=Math.max(1,Math.floor((Date.now()-then)/1000));
+  if(s<60) return s+'s ago'; var m=Math.floor(s/60); if(m<60) return m+'m ago';
+  var h=Math.floor(m/60); if(h<24) return h+'h ago'; var d=Math.floor(h/24); return d+'d ago';
+}
+function titleize(v){ return String(v||'').replace(/_/g,' ').replace(/\b\w/g,function(m){return m.toUpperCase();}); }
 function toast(msg){
   var t=document.createElement('div');
   t.className='toast'; t.setAttribute('role','status');
@@ -2569,7 +2568,7 @@ function drawChart(){
     var y=padT+ih-(s/steps)*ih;
     g.appendChild(el('line',{x1:padL,x2:W-padR,y1:y,y2:y}));
     var tx=el('text',{x:padL-15,y:y+6,class:'axis','text-anchor':'end'});
-    tx.textContent=rawMax>0?axisMoney(max*s/steps):'$0';
+    tx.textContent=rawMax>0?axisMoney(max*s/steps):'₹0';
     g.appendChild(tx);
   }
   chart.appendChild(g);
@@ -2803,17 +2802,24 @@ function statusHtml(status){
   var s=STATUS[status]||STATUS.detected;
   return '<span class="st" style="color:var('+s.v+'-ink)"><i style="background:var('+s.v+')" aria-hidden="true"></i>'+s.t+'</span>';
 }
+/** Escape untrusted text for safe interpolation into HTML attributes. */
+function esc(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
 function rowFor(c){
   var tr=document.createElement('tr');
   tr.dataset.id=c.id; tr.dataset.status=c.status;
   var d=DECLINE[c.decline]||DECLINE.unknown;
+  // Audit #3: payer names are attacker-controllable (they come from Razorpay
+  // customer records) — escape before they land in aria-label attributes.
+  var safeName=esc(c.name);
   var canApprove=c.status==='awaiting_approval';
   var approveBtn=canApprove
-    ? '<button class="btn btn-pri btn-sm shimmer-hover magnet" data-approve data-case-id="'+c.id+'" aria-label="Approve recovery for '+c.name+'">Approve</button>'
+    ? '<button class="btn btn-pri btn-sm shimmer-hover magnet" data-approve data-case-id="'+esc(c.id)+'" aria-label="Approve recovery for '+safeName+'">Approve</button>'
     : '';
   var act='<div class="acts">'+approveBtn+
-    '<button class="btn btn-ghost btn-sm magnet" data-send-note data-case-id="'+c.id+'" aria-label="Send recovery note to '+c.name+'">Send note</button>'+ 
-    '<a class="btn btn-ghost btn-sm magnet" href="/case-detail.html?case='+encodeURIComponent(c.id)+'" aria-label="Open recovery case for '+c.name+'">View</a></div>';
+    '<button class="btn btn-ghost btn-sm magnet" data-send-note data-case-id="'+esc(c.id)+'" aria-label="Send recovery note to '+safeName+'">Send note</button>'+ 
+    '<a class="btn btn-ghost btn-sm magnet" href="/case-detail.html?case='+encodeURIComponent(c.id)+'" aria-label="Open recovery case for '+safeName+'">View</a></div>';
   tr.innerHTML=
     '<td><div class="mcell"><span class="ava ava-32" aria-hidden="true" style="background:linear-gradient(135deg,'+c.g[0]+','+c.g[1]+')">'+initials(c.name)+'</span>'+ 
     '<span class="who"><b><a class="case-link" href="/case-detail.html?case='+encodeURIComponent(c.id)+'"></a></b><small></small></span></div></td>'+ 
@@ -2831,6 +2837,26 @@ function renderQueue(){
   qbody.innerHTML='';
   if($('#qbadge')) $('#qbadge').textContent=CASES.length;
   $$('.tabbar .nb').forEach(function(n){ n.textContent=CASES.length; });
+  /* 2nd-opinion #35: one click approves every parked case (the click IS the
+     approval — same trust contract as the per-row Approve button). */
+  var bulk=$('#approveAllBtn');
+  if(bulk){
+    var waiting=CASES.filter(function(c){ return c.status==='awaiting_approval'; });
+    bulk.style.display=waiting.length?'':'none';
+    bulk.textContent='Approve all waiting ('+waiting.length+')';
+    bulk.onclick=async function(){
+      if(!DASH_TOKEN){ toast('Sign in to perform this action.'); return; }
+      bulk.disabled=true;
+      try{
+        var res=await fetch('/api/recovery/bulk-approve',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+DASH_TOKEN},body:JSON.stringify({caseIds:waiting.map(function(c){return c.id;})})});
+        var body=await res.json().catch(function(){ return {}; });
+        if(!res.ok) throw new Error(body.error||'Approval failed');
+        toast('Approved '+body.approved+' case'+(body.approved===1?'':'s')+(body.failed?' · '+body.failed+' failed (suppressed or errored)':''));
+        fetchDashboardData(DASH_RANGE);
+      }catch(err){ toast(err.message||'Approval failed'); }
+      finally{ bulk.disabled=false; }
+    };
+  }
   var list=CASES.filter(function(c){ return filter==='all' || c.status===filter; });
   if(!list.length){
     var tr=document.createElement('tr');
@@ -2845,6 +2871,15 @@ function renderQueue(){
     setTimeout(function(){ tr.style.transition='opacity .45s ease,transform .45s cubic-bezier(.16,1,.3,1),background-color .3s ease'; tr.style.opacity='1'; tr.style.transform='none'; }, 60*i);
   });
   wireMagnets();
+}
+var bulkHost=document.querySelector('.filters');
+if(bulkHost){
+  var bulkBtn=document.createElement('button');
+  bulkBtn.className='btn btn-pri btn-sm';
+  bulkBtn.id='approveAllBtn';
+  bulkBtn.type='button';
+  bulkBtn.style.display='none';
+  bulkHost.appendChild(bulkBtn);
 }
 $$('.fchip').forEach(function(b){
   b.addEventListener('click',function(){
@@ -2981,24 +3016,11 @@ function addActivity(a){
   function label(b,t){ var el=b.querySelector('.text'); if(el) el.textContent=t; }
   $('#cdismiss').addEventListener('click',function(){ dismiss('Banner dismissed'); });
   form.addEventListener('submit',function(e){
+    /* Audit #48: this card can't connect anything — the real Razorpay connect
+       (Key ID + Secret + webhook) lives in Settings → Payment gateway.
+       Any submit just takes the user there; no fake "Connected" state. */
     e.preventDefault();
-    var v=input.value.trim();
-    if(v.length<8){
-      field.classList.remove('err'); void field.offsetWidth; field.classList.add('err');
-      input.setAttribute('aria-invalid','true'); input.focus();
-      toast('That key looks too short — paste your rzp_live_ or rzp_test_ Key ID');
-      return;
-    }
-    input.removeAttribute('aria-invalid');
-    btn.setAttribute('aria-busy','true'); label(btn,'Connecting');
-    setTimeout(function(){
-      banner.classList.add('ok');
-      $('#cmsg').textContent='Razorpay connected — Revessent is ready to watch members';
-      btn.removeAttribute('aria-busy'); label(btn,'Connected');
-      addActivity({bc:'var(--alt)',bg:'rgb(var(--altC)/.14)',icon:'i-link',title:'Razorpay connected',sub:'Key ID accepted',amt:'',time:'now'});
-      toast('Razorpay connected · read-only');
-      setTimeout(function(){ dismiss(); },1500);
-    },1200);
+    window.location.assign('/settings.html');
   });
   /** Slide the banner up and out of the flow. */
   function dismiss(msg){
@@ -3038,10 +3060,12 @@ function emptyDashboardData(){
     revenueAtRisk:{amountCents:0,openCaseCount:0},
     recoveryRate:{percent:0,industryAvgPercent:0},
     activeCases:{retrying:0,awaitingApproval:0,checkoutSent:0,detected:0},
-    weeklyChart:[], recoveryQueue:[], activity:[]
+    weeklyChart:[], declineBreakdown:[], recoveryQueue:[], activity:[]
   };
 }
-function centsToDisplay(c){ return (Number(c)||0)/100; }
+/* Audit #39: zero-decimal currencies (JPY…) are stored as whole units. */
+var ZERO_DECIMAL_CURRENCIES={JPY:1,KRW:1,VND:1,CLP:1,ISK:1,HUF:1,TWD:1,BHD:1,KWD:1,OMR:1};
+function centsToDisplay(c){ return (Number(c)||0)/(ZERO_DECIMAL_CURRENCIES[DASH_CURRENCY]?1:100); }
 function easeOutQuartLive(t){ return 1-Math.pow(1-t,4); }
 function countUpEl(el){
   var target=parseFloat(el.dataset.count)||0, pre=el.dataset.prefix||'', suf=el.dataset.suffix||'', dur=900, t0=null;
@@ -3076,6 +3100,54 @@ function activityAmount(type,cents){
   if(type==='lost') return '−'+moneyFromCents(cents);
   return moneyFromCents(cents);
 }
+/* ════════════════════════════════════════════════════════════
+   DECLINE BREAKDOWN — "Why payments are failing" bar list
+   ════════════════════════════════════════════════════════════ */
+var DECLINE_META={
+  insufficient_funds:{t:'Insufficient funds',v:'--warn'},
+  card_declined:     {t:'Card declined',    v:'--neg'},
+  expired_card:      {t:'Expired card',     v:'--info'},
+  do_not_honor:      {t:'Do not honor',     v:'--neg'},
+  processing_error:  {t:'Processing error', v:'--neu'},
+  invalid_account:   {t:'Invalid account',  v:'--neg'},
+  lost_card:         {t:'Lost card',        v:'--neg'},
+  stolen_card:       {t:'Stolen card',      v:'--neg'},
+  pickup_card:       {t:'Pickup card',      v:'--neg'},
+  unknown:           {t:'Unknown',          v:'--neu'}
+};
+function renderDeclineBreakdown(rows){
+  var wrap=$('#declineBreakdown'); if(!wrap) return;
+  wrap.innerHTML='';
+  var list=(rows||[]).filter(function(r){ return (Number(r.count)||0)>0; });
+  if(!list.length){
+    var empty=document.createElement('p');
+    empty.className='dempty';
+    empty.textContent='No failed payments in this range — nothing to analyze yet.';
+    wrap.appendChild(empty);
+    return;
+  }
+  var max=Math.max.apply(null, list.map(function(r){ return Number(r.count)||0; }));
+  list.forEach(function(r){
+    var m=DECLINE_META[r.declineCode]||DECLINE_META.unknown;
+    var n=Number(r.count)||0;
+    var pct=Math.max(3, Math.round((n/max)*100));
+    var row=document.createElement('div');
+    row.className='drow';
+    var lbl=document.createElement('span');
+    lbl.className='dlbl'; lbl.textContent=m.t; lbl.title=m.t;
+    var bar=document.createElement('span');
+    bar.className='dbar'; bar.setAttribute('aria-hidden','true');
+    var fill=document.createElement('i');
+    fill.style.background='var('+m.v+')';
+    bar.appendChild(fill);
+    var val=document.createElement('span');
+    val.className='dval';
+    val.textContent=n+' · '+moneyFromCents(r.totalAmountCents);
+    row.append(lbl,bar,val);
+    wrap.appendChild(row);
+    setTimeout(function(){ fill.style.width=pct+'%'; },60);
+  });
+}
 function updateSparkline(weeks){
   var pts=(weeks||[]).map(function(w){ return Number(w.recoveredCents)||0; });
   if(!pts.length) pts=[0,0,0,0,0,0,0,0];
@@ -3090,10 +3162,24 @@ function updateSparkline(weeks){
 function applyDashboardData(data){
   data=data||emptyDashboardData();
   var rec=data.revenueRecovered||{}, risk=data.revenueAtRisk||{}, rate=data.recoveryRate||{}, active=data.activeCases||{};
+  /* Audit #49: real pilot countdown from org pilot dates (set at signup). */
+  var pilot=data.pilot||{};
+  var pd=$('#pilotDays'), pl=$('#pilotLeft');
+  if(pd && pl && pilot.endsAt){
+    try{
+      var pStart=new Date(pilot.startedAt||Date.now()), pEnd=new Date(pilot.endsAt), pNow=new Date();
+      var pTotal=Math.max(1,Math.round((pEnd-pStart)/864e5));
+      var pUsed=Math.min(pTotal,Math.max(0,Math.round((pNow-pStart)/864e5)));
+      var pLeft=Math.max(0,Math.round((pEnd-pNow)/864e5));
+      pd.textContent=pUsed+' / '+pTotal+' days used';
+      pl.textContent=pLeft+(pLeft===1?' day':' days')+' left';
+    }catch(_){}
+  }
   $$('.kpi').forEach(function(k){ k.classList.remove('loading'); });
-  setCount($('#revRecoveredVal'), centsToDisplay(rec.amountCents), '$', '');
+  if(data.currency) DASH_CURRENCY=data.currency;
+  setCount($('#revRecoveredVal'), centsToDisplay(rec.amountCents), '', '');
   setRecoveredDelta(rec.percentChangeVsPrior);
-  setCount($('#revRiskVal'), centsToDisplay(risk.amountCents), '$', '');
+  setCount($('#revRiskVal'), centsToDisplay(risk.amountCents), '', '');
   var openCount=Number(risk.openCaseCount)||0;
   var riskOpen=$('#revRiskOpenCases'); if(riskOpen) riskOpen.textContent=openCount+' open case'+(openCount===1?'':'s');
   var dots=$('#revRiskDots'); if(dots){ dots.innerHTML=''; for(var i=0;i<Math.min(openCount,8);i++){ var dot=document.createElement('i'); dot.style.background=i<2?'var(--info)':(i===2?'var(--warn)':(i===3?'var(--alt)':'var(--neu)')); dots.appendChild(dot); } }
@@ -3112,6 +3198,7 @@ function applyDashboardData(data){
     });
   }
   var pilotRisk=$('#pilotRiskAmount'); if(pilotRisk) pilotRisk.textContent=moneyFromCents(risk.amountCents||0);
+  renderDeclineBreakdown(data.declineBreakdown||[]);
   updateSparkline(data.weeklyChart||[]);
   WEEKS=(data.weeklyChart&&data.weeklyChart.length?data.weeklyChart:emptyDashboardData().weeklyChart).map(function(w){ return {l:w.weekLabel||'—', r:centsToDisplay(w.recoveredCents), x:centsToDisplay(w.lostCents)}; });
   while(WEEKS.length<8) WEEKS.unshift({l:'—',r:0,x:0});
@@ -3131,16 +3218,77 @@ async function fetchDashboardData(range){
   if(!DASH_TOKEN){ applyDashboardData(emptyDashboardData()); return; }
   try{
     var res=await fetch('/api/dashboard-data?range='+encodeURIComponent(range||'30d'),{headers:{Authorization:'Bearer '+DASH_TOKEN}});
+    /* Audit #59: a 401 on a long-idle tab usually means the access token
+       aged out while supabase-js hadn't refreshed it yet. Refresh the
+       session once and retry BEFORE bouncing the user to login. */
+    if(res.status===401 && !fetchDashboardData._retried){
+      fetchDashboardData._retried=true;
+      try{
+        var refreshed=await supabaseClient.auth.refreshSession();
+        if(refreshed && refreshed.data && refreshed.data.session){
+          DASH_TOKEN=refreshed.data.session.access_token;
+          return await fetchDashboardData(range);
+        }
+      }catch(_){}
+      window.location.assign('/login.html'); return;
+    }
+    if(res.status===401){ window.location.assign('/login.html'); return; }
     var body=await res.json().catch(function(){ return {}; });
     if(!res.ok) throw new Error(body.error||'Could not load dashboard data');
+    hideDashError();
+    fetchDashboardData._retried=false;
     applyDashboardData(body);
   }catch(err){
     console.error('Dashboard data load failed',err);
     applyDashboardData(emptyDashboardData());
-    toast("Couldn't load latest data — showing empty dashboard");
+    showDashError("Couldn't load your latest data — showing an empty dashboard. Refresh in a minute, or if this keeps happening, reconnect Razorpay in Settings.");
   }
 }
+/* Persistent, dismissible error banner — a toast disappears before you've read it. */
+function showDashError(msg){
+  hideDashError();
+  var b=document.createElement('div');
+  b.id='dashErr';
+  b.setAttribute('role','alert');
+  b.style.cssText='position:sticky;top:0;z-index:80;display:flex;gap:14px;align-items:center;justify-content:space-between;background:#3a1414;color:#ffd9d9;padding:10px 16px;font-size:13.5px;border-bottom:1px solid #7a2e2e';
+  var t=document.createElement('span'); t.textContent=msg;
+  var x=document.createElement('button'); x.type='button'; x.textContent='Dismiss';
+  x.style.cssText='background:none;border:1px solid #b96a6a;color:#ffd9d9;border-radius:8px;padding:3px 12px;cursor:pointer;flex:none';
+  x.addEventListener('click',function(){ b.remove(); });
+  b.appendChild(t); b.appendChild(x);
+  (document.querySelector('main')||document.body).prepend(b);
+}
+function hideDashError(){ var e=document.getElementById('dashErr'); if(e) e.remove(); }
 window.__rvLoadDashboardRange=function(range){ DASH_RANGE=range||'30d'; fetchDashboardData(DASH_RANGE); };
+/* Export CSV — fetch with the Bearer token (same auth as every other call),
+   then trigger a browser download from a Blob via a temporary <a> element.
+   Chosen over a plain <a href> download because that can't set an
+   Authorization header. Exports the date range currently selected. */
+(function(){
+  var btn=$('#exportCasesBtn');
+  if(!btn) return;
+  btn.addEventListener('click', async function(){
+    btn.disabled=true;
+    try{
+      var days=DASH_RANGE==='7d'?7:(DASH_RANGE==='90d'?90:(DASH_RANGE==='ytd'?Math.max(1,Math.ceil((Date.now()-Date.UTC(new Date().getUTCFullYear(),0,1))/864e5)):30));
+      var from=new Date(Date.now()-days*864e5).toISOString().slice(0,10);
+      var res=await fetch('/api/export/cases?from='+encodeURIComponent(from),{headers:{Authorization:'Bearer '+DASH_TOKEN}});
+      if(!res.ok){ var b=await res.json().catch(function(){ return {}; }); throw new Error(b.error||'Export failed'); }
+      var text=await res.text();
+      var url=URL.createObjectURL(new Blob([text],{type:'text/csv'}));
+      var a=document.createElement('a');
+      a.href=url;
+      a.download='revessent-cases-'+new Date().toISOString().slice(0,10)+'.csv';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(url); },1000);
+      toast('Cases CSV downloaded');
+    }catch(err){
+      toast(err.message||'Could not export cases');
+    }finally{
+      btn.disabled=false;
+    }
+  });
+})();
 function startDashboardData(){
   (window.__rvSessionReady||Promise.resolve(window.__rvSession)).then(function(session){
     if(!session){
@@ -3149,11 +3297,27 @@ function startDashboardData(){
       return;
     }
     DASH_TOKEN=session.access_token;
+    /* Audit #52: real account email + initials from the session. */
+    try{
+      var email=(session.user&&session.user.email)||'';
+      var pe=$('#profileEmail'); if(pe&&email) pe.textContent=email;
+      var initials=(email.split('@')[0]||'EM').slice(0,2).toUpperCase();
+      $$('.avabtn .ava, .sb-foot .acct .ava').forEach(function(a){ a.textContent=initials; });
+    }catch(_){}
+    /* Audit #52: sign out actually signs out. */
+    var so=$('#signOutBtn');
+    if(so&&!so.dataset.wired){
+      so.dataset.wired='1';
+      so.addEventListener('click',async function(){
+        try{ await supabaseClient.auth.signOut(); }catch(_){}
+        window.location.assign('/login.html');
+      });
+    }
     fetchDashboardData(DASH_RANGE);
   }).catch(function(err){ console.error('Dashboard session unavailable',err); applyDashboardData(emptyDashboardData()); });
 }
 startDashboardData();
 })();
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a41c7ece4a467766',t:'MTc5MDUzMjk0Mw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
