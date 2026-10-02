@@ -633,6 +633,18 @@ function testSources() {
   check('supabase-auth: loud prod warning on default fallback (2nd-opinion #20)', read('server/_lib/supabase-auth.js').includes('VERCEL_ENV') && read('server/_lib/supabase-auth.js').includes('HARD-CODED'));
   check('digest copy: auto-generated, not "added later" (2nd-opinion #14)', !read('weekly-digest.html').toLowerCase().includes('added later'));
 
+  // ── Minimal Finance redesign (Nocturne retired) ──
+  const MF_PAGES = ['dashboard.html', 'members.html', 'weekly-digest.html', 'case-detail.html', 'settings.html', 'login.html', 'reset-password.html', 'changelog.html', 'index.html', 'privacy.html', 'terms.html'];
+  check('theme: Nocturne palette (champagne/navy/cream) gone from every page', MF_PAGES.every((p) => !/f2d8a2|fff8e9|07111f|cbb07e/i.test(read(p))));
+  check('theme: no Nocturne/amoled option in any UI', MF_PAGES.every((p) => !read(p).includes('data-theme="amoled"') && !read(p).includes('>Nocturne<')));
+  check('theme: Minimal Finance light is the default palette', read('dashboard.html').includes('--page:#F8FAFC') && read('members.html').includes('--page:#F8FAFC') && read('settings.html').includes('--page:#F8FAFC'));
+  check('theme: Slate dark variant defined on every page', MF_PAGES.every((p) => read(p).includes('data-theme=slate') || read(p).includes('data-theme="slate"')));
+  check('theme: one choice, every page — rv.theme + live storage sync', MF_PAGES.every((p) => read(p).includes('rv.theme') && /addEventListener\((['"])storage\1/.test(read(p))));
+  check('theme: dashboard picker offers Minimal Finance + Slate only', (() => { const d = read('dashboard.html'); return d.includes('data-theme-set="finance"') && d.includes('data-theme-set="slate"') && !d.includes('data-theme-set="amoled"'); })());
+  check('theme: settings has an Appearance picker (writes the shared key)', read('settings.html').includes('data-appearance-set') && read('settings.html').includes('appearanceCard'));
+  check('theme: emerald mark in favicons', ['dashboard.html', 'members.html', 'weekly-digest.html', 'case-detail.html', 'changelog.html', 'index.html', 'privacy.html', 'terms.html'].every((p) => read(p).includes('%2310B981')));
+  check('theme: emerald reserved for positive, muted red for negative', read('dashboard.html').includes('--pos:#16A34A') && read('dashboard.html').includes('--neg:#DC2626'));
+
   check('dashboard: 401 → one refresh + retry before redirect (audit #59)', /refreshSession/.test(read('dashboard.html')) && /_retried/.test(read('dashboard.html')));
 }
 

@@ -1,65 +1,71 @@
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="finance">
+<script>
+/* Minimal Finance — apply the shared theme choice (rv.theme) before paint. */
+(function(){var t='finance';try{var s=localStorage.getItem('rv.theme')||localStorage.getItem('revessent-theme')||'';
+if(s==='slate'||s==='dark'||s==='amoled'||s==='minimal2')t='slate';}catch(_){}
+document.documentElement.dataset.theme=t;})();
+</script>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#f1e8d4" />
+    <meta name="theme-color" content="#F8FAFC" />
     <title>Welcome to Revessent</title>
     <style>
       /* Revessent shared design tokens, matched to dashboard.html. */
       :root {
         color-scheme: light;
-        --canvas: #f9f4ea;
-        --page: #f1e8d4;
-        --text-primary: #1D1C1A;
-        --text-secondary: #3C3B37;
-        --text-muted: #6B6860;
-        --text-inverse: #FDFCF8;
-        --text-faint: #8E8C86;
+        --canvas: #F8FAFC;
+        --page: #F8FAFC;
+        --text-primary: #1E293B;
+        --text-secondary: #475569;
+        --text-muted: #64748B;
+        --text-inverse: #FFFFFF;
+        --text-faint: #94A3B8;
         --ink: var(--text-primary);
         --ink2: var(--text-secondary);
         --ink3: var(--text-muted);
-        --glass1: rgba(255, 253, 247, .42);
-        --glass2: rgba(255, 253, 248, .58);
-        --glass3: rgba(255, 254, 250, .74);
-        --glass-hi: rgba(255, 255, 255, .68);
-        --cc: 255 253 247;
-        --lc: 112 90 55;
-        --edge: rgba(255, 255, 255, .68);
-        --hi: rgba(255, 255, 255, .84);
-        --icB: rgba(255, 255, 255, .78);
-        --btnA: #35639a;
-        --btnAtx: #fbf6ec;
-        --ok: #8ba889;
-        --okTx: #5f7450;
-        --err: #c06a52;
-        --accC: 109 159 214;
-        --acc: #6d9fd6;
-        --acc-ink: #35608f;
+        --glass1: rgba(255, 255, 255, .72);
+        --glass2: rgba(255, 255, 255, .88);
+        --glass3: #FFFFFF;
+        --glass-hi: rgba(255, 255, 255, .9);
+        --cc: 255 255 255;
+        --lc: 15 23 42;
+        --edge: #E2E8F0;
+        --hi: #F1F5F9;
+        --icB: rgba(15, 23, 42, .06);
+        --btnA: #10B981;
+        --btnAtx: #FFFFFF;
+        --ok: #16A34A;
+        --okTx: #15803D;
+        --err: #DC2626;
+        --accC: 16 185 129;
+        --acc: #10B981;
+        --acc-ink: #047857;
         --acc-line: rgb(var(--accC) / .35);
         --acc-wash: rgb(var(--accC) / .10);
-        --line: rgb(112 90 55 / .14);
-        --line-soft: rgb(112 90 55 / .08);
+        --line: rgb(226 232 240);
+        --line-soft: rgb(226 232 240 / .55);
         --f-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, ui-sans-serif, system-ui, sans-serif;
         --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
         --r-xl: 24px;
         --r-lg: 18px;
         --r-md: 14px;
         --r-sm: 11px;
-        --sh-sm: inset 0 1px 0 rgba(255, 255, 255, .58), 0 1px 1px rgba(64, 48, 26, .05), 0 10px 24px -18px rgba(64, 48, 26, .22);
-        --sh-md: inset 0 1px 0 rgba(255, 255, 255, .66), 0 1px 1px rgba(64, 48, 26, .05), 0 18px 36px -20px rgba(64, 48, 26, .28);
-        --sh-lg: inset 0 1px 0 rgba(255, 255, 255, .70), 0 1px 1px rgba(64, 48, 26, .05), 0 24px 48px -22px rgba(64, 48, 26, .32);
+        --sh-sm: 0 1px 2px rgba(15, 23, 42, .05), 0 6px 16px -8px rgba(15, 23, 42, .08);
+        --sh-md: 0 1px 2px rgba(15, 23, 42, .05), 0 12px 28px -12px rgba(15, 23, 42, .12);
+        --sh-lg: 0 1px 2px rgba(15, 23, 42, .06), 0 20px 40px -16px rgba(15, 23, 42, .16);
         --spring: cubic-bezier(.16, 1, .3, 1);
-        --pos: #6f8f6c;
-        --pos-ink: #5f7450;
-        --warn: #a9854a;
-        --warn-ink: #8a6c38;
-        --neg: #bb6a52;
-        --neg-ink: #9d543e;
-        --rfx-bg: rgba(253, 251, 247, .96);
-        --rfx-border: rgba(255, 255, 255, .55);
-        --rfx-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), inset 0 0 2px 0 rgba(255, 255, 255, .25), 0 8px 32px rgba(64, 48, 26, .16);
-        --rfx-shadow-hi: inset 0 1px 0 rgba(255, 255, 255, .65), inset 0 0 2px 0 rgba(255, 255, 255, .3), 0 16px 48px rgba(64, 48, 26, .22);
+        --pos: #16A34A;
+        --pos-ink: #15803D;
+        --warn: #D97706;
+        --warn-ink: #B45309;
+        --neg: #DC2626;
+        --neg-ink: #B91C1C;
+        --rfx-bg: rgba(255, 255, 255, .92);
+        --rfx-border: #E2E8F0;
+        --rfx-shadow: 0 1px 2px rgba(15, 23, 42, .05), 0 8px 24px -12px rgba(15, 23, 42, .10);
+        --rfx-shadow-hi: 0 2px 4px rgba(15, 23, 42, .06), 0 16px 36px -16px rgba(15, 23, 42, .14);
 
         /* Aliases used by this standalone auth page. */
         --bg: var(--page);
@@ -88,44 +94,48 @@
         --button-2-surface: var(--acc);
       }
 
-      html[data-theme="dark"] {
+      /* Slate — the dark half of Minimal Finance. */
+      html[data-theme="slate"] {
         color-scheme: dark;
-        --canvas: #1c1a17;
-        --page: #161512;
-        --text-primary: #EFECE4;
-        --text-secondary: #C4C6C9;
-        --text-muted: #96938C;
-        --text-inverse: #161512;
-        --text-faint: #7E7B74;
-        --glass1: rgba(34, 32, 28, .50);
-        --glass2: rgba(39, 37, 33, .64);
-        --glass3: rgba(45, 43, 38, .78);
-        --glass-hi: rgba(255, 255, 255, .10);
-        --cc: 42 40 36;
-        --lc: 196 198 201;
-        --edge: rgba(224, 222, 214, .20);
-        --hi: rgba(255, 255, 255, .13);
-        --icB: rgba(255, 255, 255, .15);
-        --accC: 196 198 201;
-        --acc: #C4C6C9;
-        --acc-ink: #EFECE4;
-        --btnA: #C4C6C9;
-        --btnAtx: #1d1b18;
-        --ok: #8FA089;
-        --okTx: #d5dfc9;
-        --err: #D79A82;
-        --line: rgb(196 198 201 / .16);
-        --line-soft: rgb(196 198 201 / .10);
-        --pos: #8FA089;
-        --pos-ink: #A9BBA2;
-        --warn: #C2A472;
-        --warn-ink: #D6BC8E;
-        --neg: #D79A82;
-        --neg-ink: #E4B29D;
-        --rfx-bg: rgba(255, 255, 255, .05);
-        --rfx-border: rgba(255, 255, 255, .15);
-        --rfx-shadow: inset 0 1px 0 rgba(255, 255, 255, .20), inset 0 0 2px 0 rgba(255, 255, 255, .15), 0 8px 32px rgba(0, 0, 0, .30);
-        --rfx-shadow-hi: inset 0 1px 0 rgba(255, 255, 255, .26), inset 0 0 2px 0 rgba(255, 255, 255, .18), 0 18px 52px rgba(0, 0, 0, .42);
+        --canvas: #0B1220;
+        --page: #0F172A;
+        --text-primary: #F1F5F9;
+        --text-secondary: #CBD5E1;
+        --text-muted: #94A3B8;
+        --text-inverse: #0F172A;
+        --text-faint: #64748B;
+        --glass1: rgba(30, 41, 59, .55);
+        --glass2: rgba(30, 41, 59, .78);
+        --glass3: #1E293B;
+        --glass-hi: rgba(51, 65, 85, .5);
+        --cc: 30 41 59;
+        --lc: 148 163 184;
+        --edge: #334155;
+        --hi: rgba(148, 163, 184, .10);
+        --icB: rgba(148, 163, 184, .12);
+        --btnA: #10B981;
+        --btnAtx: #FFFFFF;
+        --ok: #34D399;
+        --okTx: #6EE7B7;
+        --err: #F87171;
+        --accC: 16 185 129;
+        --acc: #10B981;
+        --acc-ink: #34D399;
+        --line: rgb(51 65 85);
+        --line-soft: rgb(51 65 85 / .55);
+        --sh-sm: 0 1px 2px rgba(0, 0, 0, .40), 0 8px 20px -12px rgba(0, 0, 0, .50);
+        --sh-md: 0 1px 2px rgba(0, 0, 0, .45), 0 16px 36px -16px rgba(0, 0, 0, .55);
+        --sh-lg: 0 1px 2px rgba(0, 0, 0, .50), 0 24px 48px -20px rgba(0, 0, 0, .60);
+        --pos: #34D399;
+        --pos-ink: #6EE7B7;
+        --warn: #FBBF24;
+        --warn-ink: #FCD34D;
+        --neg: #F87171;
+        --neg-ink: #FCA5A5;
+        --rfx-bg: rgba(30, 41, 59, .92);
+        --rfx-border: #334155;
+        --rfx-shadow: 0 1px 2px rgba(0, 0, 0, .40), 0 8px 24px -12px rgba(0, 0, 0, .50);
+        --rfx-shadow-hi: 0 2px 4px rgba(0, 0, 0, .45), 0 16px 40px -16px rgba(0, 0, 0, .60);
       }
 
       * {
@@ -150,12 +160,10 @@
         transition: color 600ms ease, background 600ms ease;
       }
 
-      html[data-theme="light"] body {
-        background: linear-gradient(180deg, #e6f2ff 0%, #b3d9ff 42%, #80b3ff 76%, #6699e6 100%);
-      }
-
-      html[data-theme="dark"] body {
-        background: linear-gradient(180deg, #c4c6c9 0%, #55585e 42%, #5a544b 78%, #5a544b 100%);
+      html[data-theme="finance"] body,
+      html[data-theme="light"] body,
+      html[data-theme="slate"] body {
+        background: var(--page);
       }
 
       body::before {
@@ -164,17 +172,9 @@
         z-index: 0;
         pointer-events: none;
         content: "";
-        background:
-          radial-gradient(125% 92% at 50% -4%, rgb(var(--cc) / .5), transparent 47%),
-          radial-gradient(150% 120% at 50% 50%, transparent 58%, rgba(94, 70, 34, .10) 100%);
+        background: var(--page);
       }
 
-      html[data-theme="dark"] body::before {
-        background:
-          radial-gradient(125% 92% at 50% -4%, rgba(226, 225, 219, .06), transparent 46%),
-          radial-gradient(150% 120% at 50% 50%, transparent 42%, rgba(0, 0, 0, .58) 100%),
-          rgba(9, 11, 16, .12);
-      }
 
       button,
       input {
@@ -238,8 +238,9 @@
         width: 22px;
         height: 22px;
         border-radius: 7px;
-        background: linear-gradient(135deg, #6d9fd6, #35639a);
-        box-shadow: 0 4px 10px rgba(53, 99, 154, .25);
+        /* Minimal Finance mark — emerald tile */
+        background: #10B981;
+        box-shadow: 0 4px 10px rgba(16, 185, 129, .25);
       }
 
       .brand-dot {
@@ -981,8 +982,9 @@
         });
 
         function applyTheme(theme) {
-          const isLight = theme === "light";
-          document.documentElement.dataset.theme = isLight ? "light" : "dark";
+          /* Minimal Finance: finance (light) ⇄ slate (dark), shared via rv.theme. */
+          const isLight = theme !== "slate";
+          document.documentElement.dataset.theme = isLight ? "finance" : "slate";
           themeToggle.setAttribute("aria-pressed", String(isLight));
           themeToggle.setAttribute("aria-label", isLight ? "Switch to dark theme" : "Switch to light theme");
           themeToggle.querySelector(".theme-toggle-label").textContent = isLight ? "Dark mode" : "Light mode";
@@ -990,20 +992,27 @@
             ? '<path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.7 6.7 0 0 0 21 12.8Z"></path>'
             : '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"></path>';
           try {
-            localStorage.setItem("revessent-theme", isLight ? "light" : "dark");
+            localStorage.setItem("rv.theme", isLight ? "finance" : "slate");
           } catch (error) {
             // Storage can be unavailable in privacy-focused browser modes.
           }
         }
 
-        let savedTheme = "light";
+        let savedTheme = "finance";
         try {
-          savedTheme = localStorage.getItem("revessent-theme") || "light";
+          const saved = localStorage.getItem("rv.theme") || localStorage.getItem("revessent-theme") || "";
+          savedTheme = (saved === "slate" || saved === "dark" || saved === "amoled" || saved === "minimal2") ? "slate" : "finance";
         } catch (error) {
-          savedTheme = "light";
+          savedTheme = "finance";
         }
         applyTheme(savedTheme);
-        themeToggle.addEventListener("click", () => applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"));
+        themeToggle.addEventListener("click", () => applyTheme(document.documentElement.dataset.theme === "slate" ? "finance" : "slate"));
+        /* A theme picked on any other page follows here instantly. */
+        addEventListener("storage", function(e) {
+          if (e.key === "rv.theme" && e.newValue) {
+            applyTheme(e.newValue === "slate" ? "slate" : "finance");
+          }
+        });
 
         function setLoading(form, isLoading, label) {
           const button = form.querySelector("button[type='submit']");

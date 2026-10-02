@@ -305,3 +305,40 @@ counsel sign-off on recovery-message language.
   lockfile + `npm ci`, Twilio docs, and 14 frontend source checks.
 - The suite caught **one real bug** this batch: `send-note`'s error
   whitelist dropped the new 409, turning it into a 500.
+
+---
+
+## Visual redesign — Minimal Finance (Nocturne retired)
+
+The whole product was re-skinned from the Nocturne identity (deep navy,
+champagne gold, black glass, aurora/glass effects) to **Minimal Finance**:
+white cards on a light slate page (#F8FAFC), charcoal ink (#1E293B),
+hairline borders (#E2E8F0), emerald reserved for money-in (#10B981 /
+#047857 / positive #16A34A) and a muted red for money-out (#DC2626).
+No glassmorphism, no gradients, no glows — soft gray shadows only.
+
+**Two themes, one choice, every page.** The old five-theme registry
+(Nocturne / Blue Sky / Minimal / Minimal II / Evening) is replaced by:
+
+- **Minimal Finance** (`finance`) — light, the default everywhere
+- **Slate** (`slate`) — the dark half of the same minimal system
+
+The choice persists in the existing `rv.theme` key and **propagates to all
+other pages**: every page applies it before first paint and listens for the
+`storage` event, so a theme picked on the dashboard (or in the new Settings →
+Appearance section) updates already-open tabs instantly. Legacy stored values
+map by intent (dark choices → Slate, everything else → Minimal Finance).
+
+Scope (visual only — no routes, data, or interaction changes):
+dashboard, members, weekly-digest, case-detail, settings (+ Appearance
+section), login, reset-password, changelog, index, privacy, terms.
+Sidebars/topbars/cards/buttons/tables/forms/toasts/empty states converted;
+charts now use emerald recovered / muted-red lost with solid reference
+lines; the sky/aurora/glass decoration layers are retired (the sky engine
+remains wired but never renders); favicons are the new emerald mark.
+
+Verification: inline scripts of every page parse; CSS brace-balanced;
+`npm test` → **190/190** (adds 9 theme-system checks: Nocturne palette gone,
+no amoled UI options, finance default tokens, slate variant everywhere,
+rv.theme + storage sync on all 11 pages, picker contents, settings picker,
+favicon identity, emerald/red semantics).
