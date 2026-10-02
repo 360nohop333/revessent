@@ -1610,11 +1610,10 @@ html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur
       <li><a href="/dashboard.html" class="on" data-nav="overview" aria-current="page"><svg class="ic"><use href="#i-home"/></svg>Overview</a></li>
       <li><a href="/dashboard.html#queue" data-nav="queue"><svg class="ic"><use href="#i-refresh"/></svg>Recovery Queue<span class="nbadge" id="qbadge">0</span></a></li>
       <li><a href="/members.html" data-nav="members"><svg class="ic"><use href="#i-users"/></svg>Members</a></li>
-      <li><a href="#signals" data-nav="signals"><svg class="ic"><use href="#i-trend"/></svg>Expansion Signals</a></li>
       <li><a href="/weekly-digest.html" data-nav="digest"><svg class="ic"><use href="#i-mail"/></svg>Weekly Digest</a></li>
       <li aria-hidden="true"><hr class="navsep"></li>
       <li><a href="/settings.html" data-nav="settings"><svg class="ic"><use href="#i-gear"/></svg>Settings</a></li>
-      <li><a href="#docs" data-nav="docs"><svg class="ic"><use href="#i-book"/></svg>Documentation</a></li>
+      <li><a href="/changelog.html" data-nav="changelog"><svg class="ic"><use href="#i-book"/></svg>What's new</a></li>
       <div class="navpill" id="navpill" aria-hidden="true"></div>
     </ul>
   </div>
@@ -1693,8 +1692,8 @@ html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur
       <button class="avabtn" id="avabtn" aria-label="Account menu" aria-expanded="false" aria-haspopup="true"><span class="ava ava-32" aria-hidden="true">EM</span></button>
       <div class="drop" id="avadrop" role="menu" aria-label="Account">
         <h4>Workspace</h4>
-        <button class="di" role="menuitem"><svg class="ic" style="width:15px;height:15px;margin-top:1px" aria-hidden="true"><use href="#i-users"/></svg><span class="atx"><b>Profile</b><small id="profileEmail">Signed in account</small></span></button>
-        <button class="di" role="menuitem"><svg class="ic" style="width:15px;height:15px;margin-top:1px" aria-hidden="true"><use href="#i-gear"/></svg><span class="atx"><b>Workspace settings</b></span></button>
+        <a class="di" role="menuitem" href="/settings.html#accountCard" style="text-decoration:none"><svg class="ic" style="width:15px;height:15px;margin-top:1px" aria-hidden="true"><use href="#i-users"/></svg><span class="atx"><b>Profile</b><small id="profileEmail">Signed in account</small></span></a>
+        <a class="di" role="menuitem" href="/settings.html" style="text-decoration:none"><svg class="ic" style="width:15px;height:15px;margin-top:1px" aria-hidden="true"><use href="#i-gear"/></svg><span class="atx"><b>Workspace settings</b></span></a>
         <button class="di" role="menuitem" data-upgrade><svg class="ic" style="width:15px;height:15px;margin-top:1px" aria-hidden="true"><use href="#i-up"/></svg><span class="atx"><b>Upgrade plan</b><small>Plan details</small></span></button>
         <hr class="dsep">
         <button class="di" id="signOutBtn" role="menuitem"><svg class="ic" style="width:15px;height:15px;margin-top:1px" aria-hidden="true"><use href="#i-logout"/></svg><span class="atx"><b>Sign out</b></span></button>
@@ -1883,7 +1882,7 @@ html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur
         <div class="rel">
           <div class="card-h">
             <h2 id="act-h">Activity</h2>
-            <a class="lnk" href="#digest" style="margin-left:auto">View all →</a>
+            <a class="lnk" href="/weekly-digest.html" style="margin-left:auto">View all →</a>
           </div>
           <ul class="afeed" id="afeed"></ul>
         </div>
@@ -1902,7 +1901,7 @@ html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur
         </div>
         <p class="risk"><b id="pilotRiskAmount">₹0</b> at risk — act before the pilot ends and Revessent stops retrying for you.</p>
         <button class="box start-btn" style="--w:100%" data-upgrade type="button"><span class="text">Upgrade</span><span class="btn-icon"><svg class="svg" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M779.180132 473.232045 322.354755 16.406668c-21.413706-21.413706-56.121182-21.413706-77.534887 0-21.413706 21.413706-21.413706 56.122205 0 77.534887l418.057421 418.057421L244.819868 930.057421c-21.413706 21.413706-21.413706 56.122205 0 77.534887 10.706853 10.706853 24.759917 16.059767 38.767955 16.059767s28.061103-5.353938 38.767955-16.059767L779.180132 550.767955C800.593837 529.35425 800.593837 494.64575 779.180132 473.232045z"></path></svg></span><span class="circle-overlay" aria-hidden="true"></span></button>
-        <div class="guarantee"><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg>90-day money-back guarantee</div>
+        <div class="guarantee"><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg>Free 14-day pilot · no card required</div>
       </section>
 
   </div>
@@ -1913,10 +1912,10 @@ html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur
 <!-- ══════════════ MOBILE TAB BAR ══════════════ -->
 <nav class="tabbar" aria-label="Mobile navigation">
   <ul>
-    <li><a href="#overview" class="on" data-tab="overview"><svg class="ic" aria-hidden="true"><use href="#i-home"/></svg>Overview</a></li>
+    <li><a href="#kpis" class="on" data-tab="overview"><svg class="ic" aria-hidden="true"><use href="#i-home"/></svg>Overview</a></li>
     <li><a href="#queue" data-tab="queue"><svg class="ic" aria-hidden="true"><use href="#i-refresh"/></svg>Queue<span class="nb">0</span></a></li>
     <li><a href="/members.html" data-tab="members"><svg class="ic" aria-hidden="true"><use href="#i-users"/></svg>Members</a></li>
-    <li><a href="#signals" data-tab="signals"><svg class="ic" aria-hidden="true"><use href="#i-trend"/></svg>Signals</a></li>
+    <li><a href="/weekly-digest.html" data-tab="digest"><svg class="ic" aria-hidden="true"><use href="#i-mail"/></svg>Digest</a></li>
     <li><a href="/settings.html" data-tab="settings"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg>Settings</a></li>
   </ul>
 </nav>
@@ -2457,10 +2456,10 @@ $('#datepill').addEventListener('click',function(){
   var lbl=$('#daterange'), i=opts.indexOf(lbl.textContent);
   lbl.textContent=opts[(i+1)%opts.length];
   flip(lbl);
-  var map={'Last 7 days':'7d','Last 30 days':'30d','Last 90 days':'90d','Year to date':'90d'};
+  var map={'Last 7 days':'7d','Last 30 days':'30d','Last 90 days':'90d','Year to date':'ytd'};
   if(window.__rvLoadDashboardRange) window.__rvLoadDashboardRange(map[lbl.textContent]||'30d');
 });
-$$('[data-upgrade]').forEach(function(b){ b.addEventListener('click',function(){ toast('Upgrade flow'); }); });
+$$('[data-upgrade]').forEach(function(b){ b.addEventListener('click',function(){ toast('Billing switches on at launch — the pilot is free and needs no card.'); }); });
 
 /* ════════════════════════════════════════════════════════════
    6. TOASTS
@@ -2859,6 +2858,26 @@ function renderQueue(){
   qbody.innerHTML='';
   if($('#qbadge')) $('#qbadge').textContent=CASES.length;
   $$('.tabbar .nb').forEach(function(n){ n.textContent=CASES.length; });
+  /* 2nd-opinion #35: one click approves every parked case (the click IS the
+     approval — same trust contract as the per-row Approve button). */
+  var bulk=$('#approveAllBtn');
+  if(bulk){
+    var waiting=CASES.filter(function(c){ return c.status==='awaiting_approval'; });
+    bulk.style.display=waiting.length?'':'none';
+    bulk.textContent='Approve all waiting ('+waiting.length+')';
+    bulk.onclick=async function(){
+      if(!DASH_TOKEN){ toast('Sign in to perform this action.'); return; }
+      bulk.disabled=true;
+      try{
+        var res=await fetch('/api/recovery/bulk-approve',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+DASH_TOKEN},body:JSON.stringify({caseIds:waiting.map(function(c){return c.id;})})});
+        var body=await res.json().catch(function(){ return {}; });
+        if(!res.ok) throw new Error(body.error||'Approval failed');
+        toast('Approved '+body.approved+' case'+(body.approved===1?'':'s')+(body.failed?' · '+body.failed+' failed (suppressed or errored)':''));
+        fetchDashboardData(DASH_RANGE);
+      }catch(err){ toast(err.message||'Approval failed'); }
+      finally{ bulk.disabled=false; }
+    };
+  }
   var list=CASES.filter(function(c){ return filter==='all' || c.status===filter; });
   if(!list.length){
     var tr=document.createElement('tr');
@@ -2873,6 +2892,15 @@ function renderQueue(){
     setTimeout(function(){ tr.style.transition='opacity .45s ease,transform .45s cubic-bezier(.16,1,.3,1),background-color .3s ease'; tr.style.opacity='1'; tr.style.transform='none'; }, 60*i);
   });
   wireMagnets();
+}
+var bulkHost=document.querySelector('.filters');
+if(bulkHost){
+  var bulkBtn=document.createElement('button');
+  bulkBtn.className='btn btn-pri btn-sm';
+  bulkBtn.id='approveAllBtn';
+  bulkBtn.type='button';
+  bulkBtn.style.display='none';
+  bulkHost.appendChild(bulkBtn);
 }
 $$('.fchip').forEach(function(b){
   b.addEventListener('click',function(){
@@ -3263,7 +3291,7 @@ window.__rvLoadDashboardRange=function(range){ DASH_RANGE=range||'30d'; fetchDas
   btn.addEventListener('click', async function(){
     btn.disabled=true;
     try{
-      var days=DASH_RANGE==='7d'?7:(DASH_RANGE==='90d'?90:30);
+      var days=DASH_RANGE==='7d'?7:(DASH_RANGE==='90d'?90:(DASH_RANGE==='ytd'?Math.max(1,Math.ceil((Date.now()-Date.UTC(new Date().getUTCFullYear(),0,1))/864e5)):30));
       var from=new Date(Date.now()-days*864e5).toISOString().slice(0,10);
       var res=await fetch('/api/export/cases?from='+encodeURIComponent(from),{headers:{Authorization:'Bearer '+DASH_TOKEN}});
       if(!res.ok){ var b=await res.json().catch(function(){ return {}; }); throw new Error(b.error||'Export failed'); }

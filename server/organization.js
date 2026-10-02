@@ -87,6 +87,17 @@ async function handleDelete(req, res, client, user, body) {
 
   await client.query('BEGIN');
   try {
+    // 2nd-opinion #23: the audit row dies with the cascade — write a
+    // durable, FK-free deletion record that survives the org it describes.
+    const orgRow = await client.query(
+      `select name from organizations where id = $1 limit 1`,
+      [organizationId]
+    );
+    await client.query(
+      `insert into deletion_log (id, organization_id, organization_name, user_email, deleted_at)
+       values ($1, $2, $3, $4, now())`,
+      [require('crypto').randomUUID(), organizationId, (orgRow.rows[0] || {}).name || '', user.email || '']
+    );
     // Last visible trail before the cascade removes the audit rows too.
     await logAudit(client, {
       organizationId,

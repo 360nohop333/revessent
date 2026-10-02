@@ -353,22 +353,23 @@ async function findOrCreateMember(client, organizationId, payment) {
           set stripe_customer_id = coalesce(nullif($2, ''), stripe_customer_id),
               email = coalesce(nullif($3, ''), email),
               name = case when $4 = '' then name else $4 end,
-              metadata = coalesce(metadata, '{}'::jsonb) || $5::jsonb,
+              phone = coalesce(nullif($5, ''), phone),
+              metadata = coalesce(metadata, '{}'::jsonb) || $6::jsonb,
               updated_at = now()
         where id = $1
         returning *`,
-      [found.id, customerId, email, isPhoneLike(name) ? '' : name, asJson(metadata)]
+      [found.id, customerId, email, isPhoneLike(name) ? '' : name, safeString(payment && payment.contact), asJson(metadata)]
     );
     return updated.rows[0];
   }
 
   const inserted = await client.query(
     `insert into stripe_members
-       (id, organization_id, stripe_customer_id, email, name, metadata, created_at, updated_at)
+       (id, organization_id, stripe_customer_id, email, name, phone, metadata, created_at, updated_at)
      values
-       ($1, $2, nullif($3, ''), nullif($4, ''), nullif($5, ''), $6::jsonb, now(), now())
+       ($1, $2, nullif($3, ''), nullif($4, ''), nullif($5, ''), nullif($6, ''), $7::jsonb, now(), now())
      returning *`,
-    [crypto.randomUUID(), organizationId, customerId, email, isPhoneLike(name) ? '' : name, asJson(metadata)]
+    [crypto.randomUUID(), organizationId, customerId, email, isPhoneLike(name) ? '' : name, safeString(payment && payment.contact), asJson(metadata)]
   );
 
   return inserted.rows[0];
@@ -616,7 +617,31 @@ async function handlePaymentCaptured(client, organizationId, eventPayload) {
 
   const amountCents = toInteger(payment.amount, recoveryCase.amount_cents || 0);
   const currency = normalizeCurrency(payment.currency || recoveryCase.currency);
-  await upsertSubscriptionFromPayment(client, organizationId, recoveryCase.member_id, extractSubscriptionId(payment), 'active', amountCents, currency);
+
+  // 2nd-opinion #2 — the recovery contract is Option B: a Payment Link
+  // payment collects the failed balance; the subscription is then explicitly
+  // reconciled. If this payment carries a subscription id (subscription
+  // charge) it upserts directly; otherwise (payment link) the member's most
+  // recent subscription is flipped back to active so MRR/members reflect
+  // reality instead of staying past_due forever.
+  const subscriptionId = extractSubscriptionId(payment);
+  if (subscriptionId) {
+    await upsertSubscriptionFromPayment(client, organizationId, recoveryCase.member_id, subscriptionId, 'active', amountCents, currency);
+  } else {
+    const latest = await client.query(
+      `select stripe_subscription_id
+         from stripe_subscriptions
+        where organization_id = $1
+          and member_id = $2
+        order by created_at desc nulls last
+        limit 1`,
+      [organizationId, recoveryCase.member_id]
+    );
+    const latestSubId = safeString((latest.rows[0] || {}).stripe_subscription_id);
+    if (latestSubId) {
+      await upsertSubscriptionFromPayment(client, organizationId, recoveryCase.member_id, latestSubId, 'active', amountCents, currency);
+    }
+  }
 
   await client.query(
     `update recovery_cases
@@ -740,6 +765,24 @@ async function handleRefundProcessed(client, organizationId, eventPayload) {
   const amountCents = toInteger(refund.amount, 0);
   const paymentId = safeString(refund.payment_id || (payment && payment.id));
 
+  // 2nd-opinion #4: refunds must reverse recovery attribution — the ledger
+  // reports NET recovered revenue. Multiple partial refunds accumulate;
+  // least() caps at the original amount; the event-level webhook dedupe makes
+  // each refund event apply exactly once.
+  if (paymentId) {
+    await client.query(
+      `update recovery_attributions
+          set refunded_cents = least(amount_cents, coalesce(refunded_cents, 0) + $2::int)
+        where case_id in (
+          select id from recovery_cases
+           where organization_id = $1
+             and stripe_invoice_id = $3
+           limit 1
+        )`,
+      [organizationId, amountCents, paymentId]
+    );
+  }
+
   await insertActivity(client, {
     organizationId,
     type: 'refund_processed',
@@ -747,7 +790,7 @@ async function handleRefundProcessed(client, organizationId, eventPayload) {
     description:
       'Razorpay processed a refund' +
       (paymentId ? ' for payment ' + paymentId : '') +
-      '. If this payment was counted as recovered, the attribution ledger now overstates recovery.',
+      '. The recovery attribution ledger was adjusted so net recovered revenue stays truthful.',
     amountCents,
     currency: normalizeCurrency(refund.currency || (payment && payment.currency)),
     memberId: null,
@@ -837,6 +880,42 @@ async function markWebhookErrored(client, webhookEventId, error) {
   );
 }
 
+// 2nd-opinion #34: re-run a stored webhook event (admin replay). Loads the
+// event row, runs the normal processing path and re-marks it. Never creates a
+// second event row — the original id is reused.
+async function replayWebhookEvent(client, organizationId, eventId) {
+  const result = await client.query(
+    `select stripe_event_id, event_type, payload
+       from webhook_events
+      where organization_id = $1
+        and stripe_event_id = $2
+      limit 1`,
+    [organizationId, eventId]
+  );
+  const row = result.rows[0] || null;
+  if (!row) {
+    const error = new Error('Webhook event not found.');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  let eventPayload;
+  try {
+    eventPayload = typeof row.payload === 'string' ? JSON.parse(row.payload) : row.payload;
+  } catch (_) {
+    const error = new Error('Stored payload could not be parsed.');
+    error.statusCode = 500;
+    throw error;
+  }
+
+  const outcome = await processEvent(client, organizationId, eventPayload);
+  await markWebhookProcessed(client, (await client.query(
+    `select id from webhook_events where organization_id = $1 and stripe_event_id = $2 limit 1`,
+    [organizationId, eventId]
+  )).rows[0].id);
+  return outcome;
+}
+
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -924,7 +1003,9 @@ module.exports = async (req, res) => {
       }
 
       console.error('Revessent Razorpay webhook transaction failed:', dbError);
-      return sendJson(res, 200, { received: true, error: 'Webhook accepted but internal processing failed.' });
+      // 2nd-opinion #3: a DB/transaction failure must NOT look like success
+      // to Razorpay — return 500 so the event gets redelivered.
+      return sendJson(res, 500, { received: true, error: 'Webhook accepted but internal processing failed.' });
     }
   } catch (error) {
     console.error('Revessent Razorpay webhook failed:', error);
@@ -933,3 +1014,4 @@ module.exports = async (req, res) => {
     if (client) client.release();
   }
 };
+module.exports.replayWebhookEvent = replayWebhookEvent;

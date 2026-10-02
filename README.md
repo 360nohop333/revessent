@@ -47,6 +47,7 @@ tests/suite.test.js   offline test suite (mocked DB + network)
 | `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | optional | durable cross-instance rate limiting; without them the limiter is per-instance in memory |
 | `ENCRYPTION_KEY_OLD` | optional | previous key during rotation — decrypt falls back to it while secrets re-encrypt on save |
 | `WEBHOOK_RETENTION_DAYS` | optional | webhook payload retention before the nightly delete (default 30) |
+| `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_FROM_NUMBER` | optional | enable SMS recovery notes. `TWILIO_AUTH_TOKEN` also verifies the inbound STOP/START webhook (`/api/webhooks/sms-inbound`). Do NOT enable SMS in production before TRAI/DLT review. |
 
 ## Database
 
@@ -62,9 +63,16 @@ DATABASE_URL='postgres://…' npm run migrate
 ## Testing
 
 ```
-npm install   # installs pg (tests monkeypatch it — nothing touches a real DB)
+npm ci        # lockfile is committed — installs the exact tested versions
 npm test
 ```
+
+The suite monkeypatches `pg` (nothing touches a real DB) — it is NOT an
+integration test; live Neon/Razorpay/Supabase/Resend behaviour still needs
+verifying against real accounts once.
+
+Dependencies are locked (`package-lock.json`, committed). Install with
+`npm ci`, not `npm install`, in every environment.
 
 ## Cron
 

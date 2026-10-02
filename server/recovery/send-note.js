@@ -248,6 +248,13 @@ async function loadExistingNote(client, organizationId, noteId) {
     error.statusCode = 400;
     throw error;
   }
+  // 2nd-opinion #5: an already-sent note must never silently send again —
+  // resends (if ever wanted) deserve their own explicit operation.
+  if (note.sent_at) {
+    const error = new Error('This note was already sent. Draft a new note instead of resending.');
+    error.statusCode = 409;
+    throw error;
+  }
   if (!cleanString(note.member_email)) {
     const error = new Error('Customer email is missing for this recovery note.');
     error.statusCode = 400;
@@ -565,7 +572,7 @@ async function handler(req, res) {
       sent: true,
     });
   } catch (error) {
-    if (error.statusCode && [400, 401, 403, 404].includes(error.statusCode)) {
+    if (error.statusCode && [400, 401, 403, 404, 409].includes(error.statusCode)) {
       return sendJson(res, error.statusCode, { error: error.message });
     }
     if (error.statusCode === 500 && error.message === 'AI drafting not configured.') {

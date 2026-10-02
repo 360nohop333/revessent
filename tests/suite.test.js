@@ -228,6 +228,15 @@ async function testSettings() {
 
   res = await call(settings, makeReq('POST', { headers: AUTH, body: JSON.stringify({ organizationId: 'org-1', brandName: 'B', senderName: 'S', senderEmail: 's@own-domain.com', tone: 'professional', smsEnabled: false, alertMinAmount: '250.5' }) }));
   check('settings POST: own-domain sender OK, 250.5 → 25050 cents', res.statusCode === 200 && orgRow.alert_min_amount_cents === 25050, JSON.stringify(orgRow));
+
+  // 2nd-opinion #21: SSRF — private/internal alert webhook destinations rejected
+  for (const bad of ['http://127.0.0.1:8080/hook', 'http://10.0.0.5/hook', 'http://192.168.1.4/hook', 'http://172.16.9.9/hook', 'http://169.254.169.254/latest/meta-data', 'http://localhost/hook', 'ftp://hooks.slack.com/x']) {
+    res = await call(settings, makeReq('POST', { headers: AUTH, body: JSON.stringify({ organizationId: 'org-1', brandName: 'B', senderName: 'S', senderEmail: 's@own-domain.com', tone: 'professional', smsEnabled: false, alertWebhookUrl: bad }) }));
+    if (res.statusCode !== 400) { check('settings POST: SSRF destination ' + bad + ' → 400', false, String(res.statusCode)); break; }
+  }
+  check('settings POST: private/internal alert webhook URLs → 400 (SSRF)', true);
+  res = await call(settings, makeReq('POST', { headers: AUTH, body: JSON.stringify({ organizationId: 'org-1', brandName: 'B', senderName: 'S', senderEmail: 's@own-domain.com', tone: 'professional', smsEnabled: false, alertWebhookUrl: 'https://hooks.slack.com/services/ok' }) }));
+  check('settings POST: public https webhook accepted', res.statusCode === 200, JSON.stringify(res.body));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -584,7 +593,7 @@ function testSources() {
   check('robots.txt + sitemap.xml exist (audit #63)', fs.existsSync(path + '/robots.txt') && fs.existsSync(path + '/sitemap.xml'));
   check('CI workflow runs the suite (audit #67)', fs.existsSync(path + '/.github/workflows/ci.yml') && read('.github/workflows/ci.yml').includes('suite.test.js'));
   check('onboarding.html orphan deleted (audit #58)', !fs.existsSync(path + '/onboarding.html'));
-  check('migrations tooling: 3 SQL files + runner + npm script (audit #41)', fs.existsSync(path + '/scripts/migrate.js') && fs.readdirSync(path + '/migrations').filter((f) => f.endsWith('.sql')).length === 3 && read('package.json').includes('\"migrate\"'));
+  check('migrations tooling: 3 SQL files + runner + npm script (audit #41)', fs.existsSync(path + '/scripts/migrate.js') && fs.readdirSync(path + '/migrations').filter((f) => f.endsWith('.sql')).length === 5 && read('package.json').includes('\"migrate\"'));
   check('index: no read-only key claims, no refund guarantee, ₹ pricing (audit #6/#49/#50/#51)', !/read-only/i.test(read('index.html')) && !/we refund you/i.test(read('index.html')) && !/refund the full term/i.test(read('index.html')) && /class="cur">₹</.test(read('index.html')));
   check('connect: full Razorpay event set registered (audit #24)', /subscription\.cancelled/.test(read('server/razorpay/connect.js')) && /refund\.processed/.test(read('server/razorpay/connect.js')));
   check('send-note: Resend emails tagged with org (audit #37)', /tags: \['org:' \+ organizationId/.test(read('server/recovery/send-note.js')));
@@ -594,6 +603,36 @@ function testSources() {
   check('shared auth: 18 handlers import _lib/supabase-auth (audit #66)', authFiles.every((f) => read(f).includes("_lib/supabase-auth")), authFiles.filter((f) => !read(f).includes('_lib/supabase-auth')).join(','));
   check('members: pagination params in the endpoint (audit #64)', /limit \\\$2 offset \\\$3/.test(read('server/members.js')) || /offset/.test(read('server/members.js')));
   check('pages load /api/config.js with fallback intact (audit #66)', ['login.html', 'dashboard.html', 'members.html', 'settings.html', 'weekly-digest.html', 'case-detail.html', 'reset-password.html'].every((f) => read(f).includes('/api/config.js')));
+  // ── batch-4 source checks (2nd-opinion audit) ──
+  const mnavOk = ['members.html', 'weekly-digest.html', 'case-detail.html'].every((p) => {
+    const h = read(p);
+    return h.includes('id="mnavBtn"') && h.includes('.mnav{display:none}') && h.includes('sb.classList.toggle');
+  });
+  check('mobile nav: hamburger reachable sidebar on members/digest/case pages (2nd-opinion #10)', mnavOk);
+  check('index: demo workspace uses ₹ like the product (2nd-opinion #26)', !read('index.html').includes('data-prefix="$"') && read('index.html').includes('data-prefix="₹"'));
+  const mh = read('members.html');
+  check('members: debounced server-side search + honest column label (2nd-opinion #11/#12)', mh.includes("search='+encodeURIComponent(SEARCH)") && mh.includes('searchTimer') && mh.includes('Subscription value'));
+  check('members: zero-decimal currency support (2nd-opinion #39)', mh.includes('ZERO_DECIMAL_CURRENCIES'));
+  check('digest: narrative rendered via textContent, not innerHTML (2nd-opinion #13)', !/digestList'\)\.innerHTML/.test(read('weekly-digest.html')));
+  check('send-note: sent notes are a 409, not a silent resend (2nd-opinion #5)', read('server/recovery/send-note.js').includes("error.statusCode = 409"));
+  const routerH = read('api/[...route].js');
+  check('router: bulk-approve + replay + sms-inbound wired (2nd-opinion #34/#35)', routerH.includes('recovery/bulk-approve') && routerH.includes('webhooks/replay') && routerH.includes('webhooks/sms-inbound'));
+  const exemptBlock = routerH.slice(routerH.indexOf('const exempt'), routerH.indexOf('const exempt') + 400);
+  check('router: sms-inbound rate-limit exempt (Twilio retries)', exemptBlock.includes('webhooks/sms-inbound'));
+  check('webhook: outer transaction failure → 500 (2nd-opinion #3)', read('server/webhooks/razorpay.js').includes('Could not record the webhook event') || /sendJson\(res, 500/.test(read('server/webhooks/razorpay.js')));
+  check('razorpay: refunds reverse attribution, capped (2nd-opinion #4)', /least\(amount_cents/.test(read('server/webhooks/razorpay.js')));
+  const rj = read('server/webhooks/razorpay.js');
+  check('razorpay: payment-link recovery reconciles subscription (2nd-opinion #2)', rj.includes('order by created_at desc') && rj.includes("'active'"));
+  check('recovery: Option-B contract documented (2nd-opinion #2)', rj.includes('Option B') || rj.includes('payment link collects'));
+  check('settings: private/loopback alert URLs rejected (2nd-opinion #21)', read('server/settings.js').includes('isPublicHttpUrl'));
+  check('deletion: audit trail survives org cascade (2nd-opinion #23)', read('server/organization.js').includes('deletion_log') && /insert into deletion_log[\s\S]*before/i.test(read('server/organization.js')));
+  check('migrations: 5 files incl. 0000 bootstrap + 0004 fixes', (() => { const files = fs.readdirSync(path + '/migrations').filter((f) => f.endsWith('.sql')).sort(); return files.length === 5 && files[0] === '0000_initial_schema.sql' && files[4] === '0004_batch4_fixes.sql'; })());
+  check('changelog: seeds in 0004 so the public page is not empty (2nd-opinion #15)', read('migrations/0004_batch4_fixes.sql').includes('changelog_entries'));
+  check('lockfile committed + CI installs with npm ci (2nd-opinion #24)', fs.existsSync(path + '/package-lock.json') && read('.github/workflows/ci.yml').includes('npm ci'));
+  check('docs: Twilio env vars documented (2nd-opinion #17)', read('README.md').includes('TWILIO_ACCOUNT_SID') && read('.env.example').includes('TWILIO_AUTH_TOKEN'));
+  check('supabase-auth: loud prod warning on default fallback (2nd-opinion #20)', read('server/_lib/supabase-auth.js').includes('VERCEL_ENV') && read('server/_lib/supabase-auth.js').includes('HARD-CODED'));
+  check('digest copy: auto-generated, not "added later" (2nd-opinion #14)', !read('weekly-digest.html').toLowerCase().includes('added later'));
+
   check('dashboard: 401 → one refresh + retry before redirect (audit #59)', /refreshSession/.test(read('dashboard.html')) && /_retried/.test(read('dashboard.html')));
 }
 
@@ -897,13 +936,15 @@ async function testBatch3() {
     let orgAudits = [];
     CURRENT_CLIENT = fakeClient([
       TXN, AUTH_BY_SBUID,
+      [/select name from organizations/, () => ({ rows: [{ name: 'Acme' }] })],
+      [/insert into deletion_log/, ({ params }) => { orgDeletes.deletionLog = params; return { rows: [] }; }],
       [/insert into audit_log/, ({ params }) => { orgAudits.push(params); return { rows: [] }; }],
       [/delete from organizations/, ({ params }) => { orgDeletes.push(params); return { rows: [{ id: params[0] }] }; }],
     ]);
     res = await call(orgMod, makeReq('DELETE', { headers: AUTH, body: JSON.stringify({ confirm: 'nope' }) }));
     check('org delete: wrong confirm → 400, nothing deleted', res.statusCode === 400 && orgDeletes.length === 0, JSON.stringify(res.body));
     res = await call(orgMod, makeReq('DELETE', { headers: AUTH, body: JSON.stringify({ confirm: 'DELETE' }) }));
-    check('org delete: owner + DELETE → cascade delete + audit row', res.statusCode === 200 && res.body.deleted === true && orgDeletes.length === 1 && orgDeletes[0][0] === 'org-1' && orgAudits.length === 1 && orgAudits[0][3] === 'organization.deleted', JSON.stringify(res.body));
+    check('org delete: owner + DELETE → deletion log + cascade + audit row', res.statusCode === 200 && res.body.deleted === true && orgDeletes.length === 1 && orgDeletes[0][0] === 'org-1' && orgAudits.length === 1 && orgAudits[0][3] === 'organization.deleted' && orgDeletes.deletionLog && orgDeletes.deletionLog[1] === 'org-1' && orgDeletes.deletionLog[2] === 'Acme', JSON.stringify(res.body));
     CURRENT_CLIENT = fakeClient([[/from users\s+where supabase_user_id/, () => ({ rows: [memberRow] })]]);
     res = await call(orgMod, makeReq('DELETE', { headers: AUTH, body: JSON.stringify({ confirm: 'DELETE' }) }));
     check('org delete: member → 403', res.statusCode === 403, String(res.statusCode));
@@ -1102,6 +1143,216 @@ async function testBatch3() {
   }
 }
 
+
+// ═══════════════════════════════════════════════════════════════════════════════
+async function testBatch4() {
+  console.log('\n── batch-4 (2nd-opinion audit): webhook 500, refunds, resend guard, ytd, search, approve, replay, SMS STOP ──');
+
+  const savedEnv = {};
+  for (const key of ['ENCRYPTION_KEY', 'CRON_SECRET', 'GEMINI_API_KEY', 'RESEND_API_KEY', 'RESEND_FROM_EMAIL', 'TWILIO_AUTH_TOKEN']) {
+    savedEnv[key] = process.env[key];
+  }
+  process.env.ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'test-encryption-key';
+  process.env.CRON_SECRET = 'cron-secret-test';
+  process.env.GEMINI_API_KEY = 'gem-test';
+  process.env.RESEND_API_KEY = 're-test';
+  process.env.RESEND_FROM_EMAIL = 'hello@revessent.com';
+
+  let RESEND_CALLS = [];
+  const prevFetch = global.fetch;
+  global.fetch = async (url, options) => {
+    const u = String(url);
+    if (u.includes('/auth/v1/user')) return { ok: true, status: 200, json: async () => SUPABASE_USER };
+    if (u.includes('generativelanguage.googleapis.com')) {
+      return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: 'Hi, your payment did not go through — please update your payment method. Team Acme.' }] } }] }) };
+    }
+    if (u.includes('api.resend.com/emails')) { RESEND_CALLS.push(JSON.parse(options.body)); return { ok: true, status: 200, json: async () => ({ id: 're-1' }) }; }
+    return prevFetch(url, options);
+  };
+
+  try {
+    // ── #3: outer transaction failure → 500 (was 200) ──
+    const webhook = require(path + '/server/webhooks/razorpay.js');
+    const WSECRET = 'whsec_test';
+    let failFirstQuery = false;
+    CURRENT_CLIENT = {
+      release() {},
+      async query() { throw new Error('simulated connection failure'); },
+    };
+    const rawFail = JSON.stringify({ event: 'payment.failed', payload: { payment: { entity: { id: 'pay_x', amount: 100, currency: 'INR', status: 'failed', email: 'a@b.com' } } } });
+    const sigFail = crypto.createHmac('sha256', WSECRET).update(rawFail).digest('hex');
+    let res = await call(webhook, makeReq('POST', { headers: { 'x-razorpay-signature': sigFail, 'x-razorpay-event-id': 'evt-fail-1' }, query: '?org=org-1', body: rawFail }));
+    check('webhook: DB transaction failure → 500 (Razorpay retries)', res.statusCode === 500, String(res.statusCode));
+
+    // ── #4: refunds reverse attribution (net revenue), idempotent ──
+    let refundUpdates = [];
+    const whClient = () => fakeClient([
+      TXN, SAVEPOINT,
+      [/from stripe_connections/, () => ({ rows: [{ organization_id: 'org-1', webhook_secret: WSECRET }] })],
+      [/insert into webhook_events/, () => ({ rows: [{ id: 'we-' + Math.random().toString(36).slice(2) }] })],
+      [/from webhook_events[\s\S]*stripe_event_id = \$1/, () => ({ rows: [] })],
+      [/update webhook_events/, () => ({ rows: [] })],
+      [/update recovery_attributions[\s\S]*refunded_cents/, ({ sql, params }) => { refundUpdates.push({ sql, params }); return { rows: [] }; }],
+      [/insert into activity_feed/, ({ params }) => { refundUpdates.acts = refundUpdates.acts || []; refundUpdates.acts.push(params); return { rows: [] }; }],
+    ]);
+    async function postEvent(event, payload) {
+      CURRENT_CLIENT = whClient(); FETCH_LOG = [];
+      const raw = JSON.stringify({ event, payload });
+      const sig = crypto.createHmac('sha256', WSECRET).update(raw).digest('hex');
+      return call(webhook, makeReq('POST', { headers: { 'x-razorpay-signature': sig, 'x-razorpay-event-id': 'evt-' + Math.random().toString(36).slice(2, 8) }, query: '?org=org-1', body: raw }));
+    }
+    res = await postEvent('refund.processed', { refund: { entity: { id: 'rfnd_9', payment_id: 'pay_big', amount: 4000, currency: 'INR' } } });
+    check('refund: attribution refunded_cents updated (least-capped)', res.statusCode === 200 && refundUpdates.length === 1
+      && refundUpdates[0].params[0] === 'org-1' && refundUpdates[0].params[1] === 4000 && refundUpdates[0].params[2] === 'pay_big'
+      && /least\(amount_cents/.test(refundUpdates[0].sql), JSON.stringify(refundUpdates[0] && refundUpdates[0].params));
+
+    // ── #2: link-payment recovery reconciles the member's latest subscription ──
+    let subUpserts = [];
+    const capClient = fakeClient([
+      TXN, SAVEPOINT,
+      [/from stripe_connections/, () => ({ rows: [{ organization_id: 'org-1', webhook_secret: WSECRET }] })],
+      [/insert into webhook_events/, () => ({ rows: [{ id: 'we-' + Math.random().toString(36).slice(2) }] })],
+      [/from webhook_events[\s\S]*stripe_event_id = \$1/, () => ({ rows: [] })],
+      [/update webhook_events/, () => ({ rows: [] })],
+      [/from stripe_members/, () => ({ rows: [MEMBER_ROW] })],
+      [/update stripe_members/, () => ({ rows: [MEMBER_ROW] })],
+      [/from stripe_subscriptions[\s\S]*order by created_at desc/, () => ({ rows: [{ stripe_subscription_id: 'sub_latest' }] })],
+      [/from stripe_subscriptions/, () => ({ rows: [] })],
+      [/insert into stripe_subscriptions/, ({ params }) => { subUpserts.push(params); return { rows: [] }; }],
+      [/from recovery_cases/, ({ l }) => ({ rows: l.startsWith('select') ? [{ id: 'case-open', member_id: 'member-1', amount_cents: 25000, currency: 'INR' }] : [] })],
+      [/update recovery_cases/, () => ({ rows: [{ id: 'case-open' }] })],
+      [/insert into recovery_attributions/, () => ({ rows: [] })],
+      [/insert into activity_feed/, () => ({ rows: [] })],
+      [/select alert_webhook_url/, () => ({ rows: [{ alert_webhook_url: null, alert_min_amount_cents: 0 }] })],
+    ]);
+    CURRENT_CLIENT = capClient; FETCH_LOG = [];
+    const rawCap = JSON.stringify({ event: 'payment.captured', payload: { payment: { entity: { id: 'pay_link', amount: 25000, currency: 'INR', status: 'captured', email: 'a@b.com' } } } });
+    const sigCap = crypto.createHmac('sha256', WSECRET).update(rawCap).digest('hex');
+    res = await call(webhook, makeReq('POST', { headers: { 'x-razorpay-signature': sigCap, 'x-razorpay-event-id': 'evt-linkcap-1' }, query: '?org=org-1', body: rawCap }));
+    check('recovery contract: link payment → latest subscription reconciled to active', res.statusCode === 200 && res.body.action === 'case_recovered' && subUpserts.length === 1 && subUpserts[0][3] === 'sub_latest' && subUpserts[0][4] === 'active', JSON.stringify({ body: res.body, subs: subUpserts.map((s) => [s[3], s[4]]) }));
+
+    // ── #5: already-sent note → 409 ──
+    const sendNote = require(path + '/server/recovery/send-note.js');
+    CURRENT_CLIENT = fakeClient([
+      AUTH_BY_SBUID,
+      [/from recovery_notes rn[\s\S]*join recovery_cases/, () => ({ rows: [{ id: 'note-sent', organization_id: 'org-1', case_id: 'case-1', subject: 's', body: 'b', sent_at: '2026-09-01T00:00:00Z', member_id: 'member-1', member_email: 'a@b.com', case_status: 'detected', organization_name: 'Acme' }] })],
+    ]);
+    res = await call(sendNote, makeReq('POST', { headers: AUTH, body: JSON.stringify({ noteId: 'note-sent', autoSend: true }) }));
+    check('send-note: resending a sent note → 409', res.statusCode === 409, JSON.stringify(res.body));
+
+    // ── #6: YTD is a real year-to-date range ──
+    const dash = require(path + '/server/dashboard-data.js');
+    let ytdParam = null;
+    CURRENT_CLIENT = fakeClient([
+      AUTH_BY_SBUID,
+      [/with weeks as/, () => ({ rows: [] })],
+      [/from recovery_attributions/, ({ params }) => { ytdParam = params; return { rows: [{ current_cents: 0, prior_cents: 0 }] }; }],
+      [/as open_case_count/, () => ({ rows: [{ amount_cents: 0, open_case_count: 0 }] })],
+      [/filter \(where status = 'recovered'\)/, () => ({ rows: [{ recovered_count: 0, closed_count: 0 }] })],
+      [/select status, count\(\*\)::int as count/, () => ({ rows: [] })],
+      [/select decline_code,/, () => ({ rows: [] })],
+      [/from recovery_cases rc\s+join stripe_members/, () => ({ rows: [] })],
+      [/from activity_feed/, () => ({ rows: [] })],
+      [/select pilot_started_at, pilot_ends_at from organizations/, () => ({ rows: [] })],
+      [/select currency from recovery_cases/, () => ({ rows: [] })],
+    ]);
+    res = await call(dash, makeReq('GET', { headers: AUTH, query: '?range=ytd' }));
+    const now = new Date();
+    const expectedDays = Math.max(1, Math.ceil((now.getTime() - Date.UTC(now.getUTCFullYear(), 0, 1)) / 864e5));
+    check('dashboard: range=ytd computes real year-to-date days', res.statusCode === 200 && ytdParam && ytdParam[1] === expectedDays, 'param=' + (ytdParam && ytdParam[1]) + ' expected=' + expectedDays);
+    check('dashboard: recovered revenue is NET of refunds', /refunded_cents/.test(require('fs').readFileSync(path + '/server/dashboard-data.js', 'utf8')), 'net sum missing');
+
+    // ── #11: server-side member search ──
+    const membersMod = require(path + '/server/members.js');
+    let searchParams = null;
+    CURRENT_CLIENT = fakeClient([
+      AUTH_BY_SBUID,
+      [/limit \$2 offset \$3/, ({ params }) => { searchParams = params; return { rows: [] }; }],
+      [/select count\(\*\)::int as total from stripe_members/, () => ({ rows: [{ total: 0 }] })],
+      [/select member_id, id as case_id/, () => ({ rows: [] })],
+    ]);
+    res = await call(membersMod, makeReq('GET', { headers: AUTH, query: '?search=priya&limit=50&offset=0' }));
+    check('members: search term forwarded to SQL (server-side ilike)', res.statusCode === 200 && searchParams && searchParams[3] === 'priya', JSON.stringify(searchParams));
+
+    // ── #35: bulk approve ──
+    const bulk = require(path + '/server/recovery/bulk-approve.js');
+    const memberRow = { ...USERS_ROW, role: 'member' };
+    CURRENT_CLIENT = fakeClient([[/from users\s+where supabase_user_id/, () => ({ rows: [memberRow] })]]);
+    res = await call(bulk, makeReq('POST', { headers: AUTH, body: JSON.stringify({ caseIds: ['case-1'] }) }));
+    check('bulk-approve: member → 403', res.statusCode === 403, String(res.statusCode));
+
+    const CASE_CTX = { id: 'case-ap1', organization_id: 'org-1', member_id: 'member-1', status: 'awaiting_approval', member_name: 'Priya', member_email: 'priya@x.com', organization_name: 'Acme', amount_cents: 5000, currency: 'INR', decline_code: 'insufficient_funds' };
+    function bulkClient() {
+      return fakeClient([
+        AUTH_BY_SBUID,
+        [/from recovery_cases[\s\S]*status = 'awaiting_approval'/, () => ({ rows: [{ id: 'case-ap1' }, { id: 'case-ap2' }] })],
+        [/from recovery_cases rc\s+left join stripe_members/, () => ({ rows: [CASE_CTX] })],
+        [/from voice_profiles/, () => ({ rows: [{ brand_name: 'Acme', sender_name: 'Team Acme', sender_email: 'hello@acme.com', tone_description: 'Friendly' }] })],
+        [/insert into recovery_notes/, () => ({ rows: [] })],
+        [/from suppression_list/, () => ({ rows: [] })],
+        [/update recovery_notes/, () => ({ rows: [] })],
+        [/set status = 'note_sent'/, () => ({ rows: [] })],
+        [/insert into activity_feed/, () => ({ rows: [] })],
+        [/insert into audit_log/, () => ({ rows: [] })],
+      ]);
+    }
+    CURRENT_CLIENT = bulkClient(); RESEND_CALLS = [];
+    res = await call(bulk, makeReq('POST', { headers: AUTH, body: JSON.stringify({ caseIds: ['case-ap1', 'case-ap2'] }) }));
+    check('bulk-approve: owner approves parked cases (emails sent, audited)', res.statusCode === 200 && res.body.eligible === 2 && RESEND_CALLS.length === 2, JSON.stringify(res.body));
+
+    // ── #34: webhook replay ──
+    const replay = require(path + '/server/webhooks/replay.js');
+    CURRENT_CLIENT = fakeClient([
+      AUTH_BY_SBUID,
+      [/from webhook_events[\s\S]*stripe_event_id = \$2/, () => ({ rows: [] })],
+    ]);
+    res = await call(replay, makeReq('POST', { headers: AUTH, body: JSON.stringify({ eventId: 'nope' }) }));
+    check('replay: unknown event → 404', res.statusCode === 404, String(res.statusCode));
+    res = await call(replay, makeReq('POST', { headers: AUTH, body: JSON.stringify({}) }));
+    check('replay: missing eventId → 400', res.statusCode === 400, String(res.statusCode));
+
+    // ── #16: SMS STOP/START inbound (Twilio signature) ──
+    const smsHook = require(path + '/server/webhooks/sms-inbound.js');
+    const formBody = 'From=%2B919876543210&To=%2B911800123456&Body=STOP&MessageSid=SM123';
+    const twUrl = 'https://revessent-alpha.vercel.app/api/webhooks/sms-inbound';
+    const twSig = crypto.createHmac('sha1', 'twilio-secret').update(twUrl + 'Body' + 'STOP' + 'From' + '+919876543210' + 'MessageSid' + 'SM123' + 'To' + '+911800123456').digest('base64');
+    process.env.TWILIO_AUTH_TOKEN = 'twilio-secret';
+    res = await call(smsHook, makeReq('POST', { body: formBody }));
+    check('sms-inbound: no/bad signature → 403', res.statusCode === 403, String(res.statusCode));
+
+    let stopInserts = [];
+    CURRENT_CLIENT = fakeClient([
+      [/insert into suppression_list[\s\S]*from stripe_members/, ({ sql, params }) => { stopInserts.push({ sql, params }); return { rows: [] }; }],
+      [/delete from suppression_list/, () => ({ rows: [] })],
+    ]);
+    // make the raw body a real async iterable with the form content
+    const stopReq = { method: 'POST', url: '/api/webhooks/sms-inbound', query: {}, headers: { 'x-twilio-signature': twSig, 'content-type': 'application/x-www-form-urlencoded' }, [Symbol.asyncIterator]: async function* () { yield Buffer.from(formBody); } };
+    res = await call(smsHook, stopReq);
+    check('sms-inbound: signed STOP → suppression by phone across orgs', res.statusCode === 204 && stopInserts.length === 1 && stopInserts[0].params[1] === '+919876543210' && /sm\.phone = \$2/.test(stopInserts[0].sql), JSON.stringify(stopInserts[0] && stopInserts[0].params));
+
+    const startBody = 'From=%2B919876543210&To=%2B911800123456&Body=START&MessageSid=SM124';
+    const startSig = crypto.createHmac('sha1', 'twilio-secret').update(twUrl + 'Body' + 'START' + 'From' + '+919876543210' + 'MessageSid' + 'SM124' + 'To' + '+911800123456').digest('base64');
+    let startDeletes = [];
+    CURRENT_CLIENT = fakeClient([
+      [/insert into suppression_list[\s\S]*from stripe_members/, () => ({ rows: [] })],
+      [/delete from suppression_list/, ({ params }) => { startDeletes.push(params); return { rows: [] }; }],
+    ]);
+    const startReq = { method: 'POST', url: '/api/webhooks/sms-inbound', query: {}, headers: { 'x-twilio-signature': startSig, 'content-type': 'application/x-www-form-urlencoded' }, [Symbol.asyncIterator]: async function* () { yield Buffer.from(startBody); } };
+    res = await call(smsHook, startReq);
+    check('sms-inbound: signed START → suppression removed', res.statusCode === 204 && startDeletes.length === 1 && startDeletes[0][0] === '+919876543210', JSON.stringify(startDeletes));
+
+    process.env.TWILIO_AUTH_TOKEN = '';
+    res = await call(smsHook, makeReq('POST', { body: formBody }));
+    check('sms-inbound: Twilio not configured → 503', res.statusCode === 503, String(res.statusCode));
+  } finally {
+    global.fetch = prevFetch;
+    for (const [key, value] of Object.entries(savedEnv)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 (async () => {
   try {
@@ -1115,6 +1366,7 @@ async function testBatch3() {
     await testExports();
     await testBatch2();
     await testBatch3();
+    await testBatch4();
     testSources();
   } catch (e) {
     failures++;

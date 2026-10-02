@@ -269,7 +269,7 @@ async function generateWeeklyDigests(client) {
        count(*) filter (where rc.failed_at >= $1::timestamptz),
        count(*) filter (where rc.recovered_at >= $1::timestamptz),
        count(*) filter (where rc.lost_at >= $1::timestamptz),
-       coalesce((select sum(ra.amount_cents) from recovery_attributions ra
+       coalesce((select sum(ra.amount_cents - coalesce(ra.refunded_cents, 0)) from recovery_attributions ra
                   where ra.organization_id = rc.organization_id
                     and ra.recovered_at >= $1::timestamptz), 0),
        coalesce(sum(rc.amount_cents) filter (where rc.lost_at >= $1::timestamptz), 0),

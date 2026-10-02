@@ -66,7 +66,7 @@ module.exports = async (req, res) => {
        from stripe_members sm
        left join stripe_subscriptions ss on ss.member_id = sm.id
        left join (
-         select member_id, sum(amount_cents) as total_cents
+         select member_id, sum(amount_cents - coalesce(refunded_cents, 0)) as total_cents
            from recovery_attributions
           where organization_id = $1
           group by member_id

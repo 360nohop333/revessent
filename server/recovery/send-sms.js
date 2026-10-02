@@ -438,6 +438,21 @@ async function handler(req, res) {
 
     let twilio;
     try {
+      // 2nd-opinion #16: SMS honors the suppression list too — by phone, and
+      // by email if the customer unsubscribed from email outreach.
+      const suppressed = await client.query(
+        `select 1 from suppression_list
+          where organization_id = $1
+            and (lower(email) = lower($2) or phone = $3)
+          limit 1`,
+        [organizationId, note.member_email || '', note.member_phone || '']
+      );
+      if (suppressed.rows[0]) {
+        const error = new Error('Recipient has opted out of recovery messages.');
+        error.statusCode = 409;
+        throw error;
+      }
+
       twilio = await sendWithTwilio({
         toPhone: note.member_phone,
         body: note.body,

@@ -222,3 +222,86 @@ CREATE INDEX IF NOT EXISTS audit_log_org_idx ON audit_log(organization_id, creat
 - `vercel.json` / `package.json` parse; function count = 1 (Hobby-safe).
 - CI (`.github/workflows/ci.yml`) runs the suite + the one-function guard on
   every PR and push to main.
+
+---
+
+## Batch 4 — the second-opinion audit (ChatGPT review, items #1–36)
+
+A second reviewer estimated **~72% ship-ready**. I re-verified every claim
+against the code: nearly all findings were real. Status after this batch —
+**181/181 checks green** (was 144).
+
+**Where I agree / disagree with the 72%:** before batch 4, the number was
+fair — the fatal gap was that a **fresh database could not be built**
+(no bootstrap migration), which alone blocks any second deployment or
+reproducible test environment. With `0000_initial_schema.sql` in place and
+the webhook/refund/retry contracts fixed, the remaining risk is
+concentrated where code can't reach: RLS at the database (a compromised
+anon key still reads everything), email deliverability, and legal review.
+Code-side I'd now call it production-grade for the pilot; **infrastructure
+and compliance are the long pole.**
+
+### Fixed in this batch
+
+| # | Finding | Fix |
+|---|---------|-----|
+| 1 | No fresh-DB migration | `migrations/0000_initial_schema.sql` — full bootstrap, mirrors prod shape; runner now 5 files |
+| 2 | Payment-link retry isn't a true subscription retry | Documented contract (**Option B**): the link collects the failed balance, the webhook then explicitly reconciles the member's latest subscription to `active` — no silent divergence |
+| 3 | Webhook returns 200 even when the DB write fails | Outer transaction failure → **500**, so Razorpay retries; dedupe still idempotent on retry |
+| 4 | Refunds don't reverse attribution | `refunded_cents` on `recovery_attributions` (least-capped, idempotent); **every revenue reader is now net** (dashboard, digest, v1 summary, CSV export) |
+| 5 | Sent notes can be resent | `send-note` → **409** ("Draft a new note instead") |
+| 6 | YTD range computed client-side only / wrong | `?range=ytd` handled server-side (days since UTC Jan 1); client mirrors it |
+| 7 | Dead nav links (signals/docs tabs) | Removed; "What's new" → `/changelog.html`, Activity "View all" → `/weekly-digest.html`, mobile signals → digest, overview → `#kpis` |
+| 9 | Dead account menu | Profile → `/settings.html#accountCard`, Workspace settings → `/settings.html` as real links |
+| 10 | Mobile users trapped (sidebar hidden <900px, no menu) | Hamburger nav bar on members / weekly-digest / case-detail (dashboard already had the tab bar) |
+| 11 | Member search client-side only (only the loaded slice) | Server-side `ilike` search in the members API + debounced client wiring |
+| 12 | "Lifetime value" column shows subscription amount, not LTV | Renamed honestly to **"Subscription value"** |
+| 13 | Digest page injects stored narrative via innerHTML | Rendered with `textContent` / DOM builders — no sink |
+| 14 | Digest copy claims "scheduled … can be added later" | Now states digests are generated automatically (they are — nightly cron) |
+| 15 | Changelog page broken | **Partially wrong**: the page did read `/api/changelog` — it was empty because nothing seeded the table. `0004` seeds the first three entries |
+| 16 | No STOP handling for SMS | `POST /api/webhooks/sms-inbound`: Twilio signature-verified (HMAC-SHA1, timing-safe), STOP → cross-org suppression by phone, START → removal, 204s, rate-limit exempt |
+| 17 | Twilio env vars undocumented | `.env.example` + README (with TRAI/DLT caution) |
+| 18 | Only dashboard refreshes expired sessions | Shared `api()` wrapper (refresh + one retry) on members, digest, case-detail |
+| 20 | Hard-coded Supabase defaults are silent | Loud production warning when env vars are missing |
+| 21 | Alert webhook URL accepts `http://localhost` (SSRF) | `isPublicHttpUrl` guard: loopback / RFC1918 / link-local / metadata / `.local` / non-HTTP rejected |
+| 23 | Org deletion audit row dies in the cascade | FK-free `deletion_log` insert **before** the cascade |
+| 24 | No lockfile | `package-lock.json` committed; CI and docs now use `npm ci` |
+| 25 | "Cancel anytime" guarantee is false during pilot | "Free 14-day pilot · no card required" |
+| 26 | Public site demos show $ (product is ₹) | All demo figures converted to ₹ |
+| 34 | No way to replay a failed webhook | `POST /api/webhooks/replay` (owner/admin, audit-logged, uses the stored payload) |
+| 35 | Approving parked cases one-by-one is unusable | `POST /api/recovery/bulk-approve` (owner/admin, ≤100 cases, per-case failure isolation) + dashboard "Approve all" |
+| 39 | money() divides JPY-style currencies by 100 | Zero-decimal currency list on the members page (server parity) |
+
+### Already tracked / prior batches (second opinion re-raised them)
+
+- **#19 RLS** — real and the biggest remaining risk. `0000` documents the
+  gap; enabling RLS with per-org policies is a **user action** (Supabase
+  dashboard; the pilot's single-workspace posture makes it survivable today,
+  it does not survive a second workspace).
+- **#36 schema.ts → real_ naming drift** — cosmetic; tracked, low priority.
+- **#29–33** (monitors, alerts, error budgets) — ops hardening beyond
+  pilot scope; the audit-log + webhook retention + replay tooling from
+  batches 3–4 are the groundwork.
+
+### Not code (unchanged human actions)
+
+Supabase RLS + JWT secret rotation · Resend webhook re-save after domain
+changes · Razorpay keys re-save under the new env names · Upstash Redis
+provisioning (or the in-memory limiter stays per-instance) · TRAI/DLT
+review before SMS goes live · MFA on Supabase/Neon/Vercel/Razorpay ·
+counsel sign-off on recovery-message language.
+
+### Batch-4 verification
+
+- `node --check` across all server modules: clean.
+- Inline scripts of every touched page parse (`new Function`).
+- `npm test` → **181/181**: adds webhook 500-on-txn-failure, refund
+  reversal (params + least-capped SQL), subscription reconciliation on
+  link-payment recovery, resend 409, real YTD day math, server-side search
+  params, bulk-approve (403 member / owner happy path with 2 emails),
+  replay 400/404, SMS inbound (bad signature 403, signed STOP
+  suppression-by-phone SQL, signed START removal, unconfigured 503),
+  SSRF destinations, deletion-log-before-cascade, migration inventory,
+  lockfile + `npm ci`, Twilio docs, and 14 frontend source checks.
+- The suite caught **one real bug** this batch: `send-note`'s error
+  whitelist dropped the new 409, turning it into a 500.

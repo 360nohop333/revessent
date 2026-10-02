@@ -17,6 +17,14 @@ const crypto = require('crypto');
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://zujmouzzqiovgbnanrvv.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3';
 
+// 2nd-opinion #20: these defaults are the pilot project's OWN Supabase
+// instance. That is fine for the pilot, but a second workspace deploying this
+// codebase would silently verify its users against OUR project. Fail loudly in
+// production if the env vars are not set.
+if (process.env.VERCEL_ENV === 'production' && process.env.SUPABASE_JWT_SECRET && (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY)) {
+  console.error('[revessent] SUPABASE_URL / SUPABASE_ANON_KEY are not set — auth is falling back to HARD-CODED defaults from the pilot project. Set them in Vercel project env vars.');
+}
+
 function getBearerToken(req) {
   const header = req.headers.authorization || req.headers.Authorization || '';
   const match = String(header).match(/^Bearer\s+(.+)$/i);

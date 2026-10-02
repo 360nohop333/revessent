@@ -42,6 +42,9 @@ module.exports = async (req, res) => {
     // hammer Neon.
     const limit = Math.min(200, Math.max(1, toInt(req.query && req.query.limit, 100) || 100));
     const offset = Math.max(0, toInt(req.query && req.query.offset, 0) || 0);
+    // 2nd-opinion #11: search must run server-side — the client only holds
+    // the loaded page, so "member 650 of 800" was unfindable.
+    const search = String((req.query && req.query.search) || '').trim().slice(0, 100);
 
     const [membersResult, casesResult, countResult] = await Promise.all([
       client.query(
@@ -56,9 +59,10 @@ module.exports = async (req, res) => {
          from stripe_members sm
          left join stripe_subscriptions ss on ss.member_id = sm.id
          where sm.organization_id = $1
+           and ($4 = '' or sm.name ilike '%' || $4 || '%' or sm.email ilike '%' || $4 || '%')
          order by sm.created_at desc nulls last
          limit $2 offset $3`,
-        [organizationId, limit, offset]
+        [organizationId, limit, offset, search]
       ),
       client.query(
         `select member_id, id as case_id
@@ -69,8 +73,10 @@ module.exports = async (req, res) => {
         [organizationId]
       ),
       client.query(
-        `select count(*)::int as total from stripe_members where organization_id = $1`,
-        [organizationId]
+        `select count(*)::int as total from stripe_members
+          where organization_id = $1
+            and ($2 = '' or name ilike '%' || $2 || '%' or email ilike '%' || $2 || '%')`,
+        [organizationId, search]
       ),
     ]);
 

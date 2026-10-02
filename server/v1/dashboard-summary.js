@@ -78,7 +78,7 @@ async function resolveApiKey(client, fullKey) {
 // queries (kept deliberately small — this is the example API-key endpoint).
 async function getRevenueRecovered(client, organizationId) {
   const result = await client.query(
-    `select coalesce(sum(amount_cents), 0)::bigint as current_cents
+    `select coalesce(sum(amount_cents - coalesce(refunded_cents, 0)), 0)::bigint as current_cents
        from recovery_attributions
       where organization_id = $1
         and recovered_at >= now() - interval '30 days'`,

@@ -39,6 +39,12 @@ function parseRangeDays(req) {
 
   if (range === '7d') return 7;
   if (range === '90d') return 90;
+  // 2nd-opinion #6: "Year to date" used to silently mean 90 days.
+  if (range === 'ytd') {
+    const now = new Date();
+    const jan1 = Date.UTC(now.getUTCFullYear(), 0, 1);
+    return Math.max(1, Math.ceil((now.getTime() - jan1) / 864e5));
+  }
   return 30;
 }
 
@@ -78,10 +84,10 @@ function mapStatusKey(status) {
 async function getRevenueRecovered(client, organizationId, rangeDays) {
   const result = await client.query(
     `select
-       coalesce(sum(amount_cents) filter (
+       coalesce(sum(amount_cents - coalesce(refunded_cents, 0)) filter (
          where recovered_at >= now() - ($2::int * interval '1 day')
        ), 0)::bigint as current_cents,
-       coalesce(sum(amount_cents) filter (
+       coalesce(sum(amount_cents - coalesce(refunded_cents, 0)) filter (
          where recovered_at >= now() - (($2::int * 2) * interval '1 day')
            and recovered_at <  now() - ($2::int * interval '1 day')
        ), 0)::bigint as prior_cents

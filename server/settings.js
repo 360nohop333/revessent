@@ -131,6 +131,30 @@ async function handleGet(req, res, client, user) {
   });
 }
 
+// 2nd-opinion #21: the alert webhook is called server-side — block obvious
+// SSRF destinations (loopback, private ranges, link-local/metadata, .local).
+function isPublicHttpUrl(value) {
+  if (!/^https?:\/\/.+/i.test(value)) return false;
+  let host;
+  try {
+    host = new URL(value).hostname.toLowerCase();
+  } catch (_) {
+    return false;
+  }
+  if (host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local') || host.endsWith('.internal')) return false;
+  const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4) {
+    const [a, b] = [Number(ipv4[1]), Number(ipv4[2])];
+    if (a === 127 || a === 10 || a === 0) return false;
+    if (a === 192 && b === 168) return false;
+    if (a === 172 && b >= 16 && b <= 31) return false;
+    if (a === 169 && b === 254) return false; // cloud metadata
+    return true;
+  }
+  if (host === '::1' || host.startsWith('fc') || host.startsWith('fd') || host.startsWith('fe80')) return false;
+  return true;
+}
+
 function validatePostBody(body) {
   const organizationId = normalizeId(body.organizationId);
   const brandName = cleanString(body.brandName);
@@ -157,8 +181,8 @@ function validatePostBody(body) {
     alertWebhookUrl = null; // keep stored value
   } else {
     alertWebhookUrl = cleanString(body.alertWebhookUrl);
-    if (alertWebhookUrl && !/^https?:\/\/.+/i.test(alertWebhookUrl)) {
-      const error = new Error('Alert webhook URL must be a valid http(s) URL.');
+    if (alertWebhookUrl && !isPublicHttpUrl(alertWebhookUrl)) {
+      const error = new Error('Alert webhook URL must be a valid PUBLIC http(s) URL (private/internal addresses are blocked).');
       error.statusCode = 400;
       throw error;
     }
