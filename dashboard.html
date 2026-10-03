@@ -1481,10 +1481,14 @@ html[data-theme=minimal] .rv-heavy-blur,html[data-theme=minimal2] .rv-heavy-blur
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="/api/config.js"></script> <!-- audit #66: Supabase project from env, fallback below -->
 <script>
-  var __rvCfg = window.REVESSENT_SUPABASE_CONFIG || { url: 'https://zujmouzzqiovgbnanrvv.supabase.co', anonKey: 'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3' };
-  const supabaseClient = supabase.createClient(__rvCfg.url, __rvCfg.anonKey);
+  var __rvCfg = window.REVESSENT_SUPABASE_CONFIG || { url: '', anonKey: '' };
+  const supabaseClient = (__rvCfg.url && __rvCfg.anonKey && window.supabase) ? supabase.createClient(__rvCfg.url, __rvCfg.anonKey) : null;
   window.__rvSession = null;
   window.__rvSessionReady = (async function checkSession() {
+    if (!supabaseClient) {
+      window.__rvPreviewMode = true;
+      return null;
+    }
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (!session) {
       window.__rvPreviewMode = true;

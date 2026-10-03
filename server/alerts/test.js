@@ -5,10 +5,7 @@
 // regardless of the configured threshold.
 
 const { Pool } = require('pg');
-const { authenticateRequest } = require('../_lib/supabase-auth'); // audit #66: shared auth (local JWT verify when SUPABASE_JWT_SECRET is set)
-
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://zujmouzzqiovgbnanrvv.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3';
+const { authenticateRequest } = require('../_lib/supabase-auth');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,

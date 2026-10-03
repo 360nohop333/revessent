@@ -1,6 +1,5 @@
-# Audit #13/#67: keep non-deployable source-of-truth files out of the
-# static deployment (Vercel serves otherwise-unmatched root files as static
-# assets, which made schema.ts / docs downloadable).
+# Keep non-deployable source-of-truth files out of the
+# static deployment (Vercel serves otherwise-unmatched root files as static assets).
 schema.ts
 AUDIT.md
 README.md
@@ -8,3 +7,9 @@ README.md
 .gitignore
 .vercelignore
 tests/
+packages/
+scripts/
+migrations/
+video/
+*.md
+.github/

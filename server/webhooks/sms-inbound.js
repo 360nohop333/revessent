@@ -104,7 +104,7 @@ module.exports = async (req, res) => {
         `insert into suppression_list (id, organization_id, member_id, email, phone, unsubscribed_at, created_at)
          select $1, sm.organization_id, sm.id, coalesce(sm.email, ''), $2, now(), now()
            from stripe_members sm
-          where sm.phone = $2
+          where sm.phone = $2 or sm.phone = ltrim($2, '+') or ('+' || regexp_replace(sm.phone, '\\D', '', 'g')) = $2
          on conflict (organization_id, lower(email)) do update
            set phone = excluded.phone,
                unsubscribed_at = now()`,
@@ -112,7 +112,7 @@ module.exports = async (req, res) => {
       );
     } else {
       await client.query(
-        `delete from suppression_list where phone = $1`,
+        `delete from suppression_list where phone = $1 or phone = ltrim($1, '+')`,
         [phone]
       );
     }

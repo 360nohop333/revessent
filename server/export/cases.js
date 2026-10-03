@@ -4,10 +4,7 @@
 // whitelist filter, default all). Returns text/csv (not JSON).
 
 const { Pool } = require('pg');
-const { authenticateRequest } = require('../_lib/supabase-auth'); // audit #66: shared auth (local JWT verify when SUPABASE_JWT_SECRET is set)
-
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://zujmouzzqiovgbnanrvv.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3';
+const { authenticateRequest } = require('../_lib/supabase-auth');
 const DEFAULT_RANGE_DAYS = 90;
 const CASE_STATUSES = new Set([
   'detected',

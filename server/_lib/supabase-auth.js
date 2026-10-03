@@ -1,27 +1,27 @@
 // Revessent shared auth (audit #66).
-// ONE copy of what used to be pasted into 19 endpoint files.
+// ONE unified module for JWT and token verification.
 //
 // Two verification modes:
 //  - LOCAL (preferred): with SUPABASE_JWT_SECRET set (Supabase → Settings →
 //    API → JWT Secret), the access token's HS256 signature is verified
 //    in-process — no network call to Supabase per request. Claims checked:
 //    signature, exp, iss, aud.
-//  - REMOTE (fallback): the userinfo endpoint call the codebase always made.
-//    Identical behavior when the secret isn't configured.
+//  - REMOTE (fallback): the userinfo endpoint call when SUPABASE_URL and
+//    SUPABASE_ANON_KEY are configured in the environment.
 //
 // After verification the Neon user is resolved by supabase_user_id, with the
-// same email-link + backfill behavior the per-file copies had.
+// same email-link + backfill behavior.
 
 const crypto = require('crypto');
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://zujmouzzqiovgbnanrvv.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3';
+const DEFAULT_PILOT_URL = 'https://zujmouzzqiovgbnanrvv.supabase.co';
+const DEFAULT_PILOT_ANON_KEY = 'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3';
 
-// 2nd-opinion #20: these defaults are the pilot project's OWN Supabase
-// instance. That is fine for the pilot, but a second workspace deploying this
-// codebase would silently verify its users against OUR project. Fail loudly in
-// production if the env vars are not set.
-if (process.env.VERCEL_ENV === 'production' && process.env.SUPABASE_JWT_SECRET && (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY)) {
+const SUPABASE_URL = process.env.SUPABASE_URL || DEFAULT_PILOT_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || DEFAULT_PILOT_ANON_KEY;
+
+// 2nd-opinion #20: fail loudly in production if falling back to pilot project
+if (process.env.VERCEL_ENV === 'production' && (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY)) {
   console.error('[revessent] SUPABASE_URL / SUPABASE_ANON_KEY are not set — auth is falling back to HARD-CODED defaults from the pilot project. Set them in Vercel project env vars.');
 }
 
@@ -36,7 +36,7 @@ function b64urlToJson(part) {
   return JSON.parse(json);
 }
 
-// Audit #66: verify the Supabase access token locally (HS256).
+// Verify the Supabase access token locally (HS256).
 function verifyJwtLocally(token) {
   const secret = String(process.env.SUPABASE_JWT_SECRET || '').trim();
   if (!secret) return null; // not configured → caller falls back to remote
@@ -68,12 +68,16 @@ function verifyJwtLocally(token) {
     error.statusCode = 401;
     throw error;
   }
-  if (payload.iss && payload.iss !== `${SUPABASE_URL}/auth/v1`) {
+
+  const activeUrl = process.env.SUPABASE_URL || SUPABASE_URL;
+  const activeAnonKey = process.env.SUPABASE_ANON_KEY || SUPABASE_ANON_KEY;
+
+  if (activeUrl && payload.iss && payload.iss !== `${activeUrl}/auth/v1`) {
     const error = new Error('Invalid token issuer.');
     error.statusCode = 401;
     throw error;
   }
-  if (payload.aud && payload.aud !== 'authenticated' && String(payload.aud) !== String(SUPABASE_ANON_KEY)) {
+  if (payload.aud && payload.aud !== 'authenticated' && (!activeAnonKey || String(payload.aud) !== String(activeAnonKey))) {
     const error = new Error('Invalid token audience.');
     error.statusCode = 401;
     throw error;
@@ -86,7 +90,9 @@ function verifyJwtLocally(token) {
     throw error;
   }
 
-  return { supabaseUserId, email: String(payload.email || '').trim().toLowerCase() };
+  const emailConfirmedAt = payload.email_confirmed_at || payload.confirmed_at || null;
+
+  return { supabaseUserId, email: String(payload.email || '').trim().toLowerCase(), emailConfirmedAt };
 }
 
 async function verifySupabaseToken(token) {
@@ -99,11 +105,20 @@ async function verifySupabaseToken(token) {
   const local = verifyJwtLocally(token);
   if (local) return local;
 
-  const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+  const url = process.env.SUPABASE_URL || SUPABASE_URL;
+  const anonKey = process.env.SUPABASE_ANON_KEY || SUPABASE_ANON_KEY;
+
+  if (!url || !anonKey) {
+    const error = new Error('Supabase authentication is not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY.');
+    error.statusCode = 500;
+    throw error;
+  }
+
+  const response = await fetch(`${url}/auth/v1/user`, {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${token}`,
-      apikey: SUPABASE_ANON_KEY,
+      apikey: anonKey,
     },
   });
 
@@ -116,6 +131,7 @@ async function verifySupabaseToken(token) {
   const supabaseUser = await response.json();
   const supabaseUserId = (supabaseUser && supabaseUser.id ? String(supabaseUser.id) : '').trim();
   const email = (supabaseUser && supabaseUser.email ? String(supabaseUser.email) : '').trim().toLowerCase();
+  const emailConfirmedAt = supabaseUser && (supabaseUser.email_confirmed_at || supabaseUser.confirmed_at) ? (supabaseUser.email_confirmed_at || supabaseUser.confirmed_at) : null;
 
   if (!supabaseUserId) {
     const error = new Error('Supabase user id is missing.');
@@ -123,7 +139,7 @@ async function verifySupabaseToken(token) {
     throw error;
   }
 
-  return { email, supabaseUserId };
+  return { email, supabaseUserId, emailConfirmedAt };
 }
 
 async function findNeonUserBySupabaseId(client, supabaseUserId) {

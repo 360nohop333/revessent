@@ -7,12 +7,10 @@ const { Pool } = require('pg');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  max: 1, // audit #45: single connection per serverless instance
+  max: 1,
   ssl: { rejectUnauthorized: false },
 });
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://zujmouzzqiovgbnanrvv.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3';
 const CHECK_TIMEOUT_MS = 2500;
 
 function sendJson(res, status, body) {
@@ -44,27 +42,29 @@ async function checkDatabase() {
 }
 
 async function checkAuth() {
+  const url = process.env.SUPABASE_URL;
+  const anonKey = process.env.SUPABASE_ANON_KEY;
+  if (!url) return true;
+
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), CHECK_TIMEOUT_MS);
 
-    const res = await fetch(`${SUPABASE_URL}/auth/v1/health`, {
+    const res = await fetch(`${url}/auth/v1/health`, {
       method: 'GET',
       headers: {
-        apikey: SUPABASE_ANON_KEY,
+        apikey: anonKey || '',
       },
       signal: controller.signal,
     }).catch(async () => {
-      // Fallback check against root or settings if /health returns 404 or differs
-      return fetch(`${SUPABASE_URL}/auth/v1/settings`, {
+      return fetch(`${url}/auth/v1/settings`, {
         method: 'GET',
-        headers: { apikey: SUPABASE_ANON_KEY },
+        headers: { apikey: anonKey || '' },
         signal: controller.signal,
       });
     });
 
     clearTimeout(timer);
-    // If the server responded with any HTTP status (even 200, 401, or 404), the auth service is reachable
     return Boolean(res && (res.status >= 200 && res.status < 500));
   } catch (err) {
     console.error('Revessent /api/status auth check error:', err && err.message);

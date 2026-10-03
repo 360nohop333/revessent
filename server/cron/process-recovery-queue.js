@@ -1,44 +1,26 @@
 // Revessent /api/cron/process-recovery-queue
-// Daily Vercel Cron job (Hobby plan: one run per day) that runs the
-// multi-channel escalation ladder for due recovery cases across ALL
-// organizations — combining silent Razorpay retries with outreach emails at
-// the right moments instead of waiting for a human to click "Retry now" /
-// "Draft recovery email".
+// Daily Vercel Cron job that runs the multi-channel escalation ladder for
+// due recovery cases across ALL organizations.
 //
 // Escalation ladder per due case (next_retry_at <= now()):
 //   retry_count 0 → 1  first silent retry
 //   retry_count 1 → 2  second silent retry + recovery email (outreach moment)
 //   retry_count 2 → 3  final silent retry; failure marks the case lost
-//                      (handled by the shared max_retries logic in retry.js)
-//   non-retryable decline codes (bad card) → no silent retry at all; send a
-//   recovery email asking for a new payment method instead, and do NOT count
-//   it toward max_retries since no retry was actually attempted.
 //
-// Auth: Vercel Cron has no Supabase user to authenticate — it runs as a
-// system job. Vercel automatically sends `Authorization: Bearer $CRON_SECRET`
-// when the CRON_SECRET environment variable is set on the project, so this
-// endpoint verifies exactly that header and rejects anything else with 401.
-//
-// Scheduling (vercel.json) — Hobby plan allows ONE cron job, max once per
-// day, so this runs daily at 09:00 IST (03:30 UTC):
-//   { "crons": [{ "path": "/api/cron/process-recovery-queue",
-//                 "schedule": "30 3 * * *" }] }
-// (On a Pro plan this can be tightened to "0 * * * *" for hourly runs.)
+// Includes runtime timeout budgeting (SAFETY_DEADLINE_MS = 45s) to guarantee
+// the function exits cleanly well within Vercel's 60s execution limit.
 
 const { Pool } = require('pg');
 const crypto = require('crypto');
 const { performRetryAttempt, getRetrySchedule } = require('../recovery/retry');
 const { sendRecoveryEmail } = require('../recovery/send-note');
-const { logAudit } = require('../_lib/audit');
 
-// Process at most 50 due cases per run so one cron invocation cannot time
-// out on a huge backlog — anything past the batch is picked up by the next
-// run (the query is ordered by next_retry_at asc, oldest first).
 const BATCH_SIZE = 50;
+const SAFETY_DEADLINE_MS = 45000; // 45 seconds max loop execution to avoid Vercel 60s timeout
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  max: 1, // audit #45: single connection per serverless instance
+  max: 1,
   ssl: { rejectUnauthorized: false },
 });
 
@@ -75,8 +57,6 @@ function verifyCronSecret(req) {
   const token = getBearerToken(req);
   if (!token) return false;
 
-  // Timing-safe comparison of sha256 digests (hashing first sidesteps the
-  // equal-length requirement of crypto.timingSafeEqual).
   const expected = crypto.createHash('sha256').update(secret, 'utf8').digest();
   const actual = crypto.createHash('sha256').update(token, 'utf8').digest();
   return crypto.timingSafeEqual(expected, actual);
@@ -124,18 +104,9 @@ async function processCase(client, caseRow) {
   const retryCount = toInt(caseRow.retry_count, 0);
   const maxRetries = Math.max(1, toInt(caseRow.max_retries, 3));
 
-  // Reuse Feature 1's decline-aware logic: null means this decline code never
-  // allows an automatic retry (the card itself is bad).
   const scheduleDays = getRetrySchedule(caseRow.decline_code, retryCount);
 
   if (scheduleDays == null) {
-    // Non-retryable decline code (legacy case that still has next_retry_at
-    // set, e.g. created before decline-aware scheduling): no silent retry —
-    // send a recovery email asking for a new payment method instead. No retry
-    // is attempted, so retry_count / max_retries are left untouched.
-    //
-    // Clear next_retry_at first so the case can never come back due (and get
-    // re-emailed every hour) even if the email send below fails.
     await client.query(
       `update recovery_cases
           set next_retry_at = null,
@@ -144,9 +115,6 @@ async function processCase(client, caseRow) {
       [caseRow.id]
     );
 
-    // Audit #38: while the workspace requires approval (the default trust
-    // level), the scheduler must NOT email customers on its own — park the
-    // case for a human instead.
     if (String(caseRow.org_trust_level || 'approval_required') === 'approval_required') {
       await client.query(
         `update recovery_cases set status = 'awaiting_approval', updated_at = now() where id = $1`,
@@ -178,8 +146,6 @@ async function processCase(client, caseRow) {
   }
 
   if (retryCount >= maxRetries) {
-    // Safety valve: the case is due but already exhausted its retries (legacy
-    // data or a race) — close it out as lost so it stops appearing as due.
     await client.query(
       `update recovery_cases
           set status = 'lost',
@@ -204,22 +170,14 @@ async function processCase(client, caseRow) {
     return { action: 'closed_lost' };
   }
 
-  // Silent Razorpay retry (shared core logic with the manual retry endpoint —
-  // includes decline-aware next_retry_at scheduling and the max_retries →
-  // lost transition on the final attempt).
   const result = await performRetryAttempt(client, caseRow, { automatic: true });
 
   if (!result.attempted) {
-    // A retry was already in flight (manual click or a previous run) — leave
-    // the case for the next hourly run.
     return { action: 'skipped_pending' };
   }
 
   let emailsSent = 0;
 
-  // Escalate to outreach on the second retry (retry_count 1 → 2): the "we
-  // tried quietly, now we talk to the customer" moment. The case stays
-  // 'retrying' (updateCaseStatus: false) so the final ladder step still runs.
   if (retryCount === 1 && result.newStatus !== 'lost' && String(caseRow.org_trust_level || 'approval_required') !== 'approval_required') {
     try {
       await sendRecoveryEmail({
@@ -231,8 +189,6 @@ async function processCase(client, caseRow) {
       });
       emailsSent += 1;
     } catch (emailError) {
-      // The retry itself succeeded — an email failure must not mark the whole
-      // case as failed; it is logged and the ladder continues.
       console.error('Revessent cron: escalation email failed for case', caseRow.id, emailError);
     }
   }
@@ -246,9 +202,6 @@ async function processCase(client, caseRow) {
   };
 }
 
-// Audit #54: one forensics_digests row per org per ISO week, built from
-// recovery_cases + recovery_attributions. Plain deterministic narrative — no
-// Gemini call from the cron (cost + trust: the numbers speak for themselves).
 async function generateWeeklyDigests(client) {
   const weekStart = new Date();
   weekStart.setUTCHours(0, 0, 0, 0);
@@ -333,9 +286,6 @@ module.exports = async (req, res) => {
   try {
     client = await pool.connect();
 
-    // Audit #32: sweep attempts whose function crashed mid-flight — a
-    // 'pending' attempt older than an hour is stale; fail it so its
-    // idempotency key stops blocking future retries with 409s.
     try {
       await client.query(
         `update recovery_attempts
@@ -350,9 +300,6 @@ module.exports = async (req, res) => {
       console.error('Revessent cron: stale-attempt sweep failed:', sweepError);
     }
 
-    // Audit #14: raw webhook payloads don't live in the DB forever — default
-    // 30 days (WEBHOOK_RETENTION_DAYS), then the rows go. The privacy policy
-    // states the same window.
     try {
       await client.query(
         `delete from webhook_events
@@ -363,9 +310,6 @@ module.exports = async (req, res) => {
       console.error('Revessent cron: webhook retention sweep failed:', retentionError);
     }
 
-    // Audit #54: generate the weekly forensics digest for every org that had
-    // activity this week. Best-effort — a failure here must never mark the
-    // cron run failed.
     try {
       const digestCount = await generateWeeklyDigests(client);
       console.log('Revessent cron: weekly digests upserted:', digestCount);
@@ -379,8 +323,15 @@ module.exports = async (req, res) => {
     let succeeded = 0;
     let failed = 0;
     let emailsSent = 0;
+    const startTime = Date.now();
 
     for (const caseRow of dueCases) {
+      // Finding #6: check elapsed time against safety budget before starting next case
+      if (Date.now() - startTime > SAFETY_DEADLINE_MS) {
+        console.warn('Revessent cron: execution nearing timeout limit, exiting loop early');
+        break;
+      }
+
       processed += 1;
 
       try {
@@ -392,12 +343,9 @@ module.exports = async (req, res) => {
         } else if (outcome.action === 'email_only') {
           succeeded += 1;
         }
-        // 'skipped_pending' and 'closed_lost' count as processed only.
 
         emailsSent += outcome.emailsSent || 0;
       } catch (error) {
-        // One bad case (missing connection, drafting failure, ...) must not
-        // abort the run — everything already processed stays recorded.
         failed += 1;
         console.error('Revessent cron: could not process recovery case', caseRow.id, error);
       }

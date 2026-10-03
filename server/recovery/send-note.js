@@ -12,18 +12,14 @@ const { Pool } = require('pg');
 const { createUnsubscribeToken, appBaseUrl } = require('../_lib/unsubscribe-token');
 const { logAudit } = require('../_lib/audit');
 const crypto = require('crypto');
-const { authenticateRequest } = require('../_lib/supabase-auth'); // audit #66: shared auth (local JWT verify when SUPABASE_JWT_SECRET is set)
+const { authenticateRequest } = require('../_lib/supabase-auth');
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://zujmouzzqiovgbnanrvv.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3';
-// Audit #36: make the model configurable — gemini-2.0-flash was retired
-// by Google; set GEMINI_MODEL to whatever is current when deploying.
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 const CLOSED_STATUSES = new Set(['recovered', 'lost', 'canceled']);
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  max: 1, // audit #45: single connection per serverless instance
+  max: 1,
   ssl: { rejectUnauthorized: false },
 });
 
@@ -69,9 +65,6 @@ function bodyToHtml(body) {
   return paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph).replace(/\n/g, '<br>')}</p>`).join('\n');
 }
 
-// Audit #39: zero-decimal currencies (JPY, KRW, VND, …) are stored as whole
-// units — dividing by 100 invents money. Razorpay itself is 2-decimal, but
-// the ledger must stay correct if another processor ever lands.
 const ZERO_DECIMAL_CURRENCIES = new Set(['JPY', 'KRW', 'VND', 'CLP', 'ISK', 'HUF', 'TWD', 'BHD', 'KWD', 'OMR']);
 
 function amountLabel(amountCents, currency) {
@@ -193,7 +186,6 @@ async function draftWithGemini(context, voice, paymentLink) {
 
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
     method: 'POST',
-    // Audit #11: auth via header, not ?key= — URL query strings end up in logs.
     headers: {
       'Content-Type': 'application/json',
       'x-goog-api-key': process.env.GEMINI_API_KEY,
@@ -206,7 +198,11 @@ async function draftWithGemini(context, voice, paymentLink) {
 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const message = cleanString(payload && payload.error && payload.error.message) || 'AI drafting failed.';
+    const rawMsg = cleanString(payload && payload.error && payload.error.message);
+    let message = rawMsg || 'AI drafting failed.';
+    if (response.status === 404 || /model.*not found|unsupported model|deprecated/i.test(rawMsg)) {
+      message = 'AI drafting is misconfigured — check GEMINI_MODEL.';
+    }
     const error = new Error(message);
     error.statusCode = 502;
     throw error;
@@ -264,8 +260,6 @@ async function loadExistingNote(client, organizationId, noteId) {
     error.statusCode = 400;
     throw error;
   }
-  // 2nd-opinion #5: an already-sent note must never silently send again —
-  // resends (if ever wanted) deserve their own explicit operation.
   if (note.sent_at) {
     const error = new Error('This note was already sent.');
     error.statusCode = 409;
@@ -299,9 +293,6 @@ async function sendWithResend({ client, organizationId, memberId, fromName, from
     throw error;
   }
 
-  // Audit #35/#37: suppression check — if the recipient unsubscribed or
-  // previously bounced/complained, do NOT send. Fail with 409 (conflict) so
-  // the client knows why no email went out.
   if (client) {
     const suppressed = await client.query(
       `select 1 from suppression_list where organization_id = $1 and lower(email) = lower($2) limit 1`,
@@ -314,13 +305,11 @@ async function sendWithResend({ client, organizationId, memberId, fromName, from
     }
   }
 
-  // Audit #35/#37: every email carries an HMAC-signed one-click unsubscribe link, a plain-text
-  // alternative, and a reply-to pointing at the sender.
   const unsubUrl = organizationId
     ? `${appBaseUrl()}/api/unsubscribe?token=${createUnsubscribeToken(organizationId, memberId, toEmail)}`
     : '';
   const footerText = unsubUrl
-    ? `\n\n—\nYou're receiving this because a payment didn't go through. Don't want these emails? Unsubscribe: ${unsubUrl}`
+    ? `\n\n---\nUnsubscribe: ${unsubUrl}`
     : '';
   const footerHtml = unsubUrl
     ? `<p style="margin-top:24px;font-size:12px;color:#8E8C86;border-top:1px solid #eee;padding-top:12px">You're receiving this because a payment didn't go through. <a href="${unsubUrl}" style="color:#35608f">Unsubscribe</a></p>`
@@ -340,8 +329,6 @@ async function sendWithResend({ client, organizationId, memberId, fromName, from
       html: bodyToHtml(body) + footerHtml,
       text: textPart,
       reply_to: fromEmail,
-      // Audit #37: the Resend delivery webhook reads these back to map a
-      // bounce/complaint to the workspace + member and auto-suppress.
       tags: ['org:' + organizationId, memberId ? 'member:' + memberId : null].filter(Boolean),
     }),
   });
@@ -358,10 +345,6 @@ async function sendWithResend({ client, organizationId, memberId, fromName, from
 }
 
 async function markNoteSent(client, values) {
-  // values.automatic marks the activity as cron-triggered;
-  // values.updateCaseStatus=false keeps the case in its current status (used
-  // by the escalation cron, which must not move a 'retrying' case to
-  // 'note_sent' or the remaining ladder steps would stop running).
   const automatic = Boolean(values.automatic);
   const updateCaseStatus = values.updateCaseStatus !== false;
 
@@ -414,13 +397,6 @@ async function markNoteSent(client, values) {
   }
 }
 
-// Draft-and-send-in-one-call helper for the escalation cron
-// (api/cron/process-recovery-queue.js). Mirrors the manual HTTP flow: loads the
-// case context and voice profile, drafts with Gemini, inserts the note
-// (requires_approval = false — the cron IS the approval), sends via Resend, and
-// records the send. Returns { noteId, subject, body, resendEmailId }.
-// updateCaseStatus defaults to true; the cron's mid-ladder escalation passes
-// false so the case keeps retrying.
 async function sendRecoveryEmail({ client, organizationId, caseId, automatic = false, updateCaseStatus = true }) {
   const context = await loadCaseContext(client, organizationId, caseId);
   const voice = await loadVoiceProfile(client, organizationId, context.organization_name);
@@ -486,7 +462,6 @@ async function handler(req, res) {
   try {
     client = await pool.connect();
     const { user } = await authenticateRequest(req, client);
-    // Audit #4: role check — only owners/admins may perform this action.
     if (!['owner', 'admin'].includes(String((user && user.role) || '').toLowerCase())) {
       return sendJson(res, 403, { error: 'Only workspace owners or admins can perform this action.' });
     }
@@ -514,8 +489,6 @@ async function handler(req, res) {
         body: draftBody,
         requiresApproval: !autoSend,
       });
-      // Audit #38: autoSend is only reachable by an authenticated owner/admin
-      // (role gate above) — that click IS the approval. Record who approved.
       if (autoSend) {
         await client.query(
           `update recovery_notes set approved_at = now(), approved_by_user_id = $2 where id = $1`,

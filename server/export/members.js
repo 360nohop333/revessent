@@ -4,10 +4,7 @@
 // organization. Returns text/csv (not JSON).
 
 const { Pool } = require('pg');
-const { authenticateRequest } = require('../_lib/supabase-auth'); // audit #66: shared auth (local JWT verify when SUPABASE_JWT_SECRET is set)
-
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://zujmouzzqiovgbnanrvv.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3';
+const { authenticateRequest } = require('../_lib/supabase-auth');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -64,7 +61,11 @@ module.exports = async (req, res) => {
          ss.amount_cents as sub_amount_cents,
          recovered.total_cents as lifetime_recovered_cents
        from stripe_members sm
-       left join stripe_subscriptions ss on ss.member_id = sm.id
+       left join (
+         select distinct on (member_id) member_id, status, amount_cents
+           from stripe_subscriptions
+          order by member_id, updated_at desc nulls last, created_at desc nulls last
+       ) ss on ss.member_id = sm.id
        left join (
          select member_id, sum(amount_cents - coalesce(refunded_cents, 0)) as total_cents
            from recovery_attributions

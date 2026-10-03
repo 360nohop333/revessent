@@ -8,6 +8,7 @@
 
 const path = require('path').resolve(__dirname, '..');
 const crypto = require('crypto');
+const fs = require('fs');
 
 let failures = 0;
 let passes = 0;
@@ -1593,6 +1594,27 @@ async function testBatch5() {
     ]);
     res = await call(cronExp, makeReq('GET', { headers: { authorization: 'Bearer cron-secret-test' } }));
     check('cron detect-expansion-signals: drafts 90d opportunities without sending', res.statusCode === 200 && res.body.detected === 1 && oppInserts.length === 1 && oppInserts[0][1] === 'org-1', JSON.stringify(res.body));
+
+    // 6. Finding #2: SMS disabled in voice profile blocks send-sms
+    const sendSms = require(path + '/server/recovery/send-sms.js');
+    CURRENT_CLIENT = fakeClient([
+      AUTH_BY_SBUID,
+      [/from recovery_cases rc/, () => ({ rows: [{ id: 'case-sms-1', organization_id: 'org-1', status: 'detected', member_phone: '+919876543210' }] })],
+      [/from voice_profiles/, () => ({ rows: [{ brand_name: 'Acme', sms_enabled: false }] })],
+    ]);
+    res = await call(sendSms, makeReq('POST', { headers: AUTH, body: JSON.stringify({ caseId: 'case-sms-1' }) }));
+    check('send-sms: blocked when sms_enabled is false in settings (Finding #2)', res.statusCode === 400 && /SMS recovery is disabled/i.test(res.body.error), JSON.stringify(res.body));
+
+    // 7. Finding #30: decline-code retry logic exact consistency across files
+    const extractFnBody = (file, fnName) => {
+      const src = fs.readFileSync(path + '/' + file, 'utf8');
+      const match = src.match(new RegExp(`function ${fnName}\\([^)]*\\)\\s*\\{([\\s\\S]*?)\\n\\}`));
+      return match ? match[1].replace(/\\s+/g, ' ').trim() : '';
+    };
+    const body1 = extractFnBody('server/recovery/retry.js', 'getRetrySchedule');
+    const body2 = extractFnBody('server/webhooks/razorpay.js', 'getRetrySchedule');
+    const body3 = extractFnBody('server/razorpay/backfill.js', 'getRetrySchedule');
+    check('decline logic: getRetrySchedule identical across all 3 files (Finding #30)', Boolean(body1) && body1 === body2 && body2 === body3);
 
   } finally {
     global.fetch = prevFetch;

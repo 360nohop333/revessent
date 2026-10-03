@@ -14,16 +14,13 @@
 const { Pool } = require('pg');
 const crypto = require('crypto');
 const { logAudit } = require('../_lib/audit');
-const { decryptColumns, encryptToString, decryptFromString } = require('../_lib/secret-box'); // audit #7
+const { decryptColumns, encryptToString, decryptFromString } = require('../_lib/secret-box');
 const { backfillRazorpayHistory } = require('./backfill');
-const { authenticateRequest } = require('../_lib/supabase-auth'); // audit #66: shared auth (local JWT verify when SUPABASE_JWT_SECRET is set)
+const { authenticateRequest } = require('../_lib/supabase-auth');
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://zujmouzzqiovgbnanrvv.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3';
 const RAZORPAY_WEBHOOK_EVENTS = [
   'payment.failed',
   'payment.captured',
-  // audit #24: subscription lifecycle + refunds
   'subscription.charged',
   'subscription.cancelled',
   'subscription.halted',
@@ -35,7 +32,7 @@ const DEFAULT_WEBHOOK_BASE_URL = 'https://revessent-alpha.vercel.app';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  max: 1, // audit #45: single connection per serverless instance
+  max: 1,
   ssl: { rejectUnauthorized: false },
 });
 
@@ -92,9 +89,6 @@ function requireSameOrganization(user, organizationId) {
   return requested;
 }
 
-// Audit #7: decryption lives in _lib/secret-box — it tries ENCRYPTION_KEY,
-// then ENCRYPTION_KEY_OLD, so keys can be rotated without breaking saved
-// Razorpay connections.
 function decryptSecret(connection) {
   return decryptColumns(connection.encrypted_restricted_key, connection.key_iv, connection.key_tag);
 }
@@ -136,14 +130,8 @@ async function registerRazorpayWebhook({ client, organizationId }) {
   const keySecret = decryptSecret(connection);
   const url = `${webhookBaseUrl()}/api/webhooks/razorpay?org=${encodeURIComponent(organizationId)}`;
 
-  // Audit #34: re-saving keys used to register a NEW webhook every time.
-  // List existing webhooks first; if ours is already registered, reuse it and
-  // keep the stored secret (rotating here would break signature verification
-  // — Razorpay's API offers no webhook-secret update) instead of duplicating.
   let webhookId = '';
   let reused = false;
-  // Audit #7: read through the secret box so both enc:v1 ciphertext and
-  // legacy plaintext work; new saves always write ciphertext.
   let webhookSecret = connection.webhook_secret ? decryptFromString(connection.webhook_secret) : '';
 
   const listResponse = await fetch('https://api.razorpay.com/v1/webhooks', {
@@ -152,14 +140,12 @@ async function registerRazorpayWebhook({ client, organizationId }) {
   const listBody = await listResponse.json().catch(() => ({}));
   const existing = (Array.isArray(listBody && listBody.items) ? listBody.items : [])
     .find((w) => cleanString(w && w.url) === url);
-  // Audit #24: an existing webhook may predate the subscription/refund
-  // events. PATCH it up to the full event set (secret untouched) instead of
-  // silently never receiving them.
+
   if (existing) {
     const currentEvents = (Array.isArray(existing.events) ? existing.events : []).map((e) => cleanString(e && e.event)).filter(Boolean);
     const missing = RAZORPAY_WEBHOOK_EVENTS.filter((e) => !currentEvents.includes(e));
     if (missing.length) {
-      await fetch(`https://api.razorpay.com/v1/webhooks/${encodeURIComponent(cleanString(existing.id))}`, {
+      const patchRes = await fetch(`https://api.razorpay.com/v1/webhooks/${encodeURIComponent(cleanString(existing.id))}`, {
         method: 'PATCH',
         headers: {
           Authorization: razorpayAuthHeader(keyId, keySecret),
@@ -167,6 +153,9 @@ async function registerRazorpayWebhook({ client, organizationId }) {
         },
         body: JSON.stringify({ url, active: true, events: RAZORPAY_WEBHOOK_EVENTS }),
       });
+      if (!patchRes.ok) {
+        console.warn(`[revessent] Failed to PATCH existing webhook ${existing.id} up to full event set (status ${patchRes.status})`);
+      }
     }
   }
 
@@ -174,9 +163,6 @@ async function registerRazorpayWebhook({ client, organizationId }) {
   if (existing) {
     webhookId = cleanString(existing.id);
     reused = true;
-    // Reusing but we have no stored secret (legacy connection): recover it
-    // from the webhook-detail endpoint if Razorpay returns it. Saving a fresh
-    // random secret here would silently break signature verification.
     if (!webhookSecret) {
       const detailResponse = await fetch(`https://api.razorpay.com/v1/webhooks/${encodeURIComponent(webhookId)}`, {
         headers: { Authorization: razorpayAuthHeader(keyId, keySecret) },
@@ -223,7 +209,7 @@ async function registerRazorpayWebhook({ client, organizationId }) {
       error.razorpayBody = body;
       throw error;
     }
-  } // end else (webhook created via API)
+  }
 
   if (!reused) webhookId = cleanString(body.id || body.webhook_id);
 
@@ -232,7 +218,6 @@ async function registerRazorpayWebhook({ client, organizationId }) {
         set webhook_endpoint_id = $2,
             webhook_secret = $3
       where id = $1`,
-    // Audit #7: webhook secret now encrypted at rest (enc:v1 format).
     [connection.id, webhookId || null, encryptToString(webhookSecret)]
   );
 
@@ -240,13 +225,7 @@ async function registerRazorpayWebhook({ client, organizationId }) {
     webhookRegistered: true,
     webhookReused: reused,
     webhookId: webhookId || null,
-    webhookSecret,
     url,
-    // Manual fallback (audit #17): everything needed to add the webhook by
-    // hand in the Razorpay dashboard if the API path ever fails.
-    manualSetup: reused
-      ? null
-      : `In Razorpay → Settings → Webhooks, add URL ${url} with secret ${webhookSecret} and events: ${RAZORPAY_WEBHOOK_EVENTS.join(', ')}.`,
   };
 }
 
@@ -269,8 +248,6 @@ async function handler(req, res) {
     client = await pool.connect();
     const { user } = await authenticateRequest(req, client);
 
-    // Audit #4: for POST/PATCH methods only (GET stays open to any org member),
-    // if user.role is not 'owner' or 'admin', return 403.
     if (!['owner', 'admin'].includes(String((user && user.role) || '').toLowerCase())) {
       return sendJson(res, 403, { error: 'Only workspace owners and admins can change this.' });
     }
@@ -279,10 +256,6 @@ async function handler(req, res) {
     const result = await registerRazorpayWebhook({ client, organizationId });
     await logAudit(client, { organizationId, userId: user.id, action: 'razorpay.connected', detail: { reused: result.webhookReused } });
 
-    // Separate, best-effort step after the webhook registration succeeds:
-    // scan the last 90 days of Razorpay history for missed failed payments.
-    // Its failure must NOT fail this request (or the underlying settings
-    // save) — log it and still report the connection as successful.
     let backfill = null;
 
     try {

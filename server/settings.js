@@ -7,10 +7,7 @@ const crypto = require('crypto');
 const { encryptColumns } = require('./_lib/secret-box'); // audit #7
 const { logAudit } = require('./_lib/audit');
 const { registerRazorpayWebhook } = require('./razorpay/connect');
-const { authenticateRequest } = require('./_lib/supabase-auth'); // audit #66: shared auth (local JWT verify when SUPABASE_JWT_SECRET is set)
-
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://zujmouzzqiovgbnanrvv.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3';
+const { authenticateRequest } = require('./_lib/supabase-auth');
 const ALLOWED_TONES = new Set(['friendly', 'professional', 'empathetic', 'direct']);
 
 const pool = new Pool({

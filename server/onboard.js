@@ -9,9 +9,7 @@
 
 const { Pool } = require('pg');
 const crypto = require('crypto');
-
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://zujmouzzqiovgbnanrvv.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3';
+const { getBearerToken, verifySupabaseToken } = require('./_lib/supabase-auth');
 
 const REFERRAL_CODE_LENGTH = 6;
 const REFERRAL_CODE_RETRIES = 5;
@@ -30,57 +28,6 @@ function sendJson(res, status, body) {
   res.end(JSON.stringify(body));
 }
 
-function getBearerToken(req) {
-  const header = req.headers.authorization || req.headers.Authorization || '';
-  const match = String(header).match(/^Bearer\s+(.+)$/i);
-  return match ? match[1].trim() : '';
-}
-
-// SECURITY (audit #1/#2): identity is derived ONLY from a verified Supabase
-// access token — never from the request body. The old flow trusted
-// body.email + body.supabaseUserId, which let anyone pre-register or claim
-// an unlinked user's account. We also surface email_confirmed_at so the
-// email-linking path below can refuse unconfirmed addresses.
-async function verifySupabaseToken(token) {
-  if (!token) {
-    const error = new Error('Missing authorization token.');
-    error.statusCode = 401;
-    throw error;
-  }
-
-  const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      apikey: SUPABASE_ANON_KEY,
-    },
-  });
-
-  if (!response.ok) {
-    const error = new Error('Invalid or expired authorization token.');
-    error.statusCode = 401;
-    throw error;
-  }
-
-  const supabaseUser = await response.json();
-  const supabaseUserId = (supabaseUser && supabaseUser.id ? String(supabaseUser.id) : '').trim();
-  const email = (supabaseUser && supabaseUser.email ? String(supabaseUser.email) : '').trim().toLowerCase();
-  const emailConfirmedAt = supabaseUser && supabaseUser.email_confirmed_at ? supabaseUser.email_confirmed_at : null;
-
-  if (!supabaseUserId) {
-    const error = new Error('Supabase user id is missing.');
-    error.statusCode = 401;
-    throw error;
-  }
-  if (!email) {
-    const error = new Error('Supabase user has no email address.');
-    error.statusCode = 401;
-    throw error;
-  }
-
-  return { email, supabaseUserId, emailConfirmedAt };
-}
-
 async function readJsonBody(req) {
   if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) return req.body;
   if (typeof req.body === 'string') return req.body ? JSON.parse(req.body) : {};
@@ -97,14 +44,6 @@ async function readJsonBody(req) {
 
 function cleanString(value) {
   return value == null ? '' : String(value).trim();
-}
-
-function cleanEmail(value) {
-  return cleanString(value).toLowerCase();
-}
-
-function isEmail(value) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
 async function findUserBySupabaseId(client, supabaseUserId) {

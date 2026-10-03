@@ -154,16 +154,17 @@ html[data-theme=light] .draft-preview{background:rgba(15,23,42,.03)}
 <script src="/api/config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-var __rvCfg=window.REVESSENT_SUPABASE_CONFIG||{url:'https://zujmouzzqiovgbnanrvv.supabase.co',anonKey:'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3'};
+var __rvCfg=window.REVESSENT_SUPABASE_CONFIG||{url:'',anonKey:''};
 const SUPABASE_URL=__rvCfg.url;
 const SUPABASE_ANON_KEY=__rvCfg.anonKey;
-const supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const supabaseClient=(SUPABASE_URL&&SUPABASE_ANON_KEY&&window.supabase)?supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY):null;
 let SESSION=null;
 
 function $(s,r){return (r||document).querySelector(s)}
 function toast(msg){let t=$('#toast');if(!t){t=document.createElement('div');t.id='toast';t.className='toast';document.body.appendChild(t)}t.textContent=msg;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),2600)}
 
 async function requireSession(){
+  if(!supabaseClient){location.href='/login.html';return null}
   const {data:{session}}=await supabaseClient.auth.getSession();
   if(!session){location.href='/login.html';return null}
   SESSION=session;return session;

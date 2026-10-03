@@ -257,6 +257,11 @@ function isPhoneLike(value) {
   return text.length >= 7 && /^[+()\d\s.\-]+$/.test(text) && /\d/.test(text);
 }
 
+function normalizePhone(value) {
+  const digits = String(value || '').replace(/[^\d+]/g, '');
+  return digits.startsWith('+') ? digits : (digits ? '+' + digits : '');
+}
+
 function extractCustomerId(payment) {
   return (
     safeString(payment && payment.customer_id) ||
@@ -314,10 +319,12 @@ async function findOrCreateMember(client, organizationId, payment) {
   const customerId = extractCustomerId(payment);
   const email = extractEmail(payment);
   const name = extractName(payment);
+  const rawContact = safeString(payment && payment.contact);
+  const phone = normalizePhone(rawContact);
   const metadata = {
     source: 'razorpay',
     payment_id: payment && payment.id ? payment.id : null,
-    contact: payment && payment.contact ? payment.contact : null,
+    contact: rawContact || null,
     notes: getPaymentNotes(payment),
   };
 
@@ -358,7 +365,7 @@ async function findOrCreateMember(client, organizationId, payment) {
               updated_at = now()
         where id = $1
         returning *`,
-      [found.id, customerId, email, isPhoneLike(name) ? '' : name, safeString(payment && payment.contact), asJson(metadata)]
+      [found.id, customerId, email, isPhoneLike(name) ? '' : name, phone, asJson(metadata)]
     );
     return updated.rows[0];
   }
@@ -369,7 +376,7 @@ async function findOrCreateMember(client, organizationId, payment) {
      values
        ($1, $2, nullif($3, ''), nullif($4, ''), nullif($5, ''), nullif($6, ''), $7::jsonb, now(), now())
      returning *`,
-    [crypto.randomUUID(), organizationId, customerId, email, isPhoneLike(name) ? '' : name, safeString(payment && payment.contact), asJson(metadata)]
+    [crypto.randomUUID(), organizationId, customerId, email, isPhoneLike(name) ? '' : name, phone, asJson(metadata)]
   );
 
   return inserted.rows[0];

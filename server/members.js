@@ -2,10 +2,7 @@
 // Lists Razorpay members/customers for the authenticated organization.
 
 const { Pool } = require('pg');
-const { authenticateRequest } = require('./_lib/supabase-auth'); // audit #66: shared auth (local JWT verify when SUPABASE_JWT_SECRET is set)
-
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://zujmouzzqiovgbnanrvv.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3';
+const { authenticateRequest } = require('./_lib/supabase-auth');
 const OPEN_CASE_STATUSES_SQL = `('recovered', 'lost', 'canceled')`;
 
 const pool = new Pool({
@@ -57,7 +54,11 @@ module.exports = async (req, res) => {
            ss.amount_cents as sub_amount_cents,
            ss.currency as sub_currency
          from stripe_members sm
-         left join stripe_subscriptions ss on ss.member_id = sm.id
+         left join (
+           select distinct on (member_id) member_id, status, amount_cents, currency
+             from stripe_subscriptions
+            order by member_id, updated_at desc nulls last, created_at desc nulls last
+         ) ss on ss.member_id = sm.id
          where sm.organization_id = $1
            and ($4 = '' or sm.name ilike '%' || $4 || '%' or sm.email ilike '%' || $4 || '%')
          order by sm.created_at desc nulls last

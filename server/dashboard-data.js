@@ -3,10 +3,7 @@
 // organization by Supabase user id, and returns real dashboard metrics for that org.
 
 const { Pool } = require('pg');
-const { authenticateRequest } = require('./_lib/supabase-auth'); // audit #66: shared auth (local JWT verify when SUPABASE_JWT_SECRET is set)
-
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://zujmouzzqiovgbnanrvv.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3';
+const { authenticateRequest } = require('./_lib/supabase-auth');
 // Audit #46: this list holds the CLOSED statuses (queries use `not in`) —
 // renamed so it stops lying about its contents.
 const CLOSED_CASE_STATUSES_SQL = `('recovered', 'lost', 'canceled')`;

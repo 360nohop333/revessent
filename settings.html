@@ -794,9 +794,8 @@ document.documentElement.dataset.theme=t;})();
 <script src="/api/config.js"></script> <!-- audit #66: Supabase project from env -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-    /* Supabase config — exact values requested. */
-    /* audit #66: env-sourced config with hardcoded fallback. */
-    const __rvCfg = window.REVESSENT_SUPABASE_CONFIG || { url: "https://zujmouzzqiovgbnanrvv.supabase.co", anonKey: "sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3" };
+    /* audit #66: env-sourced config. */
+    const __rvCfg = window.REVESSENT_SUPABASE_CONFIG || { url: "", anonKey: "" };
     const SUPABASE_URL = __rvCfg.url;
     const SUPABASE_ANON_KEY = __rvCfg.anonKey;
 

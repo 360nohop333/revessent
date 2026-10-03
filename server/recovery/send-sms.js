@@ -1,32 +1,22 @@
 // Revessent /api/recovery/send-sms
 // Drafts and optionally sends a short AI-written recovery SMS for a failed
-// payment case. Drafting uses Google Gemini (same pattern as send-note.js);
-// sending uses Twilio's Messages API. Some customers never open recovery
-// emails but will read an SMS — this is the second notification channel
-// alongside the email-based recovery notes.
+// payment case. Drafting uses Google Gemini; sending uses Twilio's Messages API.
 //
 // Mirrors the structure of api/recovery/send-note.js: auth check, case
-// ownership check, status eligibility check, voice_profiles lookup, and the
-// same draft-then-send-separately support (pass noteId to send an
-// already-drafted SMS without re-drafting).
+// ownership check, status eligibility check, voice_profiles lookup, and
+// checks that SMS is enabled in workspace settings.
 
 const { Pool } = require('pg');
 const crypto = require('crypto');
-const { authenticateRequest } = require('../_lib/supabase-auth'); // audit #66: shared auth (local JWT verify when SUPABASE_JWT_SECRET is set)
+const { authenticateRequest } = require('../_lib/supabase-auth');
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://zujmouzzqiovgbnanrvv.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3';
-// Audit #36: make the model configurable — gemini-2.0-flash was retired
-// by Google; set GEMINI_MODEL to whatever is current when deploying.
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 const CLOSED_STATUSES = new Set(['recovered', 'lost', 'canceled']);
-// SMS has practical length limits — keep the drafted message well under 300
-// characters (the prompt asks Gemini for under 40 words; this is a hard guard).
 const SMS_MAX_CHARS = 300;
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  max: 1, // audit #45: single connection per serverless instance
+  max: 1,
   ssl: { rejectUnauthorized: false },
 });
 
@@ -80,9 +70,6 @@ async function ensureCheckoutToken(client, caseId, existingToken) {
   return token;
 }
 
-// Audit #39: zero-decimal currencies (JPY, KRW, VND, …) are stored as whole
-// units — dividing by 100 invents money. Razorpay itself is 2-decimal, but
-// the ledger must stay correct if another processor ever lands.
 const ZERO_DECIMAL_CURRENCIES = new Set(['JPY', 'KRW', 'VND', 'CLP', 'ISK', 'HUF', 'TWD', 'BHD', 'KWD', 'OMR']);
 
 function amountLabel(amountCents, currency) {
@@ -114,8 +101,6 @@ function requireTwilioConfig() {
   }
 }
 
-// Same shape as send-note.js's loadCaseContext, but requires a phone number on
-// the stripe_members row instead of an email address.
 async function loadCaseContext(client, organizationId, caseId) {
   const result = await client.query(
     `select
@@ -158,7 +143,7 @@ async function loadCaseContext(client, organizationId, caseId) {
 
 async function loadVoiceProfile(client, organizationId, organizationName) {
   const result = await client.query(
-    `select brand_name, sender_name, sender_email, tone_description
+    `select brand_name, sender_name, sender_email, tone_description, sms_enabled
        from voice_profiles
       where organization_id = $1
         and is_default = true
@@ -171,12 +156,10 @@ async function loadVoiceProfile(client, organizationId, organizationName) {
   const brandName = cleanString(voice.brand_name) || cleanString(organizationName) || 'your workspace';
   const senderName = cleanString(voice.sender_name) || brandName || 'Revessent';
   const toneDescription = cleanString(voice.tone_description) || 'Professional';
-  return { brandName, senderName, toneDescription };
+  const smsEnabled = voice.sms_enabled !== false;
+  return { brandName, senderName, toneDescription, smsEnabled };
 }
 
-// Same Gemini call pattern as send-note.js's draftWithGemini, adapted for the
-// much shorter SMS format: under 40 words, warm tone, one clear link-style
-// call to action, no email-style greeting or signoff — just the message body.
 async function draftSmsWithGemini(context, voice, paymentLink) {
   if (!process.env.GEMINI_API_KEY) {
     const error = new Error('AI drafting not configured.');
@@ -202,7 +185,6 @@ async function draftSmsWithGemini(context, voice, paymentLink) {
     `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
     {
       method: 'POST',
-      // Audit #11: auth via header, not ?key= — URL query strings end up in logs.
       headers: {
         'Content-Type': 'application/json',
         'x-goog-api-key': process.env.GEMINI_API_KEY,
@@ -216,7 +198,11 @@ async function draftSmsWithGemini(context, voice, paymentLink) {
 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const message = cleanString(payload && payload.error && payload.error.message) || 'AI drafting failed.';
+    const rawMsg = cleanString(payload && payload.error && payload.error.message);
+    let message = rawMsg || 'AI drafting failed.';
+    if (response.status === 404 || /model.*not found|unsupported model|deprecated/i.test(rawMsg)) {
+      message = 'AI drafting is misconfigured — check GEMINI_MODEL.';
+    }
     const error = new Error(message);
     error.statusCode = 502;
     throw error;
@@ -230,7 +216,6 @@ async function draftSmsWithGemini(context, voice, paymentLink) {
     throw error;
   }
 
-  // Hard length guard: trim at the last word boundary under the SMS limit.
   if (body.length > SMS_MAX_CHARS) {
     const cut = body.slice(0, SMS_MAX_CHARS);
     body = cut.slice(0, cut.lastIndexOf(' ')).trim() || cut.trim();
@@ -294,7 +279,6 @@ async function loadExistingNote(client, organizationId, noteId) {
 }
 
 async function applyNoteOverrides(client, note, bodyOverride) {
-  // SMS has no subject — only the message body can be edited before sending.
   const body = cleanString(bodyOverride) || note.body;
 
   if (body !== note.body) {
@@ -354,8 +338,6 @@ async function markSmsSent(client, values) {
               requires_approval = false,
               updated_at = now()
         where id = $1`,
-      // resend_email_id is the generic external-message-id slot — it holds the
-      // Twilio message SID for SMS notes (Resend's id for email notes).
       [values.noteId, values.twilioMessageSid]
     );
 
@@ -414,15 +396,19 @@ async function handler(req, res) {
   try {
     client = await pool.connect();
     const { user } = await authenticateRequest(req, client);
-    // Audit #4: role check — only owners/admins may perform this action.
     if (!['owner', 'admin'].includes(String((user && user.role) || '').toLowerCase())) {
       return sendJson(res, 403, { error: 'Only workspace owners or admins can perform this action.' });
     }
 
     const organizationId = user.organization_id;
 
-    // SMS requires server-side Twilio credentials — fail fast before any
-    // drafting work if they are missing.
+    // Load voice profile and verify SMS is enabled for this workspace (Finding #2)
+    const context = caseId ? await loadCaseContext(client, organizationId, caseId) : null;
+    const voice = await loadVoiceProfile(client, organizationId, context ? context.organization_name : '');
+    if (!voice.smsEnabled) {
+      return sendJson(res, 400, { error: 'SMS recovery is disabled for this workspace. Enable it in Settings.' });
+    }
+
     requireTwilioConfig();
 
     let note;
@@ -431,8 +417,6 @@ async function handler(req, res) {
       note = await loadExistingNote(client, organizationId, noteId);
       note = await applyNoteOverrides(client, note, bodyOverride);
     } else {
-      const context = await loadCaseContext(client, organizationId, caseId);
-      const voice = await loadVoiceProfile(client, organizationId, context.organization_name);
       const checkoutToken = await ensureCheckoutToken(client, context.id, context.checkout_token);
       const paymentLink = `${appBaseUrl()}/pay.html?token=${checkoutToken}`;
       const draftBody = await draftSmsWithGemini(context, voice, paymentLink);
@@ -464,8 +448,6 @@ async function handler(req, res) {
 
     let twilio;
     try {
-      // 2nd-opinion #16: SMS honors the suppression list too — by phone, and
-      // by email if the customer unsubscribed from email outreach.
       const suppressed = await client.query(
         `select 1 from suppression_list
           where organization_id = $1
@@ -509,7 +491,7 @@ async function handler(req, res) {
       sent: true,
     });
   } catch (error) {
-    if (error.statusCode && [400, 401, 403, 404].includes(error.statusCode)) {
+    if (error.statusCode && [400, 401, 403, 404, 409].includes(error.statusCode)) {
       return sendJson(res, error.statusCode, { error: error.message });
     }
     if (error.statusCode === 500 && error.message === 'SMS not configured.') {

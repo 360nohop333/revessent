@@ -15,11 +15,8 @@
 
 const { Pool } = require('pg');
 const crypto = require('crypto');
-const { authenticateRequest } = require('../_lib/supabase-auth'); // audit #66: shared auth (local JWT verify when SUPABASE_JWT_SECRET is set)
-const { decryptColumns } = require('../_lib/secret-box'); // audit #7
-
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://zujmouzzqiovgbnanrvv.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_7JoawOBwMZ-ZIFmDrjkHSA_AdIWlCi3';
+const { authenticateRequest } = require('../_lib/supabase-auth');
+const { decryptColumns } = require('../_lib/secret-box');
 
 // Backfill scan window.
 const BACKFILL_WINDOW_DAYS = 90;
@@ -220,6 +217,20 @@ function extractCustomerId(payment) {
   );
 }
 
+function cleanName(value) {
+  return safeString(value).replace(/\s+/g, ' ').trim().slice(0, 120);
+}
+
+function isPhoneLike(value) {
+  const text = cleanName(value);
+  return text.length >= 7 && /^[+()\d\s.\-]+$/.test(text) && /\d/.test(text);
+}
+
+function normalizePhone(value) {
+  const digits = String(value || '').replace(/[^\d+]/g, '');
+  return digits.startsWith('+') ? digits : (digits ? '+' + digits : '');
+}
+
 function extractEmail(payment) {
   return (
     safeString(payment && payment.email) ||
@@ -247,10 +258,12 @@ async function findOrCreateMember(client, organizationId, payment) {
   const customerId = extractCustomerId(payment);
   const email = extractEmail(payment);
   const name = extractName(payment);
+  const rawContact = safeString(payment && payment.contact);
+  const phone = normalizePhone(rawContact);
   const metadata = {
     source: 'razorpay',
     payment_id: payment && payment.id ? payment.id : null,
-    contact: payment && payment.contact ? payment.contact : null,
+    contact: rawContact || null,
     notes: getPaymentNotes(payment),
   };
 
@@ -285,23 +298,24 @@ async function findOrCreateMember(client, organizationId, payment) {
       `update stripe_members
           set stripe_customer_id = coalesce(nullif($2, ''), stripe_customer_id),
               email = coalesce(nullif($3, ''), email),
-              name = coalesce(nullif($4, ''), name),
-              metadata = coalesce(metadata, '{}'::jsonb) || $5::jsonb,
+              name = case when $4 = '' then name else $4 end,
+              phone = coalesce(nullif($5, ''), phone),
+              metadata = coalesce(metadata, '{}'::jsonb) || $6::jsonb,
               updated_at = now()
         where id = $1
       returning *`,
-      [found.id, customerId, email, name, asJson(metadata)]
+      [found.id, customerId, email, isPhoneLike(name) ? '' : name, phone, asJson(metadata)]
     );
     return updated.rows[0];
   }
 
   const inserted = await client.query(
     `insert into stripe_members
-       (id, organization_id, stripe_customer_id, email, name, metadata, created_at, updated_at)
+       (id, organization_id, stripe_customer_id, email, name, phone, metadata, created_at, updated_at)
      values
-       ($1, $2, nullif($3, ''), nullif($4, ''), nullif($5, ''), $6::jsonb, now(), now())
+       ($1, $2, nullif($3, ''), nullif($4, ''), nullif($5, ''), nullif($6, ''), $7::jsonb, now(), now())
      returning *`,
-    [crypto.randomUUID(), organizationId, customerId, email, name, asJson(metadata)]
+    [crypto.randomUUID(), organizationId, customerId, email, isPhoneLike(name) ? '' : name, phone, asJson(metadata)]
   );
 
   return inserted.rows[0];

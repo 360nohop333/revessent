@@ -19,24 +19,24 @@ var v=e.newValue;document.documentElement.dataset.theme=(v==='light'||v==='amole
   --canvas:#f9f4ea;--text:#1D1C1A;--text2:#3C3B37;--muted:#6B6860;--acc:#35608f;
   --edge:rgba(255,255,255,.68);--cc:255 253 247;--r:18px;
   --sh:inset 0 1px 0 rgba(255,255,255,.6),0 10px 28px -20px rgba(64,48,26,.25);
-  --ok:#16a34a;--f:"Manrope RV",-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Arial,sans-serif;
+  --ok:#16a34a;--err:#dc2626;--f:"Manrope RV",-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Arial,sans-serif;
   --fm:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
 }
 html[data-theme=dark]{
   --canvas:#1c1a17;--text:#EFECE4;--text2:#C4C6C9;--muted:#96938C;--acc:#C4C6C9;
-  --edge:rgba(224,222,214,.2);--cc:42 40 36;--ok:#3DDC97;
+  --edge:rgba(224,222,214,.2);--cc:42 40 36;--ok:#3DDC97;--err:#f87171;
 }
 html[data-theme=amoled]{
   --canvas:#000000;--text:#F2F5F7;--text2:#C3CBD6;--muted:#8B94A3;--acc:#3DDC97;
-  --edge:rgba(255,255,255,.10);--cc:61 220 151;--ok:#3DDC97;
+  --edge:rgba(255,255,255,.10);--cc:61 220 151;--ok:#3DDC97;--err:#f87171;
 }
 html[data-theme=minimal]{
   --canvas:#ffffff;--text:#000000;--text2:#1a1a1a;--muted:#5a5a5a;--acc:#000000;
-  --edge:rgba(0,0,0,.16);--cc:255 255 255;--ok:#000000;
+  --edge:rgba(0,0,0,.16);--cc:255 255 255;--ok:#000000;--err:#dc2626;
 }
 html[data-theme=minimal2]{
   --canvas:#000000;--text:#ffffff;--text2:#e4e4e4;--muted:#8f8f8f;--acc:#ffffff;
-  --edge:rgba(255,255,255,.16);--cc:0 0 0;--ok:#ffffff;
+  --edge:rgba(255,255,255,.16);--cc:0 0 0;--ok:#ffffff;--err:#f87171;
 }
 body{
   margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
@@ -75,12 +75,13 @@ html[data-theme=minimal2] .btn-pay{background:#ffffff;color:#000000;}
 .state-title{font-size:19px;font-weight:700;margin:0 0 8px;}
 .state-desc{font-size:14px;color:var(--text2);margin:0;}
 .foot{margin-top:24px;text-align:center;font-size:12px;color:var(--muted);}
+.alert-error{background:rgba(220,38,38,.08);border:1px solid var(--err);color:var(--err);padding:10px 14px;border-radius:8px;font-size:13px;margin-top:14px;display:none;}
 </style>
 <!-- Glass Kit: shared liquid-glass UI layer (pill CTAs, glass cards, switches) -->
 <link rel="stylesheet" href="/glass-kit.css">
 <script src="/glass-kit.js" defer></script>
-<!-- Razorpay Checkout Widget -->
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<!-- Razorpay Checkout Widget (Finding #31: async with fallback & error recovery) -->
+<script id="razorpayScript" src="https://checkout.razorpay.com/v1/checkout.js" async></script>
 </head>
 <body>
 <div class="pay-wrap">
@@ -101,6 +102,8 @@ html[data-theme=minimal2] .btn-pay{background:#ffffff;color:#000000;}
         <div class="amount-value" id="amountValue">—</div>
       </div>
 
+      <div class="alert-error" id="checkoutError"></div>
+
       <button class="btn-pay" id="payBtn" type="button">Pay Now</button>
 
       <div class="security-note">
@@ -116,7 +119,7 @@ html[data-theme=minimal2] .btn-pay{background:#ffffff;color:#000000;}
     </div>
 
     <div id="expiredView" class="state-box" style="display:none">
-      <div class="state-icon">&times;</div>
+      <div class="state-icon" style="color:var(--err)">&times;</div>
       <div class="state-title">Payment Link Expired</div>
       <p class="state-desc" id="expiredMsg">This payment link has expired. Please contact support directly.</p>
     </div>
@@ -142,8 +145,18 @@ html[data-theme=minimal2] .btn-pay{background:#ffffff;color:#000000;}
   var amountValueEl = document.getElementById('amountValue');
   var expiredMsgEl = document.getElementById('expiredMsg');
   var payBtn = document.getElementById('payBtn');
+  var checkoutError = document.getElementById('checkoutError');
 
   var caseData = null;
+  var rzpScriptLoaded = Boolean(window.Razorpay);
+
+  var scriptEl = document.getElementById('razorpayScript');
+  if (scriptEl) {
+    scriptEl.addEventListener('load', function() { rzpScriptLoaded = true; });
+    scriptEl.addEventListener('error', function() {
+      console.warn('Razorpay checkout script failed to load from primary CDN.');
+    });
+  }
 
   const ZERO_DECIMAL_CURRENCIES = ['JPY', 'KRW', 'VND', 'CLP', 'ISK', 'HUF', 'TWD', 'BHD', 'KWD', 'OMR'];
 
@@ -156,6 +169,18 @@ html[data-theme=minimal2] .btn-pay{background:#ffffff;color:#000000;}
     } catch (_) {
       return cur + ' ' + num.toFixed(2);
     }
+  }
+
+  function showError(msg) {
+    if (!checkoutError) return;
+    checkoutError.textContent = msg;
+    checkoutError.style.display = 'block';
+  }
+
+  function clearError() {
+    if (!checkoutError) return;
+    checkoutError.textContent = '';
+    checkoutError.style.display = 'none';
   }
 
   function showView(view) {
@@ -190,8 +215,15 @@ html[data-theme=minimal2] .btn-pay{background:#ffffff;color:#000000;}
     });
 
   payBtn.addEventListener('click', function() {
+    clearError();
+
     if (!caseData || !caseData.razorpayKeyId) {
-      alert('Payment provider is not properly configured. Please contact the merchant.');
+      showError('Payment provider is not properly configured. Please contact the merchant.');
+      return;
+    }
+
+    if (!window.Razorpay) {
+      showError('Razorpay checkout is still loading. Please check your connection and try again in a few moments.');
       return;
     }
 
@@ -212,11 +244,11 @@ html[data-theme=minimal2] .btn-pay{background:#ffffff;color:#000000;}
     try {
       var rzp = new Razorpay(options);
       rzp.on('payment.failed', function(resp) {
-        alert('Payment failed: ' + (resp.error && resp.error.description ? resp.error.description : 'Please try another card.'));
+        showError('Payment failed: ' + (resp.error && resp.error.description ? resp.error.description : 'Please try another card.'));
       });
       rzp.open();
     } catch (e) {
-      alert('Could not open payment window: ' + e.message);
+      showError('Could not open payment window: ' + e.message);
     }
   });
 })();
