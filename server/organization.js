@@ -165,6 +165,13 @@ module.exports = async (req, res) => {
   try {
     client = await pool.connect();
     const { user } = await authenticateRequest(req, client);
+
+    // Audit #4: for POST/PATCH methods only (GET stays open to any org member),
+    // if user.role is not 'owner' or 'admin', return 403.
+    if (!['owner', 'admin'].includes(String((user && user.role) || '').toLowerCase())) {
+      return sendJson(res, 403, { error: 'Only workspace owners and admins can change this.' });
+    }
+
     const organizationId = requireSameOrganization(user, body && body.organizationId);
 
     const result = await client.query(

@@ -57,6 +57,29 @@ function asJson(value) {
   return JSON.stringify(value == null ? {} : value);
 }
 
+function appBaseUrl() {
+  return (
+    process.env.PUBLIC_APP_URL ||
+    process.env.VERCEL_PROJECT_PRODUCTION_URL ||
+    'https://revessent-alpha.vercel.app'
+  ).replace(/\/+$/, '');
+}
+
+async function ensureCheckoutToken(client, caseId, existingToken) {
+  if (existingToken) return existingToken;
+  const token = crypto.randomUUID();
+  try {
+    await client.query(
+      `update recovery_cases
+          set checkout_token = coalesce(checkout_token, $1),
+              checkout_expires_at = coalesce(checkout_expires_at, now() + interval '7 days')
+        where id = $2`,
+      [token, caseId]
+    );
+  } catch (_) {}
+  return token;
+}
+
 // Audit #39: zero-decimal currencies (JPY, KRW, VND, …) are stored as whole
 // units — dividing by 100 invents money. Razorpay itself is 2-decimal, but
 // the ledger must stay correct if another processor ever lands.
@@ -154,7 +177,7 @@ async function loadVoiceProfile(client, organizationId, organizationName) {
 // Same Gemini call pattern as send-note.js's draftWithGemini, adapted for the
 // much shorter SMS format: under 40 words, warm tone, one clear link-style
 // call to action, no email-style greeting or signoff — just the message body.
-async function draftSmsWithGemini(context, voice) {
+async function draftSmsWithGemini(context, voice, paymentLink) {
   if (!process.env.GEMINI_API_KEY) {
     const error = new Error('AI drafting not configured.');
     error.statusCode = 500;
@@ -172,6 +195,7 @@ async function draftSmsWithGemini(context, voice) {
     customerFirstName ? `Customer first name: ${customerFirstName}.` : 'No customer first name is available.',
     `Failed amount: ${amount}.`,
     context.decline_code ? `Decline reason code: ${context.decline_code}.` : '',
+    paymentLink ? `Payment link: ${paymentLink}` : '',
   ].filter(Boolean).join('\n');
 
   const response = await fetch(
@@ -409,7 +433,9 @@ async function handler(req, res) {
     } else {
       const context = await loadCaseContext(client, organizationId, caseId);
       const voice = await loadVoiceProfile(client, organizationId, context.organization_name);
-      const draftBody = await draftSmsWithGemini(context, voice);
+      const checkoutToken = await ensureCheckoutToken(client, context.id, context.checkout_token);
+      const paymentLink = `${appBaseUrl()}/pay.html?token=${checkoutToken}`;
+      const draftBody = await draftSmsWithGemini(context, voice, paymentLink);
       const insertedNoteId = await insertRecoveryNote(client, {
         caseId: context.id,
         organizationId,

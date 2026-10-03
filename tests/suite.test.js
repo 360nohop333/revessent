@@ -1453,6 +1453,156 @@ function testGlassKit() {
     (read('settings.html').match(/class="switch/g) || []).length >= 3);
 }
 
+async function testBatch5() {
+  console.log('\n── batch-5: role gates, status, expansion, checkout token ──');
+  const prevFetch = global.fetch;
+  const savedEnv = {
+    CRON_SECRET: process.env.CRON_SECRET,
+    RESEND_API_KEY: process.env.RESEND_API_KEY,
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+    ENCRYPTION_KEY: process.env.ENCRYPTION_KEY,
+  };
+  process.env.CRON_SECRET = 'cron-secret-test';
+  process.env.RESEND_API_KEY = 'resend-test';
+  process.env.GEMINI_API_KEY = 'gemini-test';
+  process.env.ENCRYPTION_KEY = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
+
+  try {
+    // 1. Role enforcement: settings GET is open to member, POST is 403 for member
+    const memberRow = { ...USERS_ROW, role: 'member' };
+    const settings = require(path + '/server/settings.js');
+    CURRENT_CLIENT = fakeClient([
+      [/from users\s+where supabase_user_id/, () => ({ rows: [memberRow] })],
+      [/from voice_profiles/, () => ({ rows: [] })],
+      [/from stripe_connections/, () => ({ rows: [] })],
+      [/from organizations/, () => ({ rows: [] })],
+    ]);
+    let res = await call(settings, makeReq('GET', { headers: AUTH, query: '?organizationId=org-1' }));
+    check('role gates: settings GET open to member (200)', res.statusCode === 200, JSON.stringify(res.body));
+
+    CURRENT_CLIENT = fakeClient([
+      [/from users\s+where supabase_user_id/, () => ({ rows: [memberRow] })],
+    ]);
+    res = await call(settings, makeReq('POST', { headers: AUTH, body: JSON.stringify({ organizationId: 'org-1', brandName: 'Test' }) }));
+    check('role gates: settings POST blocks member (403)', res.statusCode === 403 && res.body.error === 'Only workspace owners and admins can change this.', JSON.stringify(res.body));
+
+    const orgMod = require(path + '/server/organization.js');
+    CURRENT_CLIENT = fakeClient([
+      [/from users\s+where supabase_user_id/, () => ({ rows: [memberRow] })],
+    ]);
+    res = await call(orgMod, makeReq('PATCH', { headers: AUTH, body: JSON.stringify({ organizationId: 'org-1', name: 'New Name' }) }));
+    check('role gates: organization PATCH blocks member (403)', res.statusCode === 403 && res.body.error === 'Only workspace owners and admins can change this.', JSON.stringify(res.body));
+
+    // 2. Status probe
+    const statusMod = require(path + '/server/status.js');
+    CURRENT_CLIENT = fakeClient([
+      [/SELECT 1/, () => ({ rows: [{ '?column?': 1 }] })],
+    ]);
+    global.fetch = async () => ({ ok: true, status: 200, json: async () => ({}) });
+    res = await call(statusMod, makeReq('GET', {}));
+    check('status: GET returns operational', res.statusCode === 200 && res.body.status === 'operational' && res.body.database === true && res.body.auth === true && Boolean(res.body.checkedAt), JSON.stringify(res.body));
+
+    // 3. Case by token (public)
+    const caseTokenMod = require(path + '/server/public/case-by-token.js');
+    CURRENT_CLIENT = fakeClient([
+      [/from recovery_cases rc[\s\S]*where rc\.checkout_token = \$1/, () => ({
+        rows: [{
+          id: 'case-tok-1', amount_cents: 49900, currency: 'INR', status: 'detected',
+          checkout_expires_at: new Date(Date.now() + 864e5).toISOString(),
+          brand_name: 'Acme SaaS', razorpay_key_id: 'rzp_test_123',
+        }]
+      })],
+    ]);
+    res = await call(caseTokenMod, makeReq('GET', { query: '?token=valid-token' }));
+    check('case-by-token: valid token → minimal checkout payload', res.statusCode === 200 && res.body.amountCents === 49900 && res.body.brandName === 'Acme SaaS' && res.body.razorpayKeyId === 'rzp_test_123', JSON.stringify(res.body));
+
+    CURRENT_CLIENT = fakeClient([
+      [/from recovery_cases rc[\s\S]*where rc\.checkout_token = \$1/, () => ({ rows: [] })],
+    ]);
+    res = await call(caseTokenMod, makeReq('GET', { query: '?token=expired-token' }));
+    check('case-by-token: missing/expired token → 404', res.statusCode === 404, JSON.stringify(res.body));
+
+    // 4. Expansion endpoint
+    const expMod = require(path + '/server/expansion.js');
+    global.fetch = async (url) => {
+      if (String(url).includes('/auth/v1/user')) {
+        return { ok: true, status: 200, json: async () => ({ id: 'sbu-1', email: 'owner@test.com' }) };
+      }
+      return { ok: true, status: 200, json: async () => ({}) };
+    };
+
+    CURRENT_CLIENT = fakeClient([
+      AUTH_BY_SBUID,
+      [/from expansion_opportunities eo[\s\S]*where eo\.organization_id = \$1/, () => ({
+        rows: [{ id: 'opp-1', organization_id: 'org-1', member_id: 'mem-1', signal_type: 'loyal_subscriber_90d', status: 'drafted', draft_subject: 'Sub', draft_body: 'Body', member_name: 'Alex', member_email: 'alex@test.com' }]
+      })],
+    ]);
+    res = await call(expMod, makeReq('GET', { headers: AUTH }));
+    check('expansion: GET returns opportunities', res.statusCode === 200 && Array.isArray(res.body.opportunities) && res.body.opportunities.length === 1, JSON.stringify(res.body));
+
+    let expResendCalls = [];
+    global.fetch = async (url, opts) => {
+      if (String(url).includes('/auth/v1/user')) {
+        return { ok: true, status: 200, json: async () => ({ id: 'sbu-1', email: 'owner@test.com' }) };
+      }
+      if (String(url).includes('api.resend.com')) {
+        expResendCalls.push(opts);
+        return { ok: true, status: 200, json: async () => ({ id: 'resend_exp_1' }) };
+      }
+      return { ok: true, status: 200, json: async () => ({}) };
+    };
+
+    CURRENT_CLIENT = fakeClient([
+      AUTH_BY_SBUID,
+      [/from expansion_opportunities eo[\s\S]*where eo\.id = \$1/, () => ({
+        rows: [{ id: 'opp-1', organization_id: 'org-1', member_id: 'mem-1', status: 'drafted', draft_subject: 'Loyalty', draft_body: 'Thanks!', member_name: 'Alex', member_email: 'alex@test.com' }]
+      })],
+      [/from suppression_list/, () => ({ rows: [] })],
+      [/from voice_profiles/, () => ({ rows: [{ brand_name: 'Acme', sender_name: 'Team', sender_email: 'hello@acme.com', tone_description: 'Warm' }] })],
+      [/update expansion_opportunities/, () => ({ rows: [] })],
+      [/insert into activity_feed/, () => ({ rows: [] })],
+      [/insert into audit_log/, () => ({ rows: [] })],
+    ]);
+    res = await call(expMod, makeReq('POST', { headers: AUTH, body: JSON.stringify({ opportunityId: 'opp-1', action: 'approve' }) }));
+    check('expansion: POST approve sends email via Resend and updates status', res.statusCode === 200 && res.body.status === 'sent' && expResendCalls.length === 1, JSON.stringify(res.body));
+
+    CURRENT_CLIENT = fakeClient([
+      AUTH_BY_SBUID,
+      [/from expansion_opportunities eo[\s\S]*where eo\.id = \$1/, () => ({
+        rows: [{ id: 'opp-2', organization_id: 'org-1', member_id: 'mem-2', status: 'drafted', member_name: 'Bob', member_email: 'bob@test.com' }]
+      })],
+      [/update expansion_opportunities/, () => ({ rows: [] })],
+      [/insert into activity_feed/, () => ({ rows: [] })],
+      [/insert into audit_log/, () => ({ rows: [] })],
+    ]);
+    res = await call(expMod, makeReq('POST', { headers: AUTH, body: JSON.stringify({ opportunityId: 'opp-2', action: 'decline' }) }));
+    check('expansion: POST decline marks declined', res.statusCode === 200 && res.body.status === 'declined', JSON.stringify(res.body));
+
+    // 5. Detect expansion signals cron
+    const cronExp = require(path + '/server/cron/detect-expansion-signals.js');
+    res = await call(cronExp, makeReq('GET', {}));
+    check('cron detect-expansion-signals: no secret → 401', res.statusCode === 401, String(res.statusCode));
+
+    let oppInserts = [];
+    CURRENT_CLIENT = fakeClient([
+      [/from stripe_members sm[\s\S]*join stripe_subscriptions ss/, () => ({
+        rows: [{ member_id: 'mem-loyalty-1', organization_id: 'org-1', member_name: 'Rohan', member_email: 'rohan@test.com', organization_name: 'Acme', brand_name: 'Acme', sender_name: 'Acme' }]
+      })],
+      [/insert into expansion_opportunities/, ({ params }) => { oppInserts.push(params); return { rows: [] }; }],
+      [/insert into activity_feed/, () => ({ rows: [] })],
+    ]);
+    res = await call(cronExp, makeReq('GET', { headers: { authorization: 'Bearer cron-secret-test' } }));
+    check('cron detect-expansion-signals: drafts 90d opportunities without sending', res.statusCode === 200 && res.body.detected === 1 && oppInserts.length === 1 && oppInserts[0][1] === 'org-1', JSON.stringify(res.body));
+
+  } finally {
+    global.fetch = prevFetch;
+    for (const [key, value] of Object.entries(savedEnv)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 (async () => {
   try {
@@ -1467,6 +1617,7 @@ function testGlassKit() {
     await testBatch2();
     await testBatch3();
     await testBatch4();
+    await testBatch5();
     testSources();
     testGlassKit();
   } catch (e) {

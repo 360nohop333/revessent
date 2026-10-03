@@ -196,33 +196,33 @@ async function registerRazorpayWebhook({ client, organizationId }) {
   } else {
     webhookSecret = crypto.randomBytes(32).toString('hex');
     response = await fetch('https://api.razorpay.com/v1/webhooks', {
-    method: 'POST',
-    headers: {
-      Authorization: razorpayAuthHeader(keyId, keySecret),
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      url,
-      active: true,
-      events: RAZORPAY_WEBHOOK_EVENTS,
-      secret: webhookSecret,
-    }),
-  });
+      method: 'POST',
+      headers: {
+        Authorization: razorpayAuthHeader(keyId, keySecret),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        url,
+        active: true,
+        events: RAZORPAY_WEBHOOK_EVENTS,
+        secret: webhookSecret,
+      }),
+    });
 
-  const body = await response.json().catch(() => ({}));
+    const body = await response.json().catch(() => ({}));
 
-  if (!reused && !response.ok) {
-    const message =
-      cleanString(body && body.error && body.error.description) ||
-      cleanString(body && body.error && body.error.reason) ||
-      cleanString(body && body.message) ||
-      'Could not verify Razorpay credentials — check your Key ID and Secret are correct and active.';
+    if (!reused && !response.ok) {
+      const message =
+        cleanString(body && body.error && body.error.description) ||
+        cleanString(body && body.error && body.error.reason) ||
+        cleanString(body && body.message) ||
+        'Could not verify Razorpay credentials — check your Key ID and Secret are correct and active.';
 
-    const error = new Error(`Could not verify Razorpay credentials — ${message}`);
-    error.statusCode = response.status === 401 || response.status === 403 ? 400 : 502;
-    error.razorpayBody = body;
-    throw error;
-  }
+      const error = new Error(`Could not verify Razorpay credentials — ${message}`);
+      error.statusCode = response.status === 401 || response.status === 403 ? 400 : 502;
+      error.razorpayBody = body;
+      throw error;
+    }
   } // end else (webhook created via API)
 
   if (!reused) webhookId = cleanString(body.id || body.webhook_id);
@@ -268,9 +268,11 @@ async function handler(req, res) {
   try {
     client = await pool.connect();
     const { user } = await authenticateRequest(req, client);
-    // Audit #4: role check — only owners/admins may perform this action.
+
+    // Audit #4: for POST/PATCH methods only (GET stays open to any org member),
+    // if user.role is not 'owner' or 'admin', return 403.
     if (!['owner', 'admin'].includes(String((user && user.role) || '').toLowerCase())) {
-      return sendJson(res, 403, { error: 'Only workspace owners or admins can perform this action.' });
+      return sendJson(res, 403, { error: 'Only workspace owners and admins can change this.' });
     }
 
     const organizationId = requireSameOrganization(user, body && body.organizationId);

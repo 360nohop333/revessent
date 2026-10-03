@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Privacy Policy — Revessent</title>
-<meta name="description" content="Revessent privacy policy (draft).">
+<meta name="description" content="Revessent privacy policy (draft boilerplate for pilot phase).">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='%23000000'/%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='none' stroke='%233DDC97' stroke-opacity='.45' stroke-width='1.5'/%3E%3Cpath d='M9 21h3l2-7 3 10 2.4-8 2.6 5H24' fill='none' stroke='%233DDC97' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap');
@@ -15,8 +15,11 @@ html[data-theme=amoled]{--canvas:#000000;--text:#F2F5F7;--text2:#C3CBD6;--muted:
 html[data-theme=minimal]{--canvas:#ffffff;--text:#000000;--text2:#1a1a1a;--muted:#5a5a5a;--acc:#000000;--cc:255 255 255;--edge:rgba(0,0,0,.16);}
 html[data-theme=minimal2]{--canvas:#000000;--text:#ffffff;--text2:#e4e4e4;--muted:#8f8f8f;--acc:#ffffff;--cc:0 0 0;--edge:rgba(255,255,255,.16);}
 body{margin:0;background:var(--canvas);color:var(--text);font-family:var(--f);line-height:1.7;font-size:16px;-webkit-font-smoothing:antialiased;}
-.wrap{width:min(760px,100% - 48px);margin-inline:auto;padding:90px 0 70px;}
-a{color:var(--acc);}
+.wrap{width:min(760px,100% - 48px);margin-inline:auto;padding:70px 0 70px;}
+a{color:var(--acc);text-decoration:none;}
+a:hover{text-decoration:underline;}
+.back-nav{margin-bottom:28px;}
+.back-link{font-family:var(--fm);font-size:13px;letter-spacing:.02em;display:inline-flex;align-items:center;gap:6px;}
 .kicker{font-family:var(--fm);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--acc);}
 h1{font-size:clamp(34px,5vw,46px);letter-spacing:-.02em;line-height:1.1;margin:10px 0 8px;}
 .draft{display:inline-block;font-family:var(--fm);font-size:12px;letter-spacing:.08em;padding:7px 13px;border-radius:999px;border:1px solid var(--edge);background:rgb(var(--cc)/.5);color:var(--muted);margin-bottom:26px;}
@@ -34,52 +37,88 @@ h1{font-size:clamp(34px,5vw,46px);letter-spacing:-.02em;line-height:1.1;margin:1
 </head>
 <body>
 <div class="wrap">
+  <div class="back-nav">
+    <a href="/index.html" class="back-link">&larr; Back to home</a>
+  </div>
   <span class="kicker">Legal</span>
   <h1>Privacy Policy</h1>
-  <span class="draft">DRAFT — review with legal counsel before launch</span>
+  <span class="draft">DRAFT — Pilot / Beta Phase Boilerplate (Subject to Legal Review)</span>
 
   <div class="card" data-liquidglass>
-    <h2>Who we are</h2>
-    <p>Revessent ("we") operates revenue-recovery software for subscription businesses. This policy explains what personal data we process, why, and the choices available. It is written to be compatible with India's Digital Personal Data Protection Act and, where it applies to EU/UK residents, the GDPR.</p>
-  </div>
-  <div class="card" data-liquidglass>
-    <h2>Data we process</h2>
-    <ul>
-      <li><b>Account data</b> — your email, authentication identifiers and workspace role.</li>
-      <li><b>Billing connection data</b> — the API keys and webhook secret you provide for your billing platform (secrets are stored encrypted where technically supported; keys are never displayed again after entry).</li>
-      <li><b>Customer data you send us</b> — your customers' names, emails, phone numbers, payment amounts, payment method references and failure reasons, received via your billing platform's webhook.</li>
-      <li><b>Operational data</b> — recovery cases, retry attempts, messages drafted and sent, and delivery events.</li>
-    </ul>
-  </div>
-  <div class="card" data-liquidglass>
-    <h2>Why we process it</h2>
-    <p>Solely to operate the service: detecting failed payments, scheduling and attempting recoveries, drafting and sending recovery messages on your instruction, attributing recovered revenue, and keeping the service secure. We do not sell personal data or use it for advertising.</p>
-  </div>
-  <div class="card" data-liquidglass>
-    <h2>Sub-processors</h2>
-    <ul>
-      <li><b>Vercel</b> — application hosting (EU/US regions).</li>
-      <li><b>Neon</b> — PostgreSQL database storage.</li>
-      <li><b>Supabase</b> — authentication.</li>
-      <li><b>Google (Gemini)</b> — drafting recovery message text. Prompts include your customer's first name, amount and failure reason; no full card or bank details are ever included.</li>
-      <li><b>Resend</b> — email delivery.</li>
-      <li><b>Razorpay</b> — payment retries and payment links, directly between you and Razorpay.</li>
-    </ul>
-  </div>
-  <div class="card" data-liquidglass>
-    <h2>Retention</h2>
-    <p>Account and operational data are kept while your workspace is active. Raw webhook payloads may contain customer contact details; they are retained for deduplication and replay for <strong>30 days</strong> and then deleted automatically by the nightly scheduler (configurable per deployment). Deleting your workspace removes its data immediately.</p>
-  </div>
-  <div class="card" data-liquidglass>
-    <h2>Your rights</h2>
-    <p>Workspace owners can export (CSV) or delete their data by contacting <a href="mailto:hello@revessent.com">hello@revessent.com</a>. If you are a consumer whose data was shared by a business using Revessent, you may contact us or that business to exercise access, correction, erasure or objection rights.</p>
-  </div>
-  <div class="card" data-liquidglass>
-    <h2>Security</h2>
-    <p>Data in transit is encrypted (TLS). Secrets are encrypted at rest. Access is role-restricted. We never store raw card numbers — Revessent works only with billing-platform tokens.</p>
+    <h2>1. Who We Are &amp; Overview</h2>
+    <p>Revessent ("we", "us", or "our") operates payment recovery and subscription intelligence software. This Privacy Policy details the types of personal data we collect, how it is processed and protected, our third-party sub-processors, and your rights concerning that data.</p>
   </div>
 
-  <p class="foot">Last updated: October 2026 · <a href="/terms.html">Terms of service</a> · <a href="/index.html">revessent.</a></p>
+  <div class="card" data-liquidglass>
+    <h2>2. Data We Collect</h2>
+    <p>We process information belonging to two primary groups: direct workspace users (our customers) and the end-customers of those businesses.</p>
+    <ul>
+      <li><b>Account Data:</b> When you register for Revessent, we collect your email address, workspace name, user identifier, and workspace role (owner, admin, member).</li>
+      <li><b>Billing Connection Credentials:</b> When you integrate your payment processor (Razorpay), we securely store your API Key ID and Key Secret. Secret keys are encrypted at rest using AES-256-GCM authenticated encryption and are never exposed in responses after entry.</li>
+      <li><b>Your End-Customers' Payment Data:</b> As part of processing recovery workflows via your connected Razorpay account, Revessent receives and processes your customers' names, email addresses, telephone numbers (for recovery communications and SMS updates), subscription IDs, payment transaction amounts, currency codes, and payment failure/decline reasons.</li>
+      <li><b>Operational &amp; Recovery Records:</b> We generate and store records of payment failure cases, retry attempts, recovery email/SMS drafts and delivery timestamps, unsubscribe suppression lists, and administrative audit trails.</li>
+    </ul>
+  </div>
+
+  <div class="card" data-liquidglass>
+    <h2>3. How We Use Data</h2>
+    <p>We process personal data strictly to deliver and maintain the Revessent platform, including:</p>
+    <ul>
+      <li>Detecting payment failure events in real time and scheduling smart retries.</li>
+      <li>Drafting tailored recovery emails and SMS notifications addressed to affected subscribers.</li>
+      <li>Executing authorized recovery notifications upon human or automated approval.</li>
+      <li>Measuring and reporting recovered subscription revenue in your workspace ledger.</li>
+      <li>Enforcing recipient opt-outs and suppression preferences.</li>
+    </ul>
+    <p>We do not sell personal data, use it for cross-site behavioral profiling, or market third-party products to your end-customers.</p>
+  </div>
+
+  <div class="card" data-liquidglass>
+    <h2>4. Data Storage, Security &amp; Encryption</h2>
+    <p>Data is stored in isolated PostgreSQL instances hosted on <strong>Neon</strong>. All database connections and API communications require Transport Layer Security (TLS 1.2+). Sensitive credentials (such as Razorpay API secrets and webhook secrets) are encrypted before database insertion using <strong>AES-256-GCM</strong> authenticated encryption with unique initialization vectors.</p>
+    <p>Revessent does not store credit card numbers, CVVs, card PINs, or raw banking authentication credentials. All payment processing transactions are executed directly by Razorpay.</p>
+  </div>
+
+  <div class="card" data-liquidglass>
+    <h2>5. Authorized Sub-Processors</h2>
+    <p>To provide our services, we partner with the following infrastructure and service sub-processors:</p>
+    <ul>
+      <li><b>Supabase</b> — User identity management, session tokens, and authentication services.</li>
+      <li><b>Neon</b> — Managed Serverless PostgreSQL database storage.</li>
+      <li><b>Razorpay</b> — Payment gateway integration, payment retry orchestration, and checkout processing.</li>
+      <li><b>Google (Gemini API)</b> — AI-assisted drafting of recovery email and SMS copy. Message prompts contain minimal contextual data (customer first name, transaction amount, decline reason); full financial credentials or banking details are never sent.</li>
+      <li><b>Resend</b> — Transactional email delivery and bounce/complaint webhook processing.</li>
+      <li><b>Vercel</b> — Application compute hosting and serverless edge delivery.</li>
+    </ul>
+  </div>
+
+  <div class="card" data-liquidglass>
+    <h2>6. Data Retention</h2>
+    <p>Active workspace data, customer records, and recovery ledgers are retained for the duration of your active workspace subscription. Raw webhook payload records ingested from payment gateways are retained for <strong>30 days</strong> for deduplication and transaction replay purposes, after which they are permanently purged by automated daily sweeps.</p>
+  </div>
+
+  <div class="card" data-liquidglass>
+    <h2>7. Data Subject Rights &amp; Deletion</h2>
+    <p>Workspace owners can export customer lists and case histories as CSV files directly from the dashboard. Workspace owners may delete their entire organization from Workspace Settings, which triggers a complete cascading purge of associated cases, recovery attempts, notes, keys, and member records.</p>
+    <p>End-customers who receive recovery messages can opt out instantly via the one-click unsubscribe link included in all communications. For access, rectification, or erasure inquiries, users and end-customers may contact <a href="mailto:legal@revessent.com">legal@revessent.com</a>.</p>
+  </div>
+
+  <div class="card" data-liquidglass>
+    <h2>8. Cookies &amp; Tracking</h2>
+    <p>Revessent uses essential first-party cookies and browser local storage solely to preserve authentication tokens and theme preferences. There are currently <strong>no third-party advertising or marketing analytics trackers</strong> loaded on the marketing website or application dashboard.</p>
+  </div>
+
+  <div class="card" data-liquidglass>
+    <h2>9. DPDP Act (India) &amp; GDPR Acknowledgment</h2>
+    <p>Revessent is architected with privacy and data minimization principles in mind. As a product in active pilot and beta development, formal compliance programs and contractual frameworks under India's Digital Personal Data Protection (DPDP) Act, 2023, and the General Data Protection Regulation (GDPR) for European data subjects are actively ongoing. We make transparent and honest representations regarding our ongoing data governance measures.</p>
+  </div>
+
+  <div class="card" data-liquidglass>
+    <h2>10. Contact Us</h2>
+    <p>If you have any questions or requests regarding this Privacy Policy or our data handling practices, please write to us at <a href="mailto:legal@revessent.com">legal@revessent.com</a>.</p>
+  </div>
+
+  <p class="foot">Last updated: October 2026 &middot; <a href="/terms.html">Terms of Service</a> &middot; <a href="/index.html">Revessent</a></p>
 </div>
 <script>
 try{var t=localStorage.getItem('rv.theme')||localStorage.getItem('revessent-theme')||'';t=(t==='light'||t==='amoled'||t==='minimal'||t==='minimal2')?t:'light';document.documentElement.dataset.theme=t;}catch(_){document.documentElement.dataset.theme='light';}

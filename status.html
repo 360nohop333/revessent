@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>System Status — Revessent</title>
+<meta name="description" content="Real-time operational status of Revessent systems, database, and authentication services.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='%23000000'/%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='none' stroke='%233DDC97' stroke-opacity='.45' stroke-width='1.5'/%3E%3Cpath d='M9 21h3l2-7 3 10 2.4-8 2.6 5H24' fill='none' stroke='%233DDC97' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
+:root{
+  --canvas:#f9f4ea;--text:#1D1C1A;--text2:#3C3B37;--muted:#6B6860;--acc:#35608f;
+  --edge:rgba(255,255,255,.68);--cc:255 253 247;--r:17px;
+  --sh:inset 0 1px 0 rgba(255,255,255,.6),0 10px 28px -20px rgba(64,48,26,.25);
+  --ok:#16a34a;--warn:#d97706;--err:#dc2626;
+  --f:"Manrope RV",-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Arial,sans-serif;
+  --fm:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+html[data-theme=dark]{
+  --canvas:#1c1a17;--text:#EFECE4;--text2:#C4C6C9;--muted:#96938C;--acc:#C4C6C9;
+  --edge:rgba(224,222,214,.2);--cc:42 40 36;
+  --ok:#3DDC97;--warn:#fbbf24;--err:#f87171;
+}
+html[data-theme=amoled]{
+  --canvas:#000000;--text:#F2F5F7;--text2:#C3CBD6;--muted:#8B94A3;--acc:#3DDC97;
+  --edge:rgba(255,255,255,.10);--cc:61 220 151;
+  --ok:#3DDC97;--warn:#fbbf24;--err:#f87171;
+}
+html[data-theme=minimal]{
+  --canvas:#ffffff;--text:#000000;--text2:#1a1a1a;--muted:#5a5a5a;--acc:#000000;
+  --edge:rgba(0,0,0,.16);--cc:255 255 255;
+  --ok:#000000;--warn:#000000;--err:#000000;
+}
+html[data-theme=minimal2]{
+  --canvas:#000000;--text:#ffffff;--text2:#e4e4e4;--muted:#8f8f8f;--acc:#ffffff;
+  --edge:rgba(255,255,255,.16);--cc:0 0 0;
+  --ok:#ffffff;--warn:#ffffff;--err:#ffffff;
+}
+body{margin:0;background:var(--canvas);color:var(--text);font-family:var(--f);line-height:1.7;font-size:16px;-webkit-font-smoothing:antialiased;}
+.wrap{width:min(720px,100% - 48px);margin-inline:auto;padding:70px 0 70px;}
+a{color:var(--acc);text-decoration:none;}
+a:hover{text-decoration:underline;}
+.back-nav{margin-bottom:28px;}
+.back-link{font-family:var(--fm);font-size:13px;letter-spacing:.02em;display:inline-flex;align-items:center;gap:6px;}
+.kicker{font-family:var(--fm);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--acc);}
+h1{font-size:clamp(30px,4.5vw,40px);letter-spacing:-.02em;line-height:1.15;margin:8px 0 16px;}
+.status-banner{
+  display:flex;align-items:center;gap:16px;padding:24px 28px;border-radius:var(--r);
+  border:1px solid var(--edge);background:rgb(var(--cc)/.45);box-shadow:var(--sh);margin-bottom:24px;
+}
+.pulse-dot{
+  width:16px;height:16px;border-radius:50%;background:var(--ok);flex:none;
+  box-shadow:0 0 0 4px rgba(61,220,151,.25);transition:background-color .3s,box-shadow .3s;
+}
+.pulse-dot.degraded{background:var(--warn);box-shadow:0 0 0 4px rgba(217,119,6,.25);}
+.pulse-dot.down{background:var(--err);box-shadow:0 0 0 4px rgba(220,38,38,.25);}
+.pulse-dot.loading{background:var(--muted);box-shadow:none;}
+.banner-title{font-size:20px;font-weight:700;margin:0 0 2px;letter-spacing:-.02em;}
+.banner-subtitle{font-size:13.5px;color:var(--muted);margin:0;}
+.card{border:1px solid var(--edge);background:rgb(var(--cc)/.45);border-radius:var(--r);box-shadow:var(--sh);padding:26px 28px;margin-top:18px;}
+.service-list{display:flex;flex-direction:column;gap:16px;margin-top:8px;}
+.service-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--edge);}
+.service-row:last-child{border-bottom:none;padding-bottom:0;}
+.service-name{font-weight:600;font-size:15.5px;}
+.service-desc{font-size:12.5px;color:var(--muted);}
+.badge{
+  display:inline-flex;align-items:center;gap:7px;font-family:var(--fm);font-size:12px;
+  letter-spacing:.04em;padding:4px 10px;border-radius:999px;border:1px solid var(--edge);
+}
+.badge-dot{width:8px;height:8px;border-radius:50%;background:var(--ok);}
+.badge-dot.degraded{background:var(--warn);}
+.badge-dot.down{background:var(--err);}
+.badge-dot.loading{background:var(--muted);}
+.meta-row{display:flex;justify-content:space-between;align-items:center;margin-top:24px;font-size:13px;color:var(--muted);font-family:var(--fm);}
+.foot{margin-top:44px;color:var(--muted);font-size:13px;text-align:center;}
+</style>
+<!-- Glass Kit: shared liquid-glass UI layer (pill CTAs, glass cards, switches) -->
+<link rel="stylesheet" href="/glass-kit.css">
+<script src="/glass-kit.js" defer></script>
+</head>
+<body>
+<div class="wrap">
+  <div class="back-nav">
+    <a href="/index.html" class="back-link">&larr; Back to home</a>
+  </div>
+  <span class="kicker">Live Infrastructure</span>
+  <h1>System Status</h1>
+
+  <div class="status-banner" id="mainBanner" data-liquidglass>
+    <div class="pulse-dot loading" id="overallDot"></div>
+    <div>
+      <div class="banner-title" id="overallTitle">Checking system status&hellip;</div>
+      <div class="banner-subtitle" id="overallSub">Querying infrastructure probes</div>
+    </div>
+  </div>
+
+  <div class="card" data-liquidglass>
+    <h2 style="font-size:18px;margin:0 0 14px;letter-spacing:-.01em;">Services &amp; Infrastructure</h2>
+    <div class="service-list">
+      <div class="service-row">
+        <div>
+          <div class="service-name">Neon Database</div>
+          <div class="service-desc">PostgreSQL storage, recovery ledger &amp; case queues</div>
+        </div>
+        <div class="badge" id="dbBadge">
+          <span class="badge-dot loading" id="dbDot"></span>
+          <span id="dbText">Checking&hellip;</span>
+        </div>
+      </div>
+      <div class="service-row">
+        <div>
+          <div class="service-name">Supabase Auth</div>
+          <div class="service-desc">User identity, session management &amp; token verification</div>
+        </div>
+        <div class="badge" id="authBadge">
+          <span class="badge-dot loading" id="authDot"></span>
+          <span id="authText">Checking&hellip;</span>
+        </div>
+      </div>
+      <div class="service-row">
+        <div>
+          <div class="service-name">Razorpay Webhook Ingestion</div>
+          <div class="service-desc">Real-time payment event capture &amp; signature validation</div>
+        </div>
+        <div class="badge">
+          <span class="badge-dot"></span>
+          <span>Operational</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="meta-row">
+    <span>Auto-refreshes every 30s</span>
+    <span id="lastCheckedText">Last checked: —</span>
+  </div>
+
+  <p class="foot">&copy; 2026 Revessent &middot; <a href="/index.html">revessent.</a> &middot; <a href="/privacy.html">Privacy</a> &middot; <a href="/terms.html">Terms</a></p>
+</div>
+
+<script>
+try{var t=localStorage.getItem('rv.theme')||localStorage.getItem('revessent-theme')||'';t=(t==='light'||t==='amoled'||t==='minimal'||t==='minimal2')?t:'light';document.documentElement.dataset.theme=t;}catch(_){document.documentElement.dataset.theme='light';}
+addEventListener('storage',function(e){if(e.key==='rv.theme'&&e.newValue){var v=e.newValue;document.documentElement.dataset.theme=(v==='light'||v==='amoled'||v==='minimal'||v==='minimal2')?v:'light';}});
+
+(function () {
+  'use strict';
+
+  var overallDot = document.getElementById('overallDot');
+  var overallTitle = document.getElementById('overallTitle');
+  var overallSub = document.getElementById('overallSub');
+  var dbDot = document.getElementById('dbDot');
+  var dbText = document.getElementById('dbText');
+  var authDot = document.getElementById('authDot');
+  var authText = document.getElementById('authText');
+  var lastCheckedText = document.getElementById('lastCheckedText');
+
+  function updateUi(data) {
+    var status = data.status || 'down';
+    var dbOk = Boolean(data.database);
+    var authOk = Boolean(data.auth);
+    var time = data.checkedAt ? new Date(data.checkedAt) : new Date();
+
+    lastCheckedText.textContent = 'Last checked: ' + time.toLocaleTimeString();
+
+    // DB Row
+    dbDot.className = 'badge-dot ' + (dbOk ? '' : 'down');
+    dbText.textContent = dbOk ? 'Operational' : 'Outage';
+
+    // Auth Row
+    authDot.className = 'badge-dot ' + (authOk ? '' : 'down');
+    authText.textContent = authOk ? 'Operational' : 'Outage';
+
+    // Overall banner
+    if (status === 'operational') {
+      overallDot.className = 'pulse-dot';
+      overallTitle.textContent = 'All systems operational';
+      overallSub.textContent = 'All core services and recovery pipelines are running normally.';
+    } else if (status === 'degraded') {
+      overallDot.className = 'pulse-dot degraded';
+      overallTitle.textContent = 'Degraded system performance';
+      overallSub.textContent = 'One or more subsystem probes are experiencing interruptions.';
+    } else {
+      overallDot.className = 'pulse-dot down';
+      overallTitle.textContent = 'Major system outage';
+      overallSub.textContent = 'Core infrastructure probes are unreachable.';
+    }
+  }
+
+  function fetchStatus() {
+    fetch('/api/status', { headers: { Accept: 'application/json' } })
+      .then(function (res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
+      .then(function (data) {
+        updateUi(data);
+      })
+      .catch(function () {
+        updateUi({ status: 'down', database: false, auth: false, checkedAt: new Date().toISOString() });
+      });
+  }
+
+  fetchStatus();
+  setInterval(fetchStatus, 30000);
+})();
+</script>
+</body>
+</html>

@@ -407,16 +407,16 @@ module.exports = async (req, res) => {
     client = await pool.connect();
     const { user } = await authenticateRequest(req, client);
 
-    // Audit #4: role check — only owners/admins may perform change workspace settings.
-    if (!['owner', 'admin'].includes(String((user && user.role) || '').toLowerCase())) {
-      return sendJson(res, 403, { error: 'Only workspace owners or admins can perform change workspace settings.' });
+    // Audit #4: for POST/PATCH methods only (GET stays open to any org member),
+    // if user.role is not 'owner' or 'admin', return 403.
+    if (req.method === 'POST' || req.method === 'PATCH') {
+      if (!['owner', 'admin'].includes(String((user && user.role) || '').toLowerCase())) {
+        return sendJson(res, 403, { error: 'Only workspace owners and admins can change this.' });
+      }
+      return await handlePost(req, res, client, user);
     }
 
-    if (req.method === 'GET') {
-      return await handleGet(req, res, client, user);
-    }
-
-    return await handlePost(req, res, client, user);
+    return await handleGet(req, res, client, user);
   } catch (error) {
     if (error.statusCode && [400, 401, 403].includes(error.statusCode)) {
       return sendJson(res, error.statusCode, { error: error.message });

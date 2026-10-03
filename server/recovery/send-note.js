@@ -91,6 +91,21 @@ function firstName(nameOrEmail) {
   return cleanString(local.split(/[\s._-]+/)[0]);
 }
 
+async function ensureCheckoutToken(client, caseId, existingToken) {
+  if (existingToken) return existingToken;
+  const token = crypto.randomUUID();
+  try {
+    await client.query(
+      `update recovery_cases
+          set checkout_token = coalesce(checkout_token, $1),
+              checkout_expires_at = coalesce(checkout_expires_at, now() + interval '7 days')
+        where id = $2`,
+      [token, caseId]
+    );
+  } catch (_) {}
+  return token;
+}
+
 async function loadCaseContext(client, organizationId, caseId) {
   const result = await client.query(
     `select
@@ -153,7 +168,7 @@ async function loadVoiceProfile(client, organizationId, organizationName) {
   return { brandName, senderName, senderEmail, toneDescription };
 }
 
-async function draftWithGemini(context, voice) {
+async function draftWithGemini(context, voice, paymentLink) {
   if (!process.env.GEMINI_API_KEY) {
     const error = new Error('AI drafting not configured.');
     error.statusCode = 500;
@@ -171,6 +186,7 @@ async function draftWithGemini(context, voice) {
     customerFirstName ? `Customer first name: ${customerFirstName}.` : 'No customer first name is available.',
     `Failed amount: ${amount}.`,
     context.decline_code ? `Decline reason code: ${context.decline_code}.` : '',
+    paymentLink ? `Payment update link: ${paymentLink}` : '',
     'Hard rules (never break): never offer discounts, refunds, fee waivers or extensions; never include URLs or links; never promise the charge was or will be reversed; never ask for card numbers, OTPs, passwords or banking details.',
     'Requirements: warm but not desperate, no guilt-tripping, mention the amount naturally, one clear call to action to update their payment method, signed from the sender at the brand.',
   ].filter(Boolean).join('\n');
@@ -251,13 +267,8 @@ async function loadExistingNote(client, organizationId, noteId) {
   // 2nd-opinion #5: an already-sent note must never silently send again —
   // resends (if ever wanted) deserve their own explicit operation.
   if (note.sent_at) {
-    const error = new Error('This note was already sent. Draft a new note instead of resending.');
+    const error = new Error('This note was already sent.');
     error.statusCode = 409;
-    throw error;
-  }
-  if (!cleanString(note.member_email)) {
-    const error = new Error('Customer email is missing for this recovery note.');
-    error.statusCode = 400;
     throw error;
   }
   return note;
@@ -283,29 +294,27 @@ async function applyNoteOverrides(client, note, subjectOverride, bodyOverride) {
 
 async function sendWithResend({ client, organizationId, memberId, fromName, fromEmail, toEmail, subject, body }) {
   if (!process.env.RESEND_API_KEY) {
-    const error = new Error('Email sending not configured.');
+    const error = new Error('Resend is not configured.');
     error.statusCode = 500;
     throw error;
   }
 
-  // Audit #35/#37: suppression list — never email someone who unsubscribed.
+  // Audit #35/#37: suppression check — if the recipient unsubscribed or
+  // previously bounced/complained, do NOT send. Fail with 409 (conflict) so
+  // the client knows why no email went out.
   if (client) {
     const suppressed = await client.query(
-      `select 1 from suppression_list
-        where organization_id = $1
-          and lower(email) = lower($2)
-        limit 1`,
+      `select 1 from suppression_list where organization_id = $1 and lower(email) = lower($2) limit 1`,
       [organizationId, toEmail]
     );
     if (suppressed.rows[0]) {
       const error = new Error('Recipient has unsubscribed from recovery emails.');
       error.statusCode = 409;
-      error.suppressed = true;
       throw error;
     }
   }
 
-  // Audit #35: every email carries a one-click unsubscribe link, a plain-text
+  // Audit #35/#37: every email carries an HMAC-signed one-click unsubscribe link, a plain-text
   // alternative, and a reply-to pointing at the sender.
   const unsubUrl = organizationId
     ? `${appBaseUrl()}/api/unsubscribe?token=${createUnsubscribeToken(organizationId, memberId, toEmail)}`
@@ -415,8 +424,10 @@ async function markNoteSent(client, values) {
 async function sendRecoveryEmail({ client, organizationId, caseId, automatic = false, updateCaseStatus = true }) {
   const context = await loadCaseContext(client, organizationId, caseId);
   const voice = await loadVoiceProfile(client, organizationId, context.organization_name);
+  const checkoutToken = await ensureCheckoutToken(client, context.id, context.checkout_token);
+  const paymentLink = `${appBaseUrl()}/pay.html?token=${checkoutToken}`;
   const subject = `Quick update on your ${voice.brandName} subscription`;
-  const body = await draftWithGemini(context, voice);
+  const body = await draftWithGemini(context, voice, paymentLink);
   const noteId = await insertRecoveryNote(client, {
     caseId: context.id,
     organizationId,
@@ -492,8 +503,10 @@ async function handler(req, res) {
     } else {
       const context = await loadCaseContext(client, organizationId, caseId);
       voice = await loadVoiceProfile(client, organizationId, context.organization_name);
+      const checkoutToken = await ensureCheckoutToken(client, context.id, context.checkout_token);
+      const paymentLink = `${appBaseUrl()}/pay.html?token=${checkoutToken}`;
       const subject = subjectOverride || `Quick update on your ${voice.brandName} subscription`;
-      const draftBody = bodyOverride || await draftWithGemini(context, voice);
+      const draftBody = bodyOverride || await draftWithGemini(context, voice, paymentLink);
       const insertedNoteId = await insertRecoveryNote(client, {
         caseId: context.id,
         organizationId,

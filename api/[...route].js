@@ -12,12 +12,14 @@
 
 const ROUTES = {
   'health': require('../server/health.js'),
+  'status': require('../server/status.js'),
   'leads': require('../server/leads.js'),
   'unsubscribe': require('../server/unsubscribe.js'),
   'config.js': require('../server/config.js'),
   'me': require('../server/me.js'),
   'settings': require('../server/settings.js'),
   'members': require('../server/members.js'),
+  'expansion': require('../server/expansion.js'),
   'dashboard-data': require('../server/dashboard-data.js'),
   'onboard': require('../server/onboard.js'),
   'organization': require('../server/organization.js'),
@@ -31,6 +33,7 @@ const ROUTES = {
   'recovery/send-note': require('../server/recovery/send-note.js'),
   'recovery/send-sms': require('../server/recovery/send-sms.js'),
   'recovery/bulk-approve': require('../server/recovery/bulk-approve.js'),
+  'public/case-by-token': require('../server/public/case-by-token.js'),
   'razorpay/connect': require('../server/razorpay/connect.js'),
   'razorpay/backfill': require('../server/razorpay/backfill.js'),
   'webhooks/razorpay': require('../server/webhooks/razorpay.js'),
@@ -38,6 +41,7 @@ const ROUTES = {
   'webhooks/sms-inbound': require('../server/webhooks/sms-inbound.js'),
   'webhooks/replay': require('../server/webhooks/replay.js'),
   'cron/process-recovery-queue': require('../server/cron/process-recovery-queue.js'),
+  'cron/detect-expansion-signals': require('../server/cron/detect-expansion-signals.js'),
   'alerts/send': require('../server/alerts/send.js'),
   'alerts/test': require('../server/alerts/test.js'),
   'export/cases': require('../server/export/cases.js'),
@@ -142,7 +146,8 @@ module.exports = async (req, res) => {
     pathname === 'webhooks/razorpay' ||
     pathname === 'webhooks/resend' ||
     pathname === 'webhooks/sms-inbound' || // signature-authenticated (Twilio)
-    pathname === 'cron/process-recovery-queue';
+    pathname === 'cron/process-recovery-queue' ||
+    pathname === 'cron/detect-expansion-signals';
   if (isWrite && !exempt) {
     if (await rateLimited(`${clientIp(req)}|${pathname}|write`)) {
       return sendJson(res, 429, { error: 'Too many requests — please slow down.' });

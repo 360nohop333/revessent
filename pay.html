@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Update Payment — Revessent</title>
+<meta name="description" content="Secure payment update and subscription renewal.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='%23000000'/%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='none' stroke='%233DDC97' stroke-opacity='.45' stroke-width='1.5'/%3E%3Cpath d='M9 21h3l2-7 3 10 2.4-8 2.6 5H24' fill='none' stroke='%233DDC97' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<script>
+(function(){var t='light';try{var s=localStorage.getItem('rv.theme');
+if(s==='light'||s==='amoled'||s==='minimal'||s==='minimal2')t=s;}catch(_){}
+document.documentElement.dataset.theme=t;})();
+addEventListener('storage',function(e){if(e.key==='rv.theme'&&e.newValue){
+var v=e.newValue;document.documentElement.dataset.theme=(v==='light'||v==='amoled'||v==='minimal'||v==='minimal2')?v:'light';}});
+</script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
+:root{
+  --canvas:#f9f4ea;--text:#1D1C1A;--text2:#3C3B37;--muted:#6B6860;--acc:#35608f;
+  --edge:rgba(255,255,255,.68);--cc:255 253 247;--r:18px;
+  --sh:inset 0 1px 0 rgba(255,255,255,.6),0 10px 28px -20px rgba(64,48,26,.25);
+  --ok:#16a34a;--f:"Manrope RV",-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Arial,sans-serif;
+  --fm:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+html[data-theme=dark]{
+  --canvas:#1c1a17;--text:#EFECE4;--text2:#C4C6C9;--muted:#96938C;--acc:#C4C6C9;
+  --edge:rgba(224,222,214,.2);--cc:42 40 36;--ok:#3DDC97;
+}
+html[data-theme=amoled]{
+  --canvas:#000000;--text:#F2F5F7;--text2:#C3CBD6;--muted:#8B94A3;--acc:#3DDC97;
+  --edge:rgba(255,255,255,.10);--cc:61 220 151;--ok:#3DDC97;
+}
+html[data-theme=minimal]{
+  --canvas:#ffffff;--text:#000000;--text2:#1a1a1a;--muted:#5a5a5a;--acc:#000000;
+  --edge:rgba(0,0,0,.16);--cc:255 255 255;--ok:#000000;
+}
+html[data-theme=minimal2]{
+  --canvas:#000000;--text:#ffffff;--text2:#e4e4e4;--muted:#8f8f8f;--acc:#ffffff;
+  --edge:rgba(255,255,255,.16);--cc:0 0 0;--ok:#ffffff;
+}
+body{
+  margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:var(--canvas);color:var(--text);font-family:var(--f);line-height:1.6;
+  -webkit-font-smoothing:antialiased;padding:24px;box-sizing:border-box;
+}
+.pay-wrap{width:100%;max-width:440px;}
+.card{
+  border:1px solid var(--edge);background:rgb(var(--cc)/.5);border-radius:var(--r);
+  box-shadow:var(--sh);padding:32px 28px;text-align:center;
+}
+.brand-name{font-size:22px;font-weight:700;letter-spacing:-.02em;margin:0 0 6px;}
+.kicker{font-family:var(--fm);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:18px;display:block;}
+.amount-box{
+  margin:20px 0;padding:20px;border-radius:14px;background:rgba(255,255,255,.05);
+  border:1px solid var(--edge);
+}
+.amount-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-family:var(--fm);}
+.amount-value{font-size:36px;font-weight:800;letter-spacing:-.03em;margin:4px 0 0;color:var(--text);}
+.btn-pay{
+  display:block;width:100%;padding:14px;border-radius:14px;border:none;
+  background:var(--acc);color:#ffffff;font-size:15px;font-weight:700;
+  cursor:pointer;transition:transform .15s,opacity .15s;margin-top:20px;
+}
+html[data-theme=amoled] .btn-pay{background:#3DDC97;color:#000000;}
+html[data-theme=minimal] .btn-pay{background:#000000;color:#ffffff;}
+html[data-theme=minimal2] .btn-pay{background:#ffffff;color:#000000;}
+.btn-pay:hover{opacity:.92;transform:translateY(-1px);}
+.btn-pay:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.security-note{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  font-size:12px;color:var(--muted);margin-top:16px;font-family:var(--fm);
+}
+.state-box{padding:20px 10px;}
+.state-icon{font-size:40px;margin-bottom:12px;}
+.state-title{font-size:19px;font-weight:700;margin:0 0 8px;}
+.state-desc{font-size:14px;color:var(--text2);margin:0;}
+.foot{margin-top:24px;text-align:center;font-size:12px;color:var(--muted);}
+</style>
+<!-- Glass Kit: shared liquid-glass UI layer (pill CTAs, glass cards, switches) -->
+<link rel="stylesheet" href="/glass-kit.css">
+<script src="/glass-kit.js" defer></script>
+<!-- Razorpay Checkout Widget -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body>
+<div class="pay-wrap">
+  <div class="card" id="payCard" data-liquidglass>
+    <div id="loadingView" class="state-box">
+      <div class="state-icon">&sim;</div>
+      <div class="state-title">Loading payment details&hellip;</div>
+      <p class="state-desc">Connecting to secure checkout.</p>
+    </div>
+
+    <div id="payView" style="display:none">
+      <span class="kicker">Payment Renewal</span>
+      <h1 class="brand-name" id="brandName">—</h1>
+      <p style="font-size:14px;color:var(--muted);margin:0 0 16px;">Update your payment method to keep your subscription active.</p>
+
+      <div class="amount-box">
+        <div class="amount-label">Amount Due</div>
+        <div class="amount-value" id="amountValue">—</div>
+      </div>
+
+      <button class="btn-pay" id="payBtn" type="button">Pay Now</button>
+
+      <div class="security-note">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <span>Encrypted &amp; Secured by Razorpay</span>
+      </div>
+    </div>
+
+    <div id="successView" class="state-box" style="display:none">
+      <div class="state-icon" style="color:var(--ok)">&check;</div>
+      <div class="state-title">Payment received, thank you!</div>
+      <p class="state-desc">Your payment was processed successfully and your subscription has been renewed.</p>
+    </div>
+
+    <div id="expiredView" class="state-box" style="display:none">
+      <div class="state-icon">&times;</div>
+      <div class="state-title">Payment Link Expired</div>
+      <p class="state-desc" id="expiredMsg">This payment link has expired. Please contact support directly.</p>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span>Secured by Revessent Recovery Intelligence</span>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  var params = new URLSearchParams(window.location.search);
+  var token = params.get('token') || '';
+
+  var loadingView = document.getElementById('loadingView');
+  var payView = document.getElementById('payView');
+  var successView = document.getElementById('successView');
+  var expiredView = document.getElementById('expiredView');
+  var brandNameEl = document.getElementById('brandName');
+  var amountValueEl = document.getElementById('amountValue');
+  var expiredMsgEl = document.getElementById('expiredMsg');
+  var payBtn = document.getElementById('payBtn');
+
+  var caseData = null;
+
+  const ZERO_DECIMAL_CURRENCIES = ['JPY', 'KRW', 'VND', 'CLP', 'ISK', 'HUF', 'TWD', 'BHD', 'KWD', 'OMR'];
+
+  function formatMoney(cents, currency) {
+    var cur = String(currency || 'INR').toUpperCase();
+    var divisor = ZERO_DECIMAL_CURRENCIES.indexOf(cur) !== -1 ? 1 : 100;
+    var num = (Number(cents) || 0) / divisor;
+    try {
+      return new Intl.NumberFormat('en-IN', { style: 'currency', currency: cur, maximumFractionDigits: 2 }).format(num);
+    } catch (_) {
+      return cur + ' ' + num.toFixed(2);
+    }
+  }
+
+  function showView(view) {
+    loadingView.style.display = 'none';
+    payView.style.display = 'none';
+    successView.style.display = 'none';
+    expiredView.style.display = 'none';
+    view.style.display = 'block';
+  }
+
+  if (!token) {
+    expiredMsgEl.textContent = 'This payment link is missing or invalid. Please contact the merchant directly.';
+    showView(expiredView);
+    return;
+  }
+
+  fetch('/api/public/case-by-token?token=' + encodeURIComponent(token))
+    .then(function(res) {
+      if (!res.ok) throw new Error('Expired or invalid');
+      return res.json();
+    })
+    .then(function(data) {
+      caseData = data;
+      brandNameEl.textContent = data.brandName || 'Subscription';
+      amountValueEl.textContent = formatMoney(data.amountCents, data.currency);
+      showView(payView);
+    })
+    .catch(function() {
+      var brand = (caseData && caseData.brandName) || 'the merchant';
+      expiredMsgEl.textContent = 'This payment link has expired. Please contact ' + brand + ' directly.';
+      showView(expiredView);
+    });
+
+  payBtn.addEventListener('click', function() {
+    if (!caseData || !caseData.razorpayKeyId) {
+      alert('Payment provider is not properly configured. Please contact the merchant.');
+      return;
+    }
+
+    var options = {
+      key: caseData.razorpayKeyId,
+      amount: caseData.amountCents,
+      currency: caseData.currency || 'INR',
+      name: caseData.brandName || 'Subscription',
+      description: 'Subscription Renewal',
+      handler: function(response) {
+        showView(successView);
+      },
+      theme: {
+        color: '#000000'
+      }
+    };
+
+    try {
+      var rzp = new Razorpay(options);
+      rzp.on('payment.failed', function(resp) {
+        alert('Payment failed: ' + (resp.error && resp.error.description ? resp.error.description : 'Please try another card.'));
+      });
+      rzp.open();
+    } catch (e) {
+      alert('Could not open payment window: ' + e.message);
+    }
+  });
+})();
+</script>
+</body>
+</html>

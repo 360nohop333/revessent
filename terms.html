@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Terms of Service — Revessent</title>
-<meta name="description" content="Revessent terms of service (draft).">
+<meta name="description" content="Revessent terms of service (draft boilerplate for pilot phase).">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='%23000000'/%3E%3Crect x='2' y='2' width='28' height='28' rx='9' fill='none' stroke='%233DDC97' stroke-opacity='.45' stroke-width='1.5'/%3E%3Cpath d='M9 21h3l2-7 3 10 2.4-8 2.6 5H24' fill='none' stroke='%233DDC97' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap');
@@ -15,15 +15,20 @@ html[data-theme=amoled]{--canvas:#000000;--text:#F2F5F7;--text2:#C3CBD6;--muted:
 html[data-theme=minimal]{--canvas:#ffffff;--text:#000000;--text2:#1a1a1a;--muted:#5a5a5a;--acc:#000000;--cc:255 255 255;--edge:rgba(0,0,0,.16);}
 html[data-theme=minimal2]{--canvas:#000000;--text:#ffffff;--text2:#e4e4e4;--muted:#8f8f8f;--acc:#ffffff;--cc:0 0 0;--edge:rgba(255,255,255,.16);}
 body{margin:0;background:var(--canvas);color:var(--text);font-family:var(--f);line-height:1.7;font-size:16px;-webkit-font-smoothing:antialiased;}
-.wrap{width:min(760px,100% - 48px);margin-inline:auto;padding:90px 0 70px;}
-a{color:var(--acc);}
+.wrap{width:min(760px,100% - 48px);margin-inline:auto;padding:70px 0 70px;}
+a{color:var(--acc);text-decoration:none;}
+a:hover{text-decoration:underline;}
+.back-nav{margin-bottom:28px;}
+.back-link{font-family:var(--fm);font-size:13px;letter-spacing:.02em;display:inline-flex;align-items:center;gap:6px;}
 .kicker{font-family:var(--fm);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--acc);}
 h1{font-size:clamp(34px,5vw,46px);letter-spacing:-.02em;line-height:1.1;margin:10px 0 8px;}
 .draft{display:inline-block;font-family:var(--fm);font-size:12px;letter-spacing:.08em;padding:7px 13px;border-radius:999px;border:1px solid var(--edge);background:rgb(var(--cc)/.5);color:var(--muted);margin-bottom:26px;}
 .card{border:1px solid var(--edge);background:rgb(var(--cc)/.45);border-radius:var(--r);box-shadow:var(--sh);padding:30px 32px;margin-top:22px;}
 .card h2{font-size:19px;margin:0 0 10px;letter-spacing:-.01em;}
 .card p{color:var(--text2);margin:0 0 12px;}
-.card p:last-child{margin-bottom:0;}
+.card ul{color:var(--text2);margin:0 0 12px;padding-left:20px;}
+.card li{margin-bottom:6px;}
+.card p:last-child, .card ul:last-child{margin-bottom:0;}
 .foot{margin-top:40px;color:var(--muted);font-size:13.5px;text-align:center;}
 </style>
 <!-- Glass Kit: shared liquid-glass UI layer (pill CTAs, glass cards, switches) -->
@@ -32,40 +37,69 @@ h1{font-size:clamp(34px,5vw,46px);letter-spacing:-.02em;line-height:1.1;margin:1
 </head>
 <body>
 <div class="wrap">
+  <div class="back-nav">
+    <a href="/index.html" class="back-link">&larr; Back to home</a>
+  </div>
   <span class="kicker">Legal</span>
   <h1>Terms of Service</h1>
-  <span class="draft">DRAFT — review with legal counsel before launch</span>
+  <span class="draft">DRAFT — Pilot / Beta Phase Boilerplate (Subject to Legal Review)</span>
 
   <div class="card" data-liquidglass>
-    <h2>1. The service</h2>
-    <p>Revessent is revenue-recovery software for subscription businesses. It reads payment-failure signals from your connected billing platform (currently Razorpay), schedules and attempts recovery actions on your behalf, and reports what was recovered.</p>
-  </div>
-  <div class="card" data-liquidglass>
-    <h2>2. Your account</h2>
-    <p>You are responsible for the accuracy of your account information, for keeping your credentials and API keys confidential, and for all activity carried out through your workspace. Workspace owners control billing connections, sender identity and team access.</p>
-  </div>
-  <div class="card" data-liquidglass>
-    <h2>3. Your data and your customers' data</h2>
-    <p>You retain ownership of your data. You grant Revessent a limited licence to process it solely to operate the service. You confirm you have the right to share your customers' contact details (email, phone) for payment-recovery messaging, as required by applicable law, including India's DPDP Act and, where relevant, the GDPR.</p>
-  </div>
-  <div class="card" data-liquidglass>
-    <h2>4. Acceptable use</h2>
-    <p>You may not use Revessent to send messages that are misleading, harassing or unlawful; to impersonate any person or brand; or to attempt recovery of payments that the customer has disputed through official channels.</p>
-  </div>
-  <div class="card" data-liquidglass>
-    <h2>5. Billing and the pilot</h2>
-    <p>Free pilots run for 14 days with no card required. Paid plans are billed in advance in the currency shown at signup. If, in the first 90 days of a paid term, Revessent does not recover more revenue than the fees you paid, you may request a refund of those fees — recoveries are measured by the attribution ledger in your dashboard.</p>
-  </div>
-  <div class="card" data-liquidglass>
-    <h2>6. Service availability</h2>
-    <p>We aim for high availability but do not guarantee uninterrupted service. Recovery depends partly on third parties (your billing platform, email and SMS providers) whose availability we do not control.</p>
-  </div>
-  <div class="card" data-liquidglass>
-    <h2>7. Contact</h2>
-    <p>Questions about these terms: <a href="mailto:hello@revessent.com">hello@revessent.com</a>.</p>
+    <h2>1. The Service</h2>
+    <p>Revessent ("we", "us", or "our") provides revenue recovery intelligence and automation software for subscription and recurring billing businesses. Revessent monitors payment failure signals from your connected payment provider (currently Razorpay), calculates optimal retry schedules, drafts and transmits automated customer recovery communications, and provides attribution metrics on recovered revenue.</p>
   </div>
 
-  <p class="foot">Last updated: October 2026 · <a href="/privacy.html">Privacy policy</a> · <a href="/index.html">revessent.</a></p>
+  <div class="card" data-liquidglass>
+    <h2>2. Who Can Use the Service &amp; Account Responsibility</h2>
+    <p>Revessent is a B2B SaaS platform designed exclusively for commercial entities and individuals operating businesses. By creating an account or connecting a payment provider, you represent and warrant that you have full authority to bind your organization to these Terms.</p>
+    <p>You are solely responsible for maintaining the confidentiality of your workspace credentials, API keys, and session tokens, as well as for all activities conducted under your workspace. Workspace owners and administrators hold administrative control over team access, sender configuration, and billing credentials.</p>
+  </div>
+
+  <div class="card" data-liquidglass>
+    <h2>3. Acceptable Use Policy</h2>
+    <p>You agree to use Revessent only in accordance with all applicable laws and regulations. You specifically agree not to:</p>
+    <ul>
+      <li>Use the service to send misleading, fraudulent, deceptive, harassing, or unsolicited communications (spam).</li>
+      <li>Impersonate any person, brand, or entity without explicit authorization.</li>
+      <li>Attempt to recover charges that have been formally disputed, refunded, or subject to a chargeback.</li>
+      <li>Interfere with, compromise, or disrupt the integrity or security of the service or its underlying infrastructure.</li>
+      <li>Attempt to reverse engineer or extract source code from non-public endpoints or systems.</li>
+    </ul>
+  </div>
+
+  <div class="card" data-liquidglass>
+    <h2>4. Pricing, Billing &amp; Pilot Terms</h2>
+    <p>Revessent is currently in a <strong>free pilot phase</strong>. During this pilot period, core recovery features are made available without subscription fees or credit card requirements. Paid subscription plans and billing schedules will be announced with advance written notice prior to general commercial launch. Continued use of the platform after the conclusion of the free pilot phase will require selecting an active paid plan.</p>
+  </div>
+
+  <div class="card" data-liquidglass>
+    <h2>5. Customer &amp; End-Customer Data</h2>
+    <p>You retain full ownership of all data submitted to or collected by Revessent through your account. You grant Revessent a limited, revocable, non-exclusive license to process your data solely to operate, improve, and secure the recovery service on your behalf.</p>
+    <p>By connecting your payment gateway (such as Razorpay), you authorize Revessent to access transaction metadata, decline codes, customer contact details (names, emails, phone numbers), and subscription identifiers. You represent and warrant that you have established appropriate legal bases and customer consents under applicable privacy laws (including India's Digital Personal Data Protection Act and GDPR where applicable) to share customer contact data for payment recovery outreach.</p>
+  </div>
+
+  <div class="card" data-liquidglass>
+    <h2>6. Limitation of Liability</h2>
+    <p>To the maximum extent permitted by applicable law, Revessent and its contributors shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including loss of profits, data, goodwill, or business interruption, arising out of or related to your use of or inability to use the service.</p>
+    <p>Revessent coordinates actions with third-party providers (including Razorpay, email delivery networks, and AI inference APIs) whose uptime, delivery rates, and processing results are outside Revessent's direct control. Total aggregate liability under these terms shall not exceed the amount paid by you to Revessent in the twelve (12) months preceding the claim.</p>
+  </div>
+
+  <div class="card" data-liquidglass>
+    <h2>7. Termination</h2>
+    <p>You may terminate your account at any time by deleting your workspace in workspace settings or by submitting a written request to our support team. Revessent reserves the right to suspend or terminate access immediately if these Terms are violated or if required by law. Upon termination, your right to access the service ceases immediately, and data deletion proceeds according to our Privacy Policy.</p>
+  </div>
+
+  <div class="card" data-liquidglass>
+    <h2>8. Governing Law &amp; Jurisdiction</h2>
+    <p>These Terms shall be governed by and construed in accordance with the laws of <strong>India</strong>, without regard to its conflict of law principles. Any legal suit, action, or proceeding arising out of or related to these Terms or the service shall be instituted exclusively in the competent courts of Mumbai, Maharashtra, India.</p>
+  </div>
+
+  <div class="card" data-liquidglass>
+    <h2>9. Contact Information</h2>
+    <p>For inquiries, legal notices, or questions regarding these Terms of Service, please contact us at <a href="mailto:legal@revessent.com">legal@revessent.com</a>.</p>
+  </div>
+
+  <p class="foot">Last updated: October 2026 &middot; <a href="/privacy.html">Privacy Policy</a> &middot; <a href="/index.html">Revessent</a></p>
 </div>
 <script>
 try{var t=localStorage.getItem('rv.theme')||localStorage.getItem('revessent-theme')||'';t=(t==='light'||t==='amoled'||t==='minimal'||t==='minimal2')?t:'light';document.documentElement.dataset.theme=t;}catch(_){document.documentElement.dataset.theme='light';}
