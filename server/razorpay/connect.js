@@ -230,8 +230,58 @@ async function registerRazorpayWebhook({ client, organizationId }) {
 }
 
 async function handler(req, res) {
+  if (req.method === 'DELETE') {
+    let client;
+    try {
+      client = await pool.connect();
+      const { user } = await authenticateRequest(req, client);
+
+      if (!['owner', 'admin'].includes(String((user && user.role) || '').toLowerCase())) {
+        return sendJson(res, 403, { error: 'Only workspace owners and admins can change this.' });
+      }
+
+      const organizationId = user.organization_id;
+      const connection = await loadActiveConnection(client, organizationId);
+      if (!connection) {
+        return sendJson(res, 404, { error: 'No active Razorpay connection found.' });
+      }
+
+      if (connection.webhook_endpoint_id) {
+        try {
+          const keyId = cleanString(connection.stripe_account_id);
+          const keySecret = decryptSecret(connection);
+          await fetch(`https://api.razorpay.com/v1/webhooks/${encodeURIComponent(cleanString(connection.webhook_endpoint_id))}`, {
+            method: 'DELETE',
+            headers: { Authorization: razorpayAuthHeader(keyId, keySecret) },
+          });
+        } catch (delErr) {
+          console.warn('[revessent] Failed to remote-delete Razorpay webhook:', delErr);
+        }
+      }
+
+      await client.query(
+        `update stripe_connections
+            set is_active = false,
+                revoked_at = now()
+          where id = $1`,
+        [connection.id]
+      );
+
+      await logAudit(client, { organizationId, userId: user.id, action: 'razorpay.disconnected', detail: {} });
+      return sendJson(res, 200, { success: true, disconnected: true });
+    } catch (error) {
+      if (error.statusCode && [400, 401, 403, 404].includes(error.statusCode)) {
+        return sendJson(res, error.statusCode, { error: error.message });
+      }
+      console.error('Revessent /api/razorpay/connect DELETE failed:', error);
+      return sendJson(res, 500, { error: 'Could not disconnect Razorpay.' });
+    } finally {
+      if (client) client.release();
+    }
+  }
+
   if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
+    res.setHeader('Allow', 'POST, DELETE');
     return sendJson(res, 405, { error: 'Method not allowed.' });
   }
 

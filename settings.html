@@ -602,7 +602,10 @@ document.documentElement.dataset.theme=t;})();
 <h2 id="razorpayHeading">Razorpay connection</h2>
 <p class="section-note">Find these in Razorpay under <a href="https://dashboard.razorpay.com/app/keys" rel="noopener noreferrer" target="_blank">Settings → API Keys</a>.</p>
 </div>
+<div style="display:flex;align-items:center;gap:8px">
 <span class="badge" id="connectionBadge">Not connected</span>
+<button type="button" class="btn btn-ghost btn-sm" id="disconnectRzpBtn" style="display:none;padding:3px 10px;font-size:12px;color:var(--loss-ink,#f87b6c)">Disconnect</button>
+</div>
 </div>
 <div class="field-grid">
 <div class="field">
@@ -822,6 +825,7 @@ document.documentElement.dataset.theme=t;})();
       loadWarning: $('#loadWarning'),
       formMessage: $('#formMessage'),
       connectionBadge: $('#connectionBadge'),
+      disconnectRzpBtn: $('#disconnectRzpBtn'),
       rzpKeyId: $('#rzpKeyId'),
       rzpKeySecret: $('#rzpKeySecret'),
       razorpayError: $('#razorpayError'),
@@ -890,6 +894,9 @@ document.documentElement.dataset.theme=t;})();
     function setBadge(connected){
       els.connectionBadge.classList.toggle('connected', Boolean(connected));
       els.connectionBadge.textContent = connected ? 'Connected' : 'Not connected';
+      if(els.disconnectRzpBtn){
+        els.disconnectRzpBtn.style.display = connected ? '' : 'none';
+      }
     }
 
     function setTone(value){
@@ -1506,6 +1513,34 @@ document.documentElement.dataset.theme=t;})();
     });
 
     els.settingsCard.addEventListener('submit', saveSettings);
+    if(els.disconnectRzpBtn){
+      els.disconnectRzpBtn.addEventListener('click', async () => {
+        if(!confirm('Are you sure you want to disconnect Razorpay? Live recovery and webhook listening will stop.')) return;
+        els.disconnectRzpBtn.disabled = true;
+        els.disconnectRzpBtn.textContent = 'Disconnecting…';
+        try {
+          const res = await fetch('/api/razorpay/connect', {
+            method: 'DELETE',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          const body = await res.json().catch(() => ({}));
+          if(!res.ok) throw new Error(body.error || 'Could not disconnect Razorpay.');
+          initialRzpKeyId = '';
+          els.rzpKeyId.value = '';
+          els.rzpKeySecret.value = '';
+          setBadge(false);
+          showMessage('success', 'Razorpay disconnected.');
+        } catch (err) {
+          showMessage('error', err.message || 'Could not disconnect Razorpay.');
+        } finally {
+          els.disconnectRzpBtn.disabled = false;
+          els.disconnectRzpBtn.textContent = 'Disconnect';
+        }
+      });
+    }
     els.cancelBtn.addEventListener('click', () => { window.location.reload(); });
     els.reloadBtn.addEventListener('click', () => { window.location.reload(); });
 

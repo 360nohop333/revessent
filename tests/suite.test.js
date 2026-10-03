@@ -172,6 +172,8 @@ async function testRoleGates() {
 
   let res = await gate('razorpay/connect', 'POST', { body: '{}' });
   check('connect: member → 403', res.statusCode === 403, JSON.stringify(res.body));
+  res = await gate('razorpay/connect', 'DELETE');
+  check('connect DELETE: member → 403', res.statusCode === 403, JSON.stringify(res.body));
   res = await gate('recovery/retry', 'POST', { body: JSON.stringify({ caseId: 'c1' }) });
   check('retry: member → 403', res.statusCode === 403, JSON.stringify(res.body));
   res = await gate('recovery/send-note', 'POST', { body: JSON.stringify({ caseId: 'c1' }) });
@@ -1615,6 +1617,19 @@ async function testBatch5() {
     const body2 = extractFnBody('server/webhooks/razorpay.js', 'getRetrySchedule');
     const body3 = extractFnBody('server/razorpay/backfill.js', 'getRetrySchedule');
     check('decline logic: getRetrySchedule identical across all 3 files (Finding #30)', Boolean(body1) && body1 === body2 && body2 === body3);
+
+    // 8. Razorpay disconnect (DELETE /api/razorpay/connect)
+    const connectMod = require(path + '/server/razorpay/connect.js');
+    let deactivated = false;
+    let loggedAction = null;
+    CURRENT_CLIENT = fakeClient([
+      AUTH_BY_SBUID,
+      [/from stripe_connections/, () => ({ rows: [{ id: 'conn-1', organization_id: 'org-1', stripe_account_id: 'rzp_live_123', encrypted_restricted_key: 'enc', key_iv: 'iv', key_tag: 'tag', is_active: true, webhook_endpoint_id: 'whk_1' }] })],
+      [/update stripe_connections\s+set is_active = false/, () => { deactivated = true; return { rows: [] }; }],
+      [/insert into audit_log/, ({ params }) => { loggedAction = params[3]; return { rows: [] }; }],
+    ]);
+    res = await call(connectMod, makeReq('DELETE', { headers: AUTH }));
+    check('connect DELETE: owner disconnects Razorpay and logs audit', res.statusCode === 200 && res.body.disconnected === true && deactivated && loggedAction === 'razorpay.disconnected', JSON.stringify(res.body));
 
   } finally {
     global.fetch = prevFetch;
